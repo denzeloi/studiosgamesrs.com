@@ -17,6 +17,7 @@
       "**/node_modules/**",
       "functions/**",
       "*.md",
+      "steam_login.php",
       "steam-config.php",
       "serviceAccountKey.json"
     ],

@@ -3,6 +3,8 @@ node_modules/
 functions/node_modules/
 
 # Secretos: nunca deben entrar al repositorio
+# steam_login.php lleva la clave de Steam dentro y debe coincidir con el archivo de cPanel.
+steam_login.php
 steam-config.php
 serviceAccountKey.json
 .env
