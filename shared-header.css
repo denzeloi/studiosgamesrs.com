@@ -1,0 +1,628 @@
+/* ============================================================
+   SHARED HEADER - StudiosGamesRS
+   Header unificado para Dashboard, Community y Nexus
+   Combina logo del Dashboard + botones de Community
+   ============================================================ */
+
+.unified-header {
+    background: linear-gradient(180deg, #1a1c20 0%, #141618 100%);
+    padding: 0.4rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35), 0 0 24px rgba(229, 57, 53, 0.08);
+    border-bottom: 1px solid rgba(229, 57, 53, 0.4);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    min-height: 44px;
+    overflow: visible;
+}
+
+/* --- Logo / Branding (estilo Dashboard) --- */
+.unified-header .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+}
+
+.unified-header .header-logo {
+    font-family: 'Cinzel Decorative', serif;
+    font-weight: bold;
+    font-size: 1.25rem;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    user-select: none;
+    text-decoration: none;
+    display: inline-flex;
+    transition: opacity 0.2s, filter 0.2s;
+}
+
+.unified-header .header-logo:hover {
+    opacity: 0.95;
+    filter: drop-shadow(0 0 8px rgba(229, 57, 53, 0.5));
+}
+
+.unified-header .header-logo .studio {
+    color: #fff;
+}
+
+.unified-header .header-logo .gamesrs {
+    color: #e53935;
+    font-weight: 800;
+    text-shadow: 0 0 6px rgba(229, 57, 53, 0.7);
+}
+
+.unified-header .header-subtitle {
+    font-size: 0.78rem;
+    color: #aaa;
+    font-weight: 400;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.unified-header .header-version {
+    font-size: 0.7rem;
+    color: #666;
+    margin-top: 1px;
+}
+
+/* --- Nav Dropdown (menú compacto con icono épico) --- */
+.nav-dropdown {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.nav-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #e0e6ec;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.12);
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.nav-dropdown-trigger:hover {
+    background: linear-gradient(135deg, rgba(255,107,53,0.15), rgba(229,57,53,0.08));
+    border-color: rgba(255,107,53,0.4);
+    color: #ffb347;
+    box-shadow: 0 0 20px rgba(255,107,53,0.15);
+}
+
+.nav-dropdown-trigger .nav-dropdown-icon {
+    font-size: 1rem;
+    color: #ff6b35;
+    text-shadow: 0 0 8px rgba(255,107,53,0.6);
+}
+
+.nav-dropdown-trigger .nav-dropdown-chevron {
+    font-size: 0.65rem;
+    opacity: 0.8;
+    transition: transform 0.2s;
+}
+
+.nav-dropdown.open .nav-dropdown-chevron {
+    transform: rotate(180deg);
+}
+
+.nav-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 0.25rem;
+    min-width: 180px;
+    padding: 0.35rem;
+    background: linear-gradient(180deg, #1e2228 0%, #161a1e 100%);
+    border: 1px solid rgba(255,107,53,0.3);
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 30px rgba(255,107,53,0.12), inset 0 1px 0 rgba(255,255,255,0.05);
+    z-index: 1001;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: opacity 0.2s, transform 0.2s, visibility 0.2s;
+}
+
+.nav-dropdown.open .nav-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.nav-dropdown-menu a {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    color: #b0b8c0;
+    transition: all 0.2s;
+}
+
+.nav-dropdown-menu a:hover {
+    background: rgba(255,107,53,0.12);
+    color: #ffd700;
+}
+
+.nav-dropdown-menu a.current {
+    background: rgba(255,215,0,0.12);
+    color: #ffd700;
+    border-left: 3px solid #ff6b35;
+}
+
+.nav-dropdown-menu a i {
+    font-size: 1rem;
+    width: 1.2rem;
+    text-align: center;
+    color: #ff6b35;
+    text-shadow: 0 0 6px rgba(255,107,53,0.4);
+}
+
+/* --- Bloque final: navegación por sección + cerrar sesión --- */
+.unified-header .header-account-end {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    margin-left: 0.25rem;
+    padding-left: 0.55rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.unified-header .header-account-end .nav-dropdown-trigger {
+    min-height: 30px;
+    padding: 0.32rem 0.65rem;
+    border-radius: 7px;
+}
+
+.unified-header .header-account-end .nav-dropdown-menu {
+    left: auto;
+    right: 0;
+    min-width: 196px;
+}
+
+/* --- Search (centro) --- */
+.unified-header .header-search {
+    flex: 1;
+    min-width: 140px;
+    max-width: 380px;
+    position: relative;
+}
+
+.unified-header .header-search input {
+    width: 100%;
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    font-size: 0.8rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.unified-header .header-search input::placeholder {
+    color: #666;
+}
+
+.unified-header .header-search input:focus {
+    outline: none;
+    border-color: #e53935;
+    box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.25);
+}
+
+.unified-header .header-search .search-input-container { position: relative; }
+
+/* --- Acciones / Toggles --- */
+.unified-header .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    overflow: visible;
+}
+
+.unified-header .header-toggles {
+    display: none !important;
+}
+
+.unified-header .nexus-toggle-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    color: #999;
+    cursor: pointer;
+}
+
+.unified-header .nexus-toggle-label input { display: none; }
+
+.unified-header .nexus-toggle-switch {
+    width: 30px;
+    height: 16px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s;
+}
+
+.unified-header .nexus-toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #555;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s;
+}
+
+.unified-header .nexus-toggle-label input:checked + .nexus-toggle-switch {
+    background: rgba(229, 57, 53, 0.4);
+}
+
+.unified-header .nexus-toggle-label input:checked + .nexus-toggle-switch::after {
+    transform: translateX(14px);
+    background: #e53935;
+}
+
+.unified-header .icon-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    color: #b0b8c0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.unified-header .icon-btn:hover {
+    background: rgba(255, 179, 71, 0.15);
+    color: #ffb347;
+    border-color: rgba(255, 179, 71, 0.3);
+}
+
+.unified-header .icon-btn.audio-playing {
+    color: #ffb347;
+    border-color: rgba(255, 179, 71, 0.4);
+}
+
+.header-notif-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    padding: 0 4px;
+    background: #e53935;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+    border: 1px solid rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 8px rgba(229, 57, 53, 0.5);
+}
+
+/* --- Botones principales --- */
+.unified-header .header-link-btn {
+    padding: 0.45rem 0.9rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s;
+}
+
+.unified-header .header-link-btn:hover {
+    background: rgba(255, 179, 71, 0.2);
+    border-color: #ffb347;
+    color: #ffb347;
+}
+
+.unified-header .logout-btn {
+    padding: 0.3rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+    background: #e53935;
+    border: 1px solid #ff7961;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(229, 57, 53, 0.35);
+    transition: all 0.2s;
+}
+
+.unified-header .logout-btn:hover {
+    background: #c62828;
+    box-shadow: 0 4px 12px rgba(229, 57, 53, 0.5);
+}
+
+/* --- Bandeja de Notificaciones --- */
+.notifications-dropdown {
+    position: fixed;
+    top: 60px;
+    right: 1rem;
+    width: 340px;
+    max-height: 400px;
+    background: linear-gradient(180deg, #1a1c20 0%, #141618 100%);
+    border: 1px solid rgba(229, 57, 53, 0.3);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.notifications-dropdown.open {
+    display: flex;
+}
+
+.notifications-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    font-weight: 600;
+    color: #f0f6fc;
+}
+
+.notif-close {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 0 0.25rem;
+    line-height: 1;
+}
+
+.notif-close:hover { color: #fff; }
+
+.notifications-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.notif-refresh {
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    color: #d9e1e8;
+    border-radius: 6px;
+    padding: 0.2rem 0.45rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.notif-refresh:hover {
+    background: rgba(255,255,255,0.12);
+}
+
+.notifications-list {
+    overflow-y: auto;
+    max-height: 320px;
+}
+
+.notif-item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+}
+
+.notif-item:hover { background: rgba(255,255,255,0.06); }
+.notif-item.read { opacity: 0.7; }
+.notif-item-group {
+    padding: 0.4rem 1rem 0.3rem;
+    font-size: 0.7rem;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.notif-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+.notif-body { flex: 1; min-width: 0; }
+.notif-text { font-size: 0.9rem; color: #e0e6ed; line-height: 1.35; }
+.notif-time { font-size: 0.75rem; color: #8b949e; margin-top: 0.25rem; }
+
+.notifications-empty {
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: #8b949e;
+    font-size: 0.9rem;
+}
+
+/* --- Header unificado: ocultar elementos que varían por página --- */
+.header-progress,
+.nexus-stats-below-header,
+.streak-notification,
+.mechanics-streak-badge,
+.mechanics-missions-count {
+    display: none !important;
+}
+
+/* Nexus: main-header debe verse igual que unified-header en otras páginas */
+.main-header {
+    min-height: unset !important;
+    height: auto !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+}
+.main-header > .unified-header {
+    flex: 0 0 auto;
+}
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+    .unified-header {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0.75rem 1rem;
+    }
+    .unified-header .header-brand { justify-content: center; }
+    .unified-header .header-search { max-width: none; width: 100%; }
+    .unified-header .header-nav { justify-content: center; flex-wrap: wrap; }
+    .unified-header .header-actions { justify-content: center; flex-wrap: wrap; }
+    .unified-header .header-account-end {
+        margin-left: 0;
+        padding-left: 0;
+        border-left: none;
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .unified-header {
+        padding: 0.6rem 0.75rem;
+    }
+    .unified-header .header-logo { font-size: 1.1rem; }
+    .unified-header .header-subtitle { font-size: 0.72rem; }
+    .unified-header .header-version { font-size: 0.65rem; }
+    .unified-header .nav-dropdown-trigger {
+        padding: 0.5rem 0.9rem;
+        min-height: 44px;
+    }
+    .unified-header .search-input-container input,
+    .unified-header .user-search-input {
+        min-height: 44px;
+        font-size: 16px; /* Evita zoom en iOS */
+    }
+}
+
+@media (max-width: 480px) {
+    .unified-header {
+        padding: 0.5rem 0.6rem;
+    }
+    .unified-header .header-logo { font-size: 1rem; }
+}
+
+/* ========== EFECTO BRAZAS (todas las páginas) ========== */
+body.effect-brazas {
+    position: relative;
+}
+body.effect-brazas::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9998;
+    background: radial-gradient(ellipse 80% 50% at 50% 100%, rgba(255, 80, 40, 0.18) 0%, rgba(229, 57, 53, 0.08) 40%, transparent 70%);
+    animation: brazas-glow 4s ease-in-out infinite alternate;
+}
+body.effect-brazas::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9997;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.015' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.05 0 0 0 0 0 0 0 0 0.15 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+    opacity: 0.35;
+    mix-blend-mode: overlay;
+    animation: brazas-flicker 3s ease-in-out infinite;
+}
+@keyframes brazas-glow {
+    from { opacity: 0.7; transform: scaleY(1); }
+    to   { opacity: 1;   transform: scaleY(1.02); }
+}
+@keyframes brazas-flicker {
+    0%, 100% { opacity: 0.3; }
+    50%      { opacity: 0.4; }
+}
+
+/* ========== MODO FURIA (efecto impactante en todas las páginas) ========== */
+body.theme-fury {
+    --fury-accent: #ff1744;
+    --fury-glow: rgba(255, 23, 68, 0.4);
+}
+body.theme-fury .unified-header {
+    border-bottom-color: #ff1744;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.4), 0 0 40px rgba(255, 23, 68, 0.2);
+}
+body.theme-fury .unified-header .header-logo .gamesrs {
+    color: #ff1744;
+    text-shadow: 0 0 12px rgba(255, 23, 68, 0.9), 0 0 24px rgba(255, 23, 68, 0.5);
+}
+body.theme-fury .unified-header .header-nav a.current,
+body.theme-fury .unified-header .header-nav a:hover {
+    color: #ff5252;
+    border-color: rgba(255, 23, 68, 0.5);
+}
+body.theme-fury .icon-btn:hover,
+body.theme-fury .logout-btn {
+    border-color: rgba(255, 23, 68, 0.6);
+    box-shadow: 0 2px 8px rgba(255, 23, 68, 0.3);
+}
+body.theme-fury .unified-header .header-account-end {
+    border-left-color: rgba(255, 23, 68, 0.35);
+}
+body.theme-fury main,
+body.theme-fury .nexus-card,
+body.theme-fury .profile-card,
+body.theme-fury [class*="widget"] {
+    border-color: rgba(255, 23, 68, 0.25) !important;
+}
+body.theme-fury .hud-stat-box,
+body.theme-fury .competitive-section,
+body.theme-fury .playzone-widget {
+    border-color: rgba(255, 23, 68, 0.35) !important;
+    box-shadow: 0 0 20px rgba(255, 23, 68, 0.08);
+}
+
+/* ========== MODO STREAMER (blur datos sensibles en todas las páginas) ========== */
+body.streamer-mode [data-streamer-blur] {
+    filter: blur(8px);
+    pointer-events: none;
+    user-select: none;
+    transition: filter 0.3s ease;
+}
+body.streamer-mode .streamer-mode-placeholder {
+    display: block !important;
+    filter: none;
+    pointer-events: auto;
+    user-select: text;
+}
+body.streamer-mode .playzone-widget #playZoneContent {
+    min-height: 3rem;
+}
+.streamer-mode-placeholder {
+    display: none;
+    font-size: 0.9rem;
+    color: #888;
+    font-style: italic;
+    margin-top: 0.5rem;
+}

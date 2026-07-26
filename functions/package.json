@@ -1,0 +1,13 @@
+{
+  "name": "playzone-token-functions",
+  "description": "Reparto automático y seguro de tokens de PlayZone",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.1.0",
+    "firebase-functions": "^4.9.0"
+  },
+  "private": true
+}

@@ -1,0 +1,2343 @@
+/* ============================================= */
+/* community.css - El Nexo | Studiosgamesrs      */
+/* 40+ MEJORAS LEGENDARIAS · Lucete Muñeco       */
+/* ============================================= */
+
+/* --- 1. Variables de diseño (paleta Studiosgamesrs) --- */
+:root {
+    --community-bg: #0a0c0f;
+    --community-card: rgba(20, 24, 28, 0.92);
+    --community-card-border: rgba(229, 57, 53, 0.35);
+    --community-primary: #e53935;
+    --community-primary-glow: rgba(229, 57, 53, 0.5);
+    --community-gold: #ffb347;
+    --community-gold-soft: rgba(255, 179, 71, 0.25);
+    --community-text: #f0f6fc;
+    --community-text-muted: #8b949e;
+    --community-border: rgba(48, 54, 61, 0.8);
+    --community-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --community-radius: 14px;
+    --community-radius-sm: 10px;
+    --community-transition: 0.25s ease;
+    --community-transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --font-cinzel: 'Cinzel Decorative', serif;
+    --font-orbitron: 'Orbitron', sans-serif;
+    --font-rajdhani: 'Rajdhani', sans-serif;
+    /* Legendary extras */
+    --legendary-glow: 0 0 30px rgba(255, 179, 71, 0.3);
+    --legendary-glow-strong: 0 0 50px rgba(229, 57, 53, 0.4);
+    --legendary-gradient: linear-gradient(135deg, #ffb347 0%, #e53935 50%, #ff6b6b 100%);
+    --legendary-gradient-subtle: linear-gradient(180deg, rgba(255,179,71,0.08) 0%, transparent 50%);
+}
+
+/* --- Modo Furia de Dragón: acentos rojos intensos --- */
+body.community-page.theme-fury {
+    --community-primary: #ff1744;
+    --community-primary-glow: rgba(255, 23, 68, 0.65);
+    --community-gold: #ff5252;
+    --community-card-border: rgba(255, 23, 68, 0.5);
+}
+body.community-page.theme-fury .community-main .nexus-card:hover { border-color: rgba(255, 23, 68, 0.7); }
+body.community-page.theme-fury .nexus-profile-badge,
+body.community-page.theme-fury .dashboard-link-btn:hover { border-color: var(--community-primary); }
+
+/* --- Modo Streamer: ocultar datos sensibles --- */
+body.community-page.streamer-mode .profile-scroll-stats,
+body.community-page.streamer-mode .honor-exact-value,
+body.community-page.streamer-mode [data-streamer-hide] { filter: blur(6px); pointer-events: none; user-select: none; }
+.profile-expand-hint { font-size: 0.7rem; color: var(--community-text-muted); display: block; margin-top: 0.25rem; }
+.profile-scroll-link { display: inline-block; margin-top: 0.5rem; color: var(--community-gold); font-size: 0.85rem; }
+body.community-page.streamer-mode .honorPoints { font-variant-numeric: tabular-nums; }
+
+/* --- Header toggles --- */
+.community-header-toggles {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.nexus-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: var(--community-text-muted);
+}
+.nexus-toggle-label input { display: none; }
+.nexus-toggle-switch {
+    width: 36px;
+    height: 20px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    position: relative;
+    transition: background var(--community-transition);
+}
+.nexus-toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: var(--community-text-muted);
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform var(--community-transition);
+}
+.nexus-toggle-label input:checked + .nexus-toggle-switch {
+    background: var(--community-primary);
+}
+.nexus-toggle-label input:checked + .nexus-toggle-switch::after {
+    transform: translateX(16px);
+    background: #fff;
+}
+.icon-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--community-border);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    color: var(--community-text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--community-transition);
+}
+.icon-btn:hover { border-color: var(--community-gold); color: var(--community-gold); }
+.icon-btn.audio-playing { border-color: var(--community-gold); color: var(--community-gold); }
+
+/* --- Ojo de Dragón (buscador) --- */
+.dragon-eye-search .search-input-container { position: relative; }
+.search-dragon-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--community-gold);
+    pointer-events: none;
+}
+.dragon-eye-search .user-search-input { padding-left: 2.25rem; }
+.dragon-eye-results { max-height: 320px; overflow-y: auto; }
+
+/* --- Perfil Pergamino Desplegable --- */
+.profile-scroll-expanded {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.profile-scroll-expanded.open {
+    max-height: 400px;
+}
+.profile-scroll-inner {
+    padding: 1rem 0;
+    border-top: 1px solid var(--community-border);
+}
+.profile-scroll-stats { font-size: 0.9rem; color: var(--community-text-muted); margin-bottom: 1rem; }
+.achievements-showcase h4 { font-family: var(--font-cinzel); font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--community-gold); }
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    gap: 0.5rem;
+}
+.achievement-medal {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,179,71,0.15);
+    border: 1px solid rgba(255,179,71,0.3);
+    cursor: pointer;
+    transition: transform var(--community-transition), box-shadow var(--community-transition);
+}
+.achievement-medal:hover {
+    transform: scale(1.15);
+    box-shadow: 0 0 20px rgba(255,179,71,0.5);
+}
+.achievement-medal svg { width: 24px; height: 24px; fill: var(--community-gold); }
+.achievement-medal.locked { opacity: 0.4; filter: grayscale(0.8); }
+.achievement-medal.locked:hover { transform: none; box-shadow: none; }
+
+/* --- Panels arrastrables --- */
+.nexus-draggable-panel.dragging { opacity: 0.7; }
+.nexus-draggable-panel.drag-over { outline: 2px dashed var(--community-gold); outline-offset: 4px; }
+
+/* --- 2. Contenedor principal y layout --- */
+body.community-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: 
+        radial-gradient(ellipse 120% 80% at 20% 20%, rgba(229, 57, 53, 0.12) 0%, transparent 45%),
+        radial-gradient(ellipse 100% 60% at 85% 85%, rgba(255, 179, 71, 0.08) 0%, transparent 45%),
+        radial-gradient(ellipse 80% 50% at 50% 100%, rgba(229, 57, 53, 0.05) 0%, transparent 40%),
+        var(--community-bg);
+    background-attachment: fixed;
+    position: relative;
+}
+body.community-page::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* --- Header unificado: Community usa el mismo que Dashboard (shared-header.css) --- */
+
+body:has(.community-main) .dashboard-return-btn.community-return-btn {
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+body:has(.community-main) .dashboard-link-btn {
+    margin-right: 0.5rem;
+    background-color: rgba(255,255,255,0.1);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+body:has(.community-main) .dashboard-link-btn:hover {
+    background-color: rgba(255,255,255,0.15);
+    border-color: #e53935;
+}
+
+.dashboard-link-btn {
+    padding: 0.5rem 0.85rem;
+    border-radius: var(--community-radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid var(--community-border);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--community-text);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: border-color var(--community-transition), background var(--community-transition);
+}
+
+.dashboard-link-btn:hover {
+    border-color: var(--community-gold);
+    background: var(--community-gold-soft);
+    color: var(--community-gold);
+}
+
+/* --- 6. Main grid: proporciones y espaciado --- */
+.community-main {
+    display: grid;
+    grid-template-columns: minmax(280px, 1.2fr) minmax(340px, 2.2fr) minmax(260px, 1fr);
+    gap: 1.5rem;
+    padding: 1.5rem;
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
+    flex: 1;
+    align-items: start;
+    position: relative;
+    z-index: 2;
+}
+
+.weekly-winner-spotlight {
+    grid-column: 1 / -1;
+}
+
+.weekly-winner-player {
+    display: grid;
+    grid-template-columns: minmax(300px, 2fr) minmax(220px, 1fr);
+    gap: 1rem;
+    align-items: center;
+}
+
+#weeklyWinnerIframe {
+    width: 100%;
+    min-height: 300px;
+    border: 1px solid var(--community-card-border);
+    border-radius: 12px;
+    background: #000;
+}
+
+.weekly-winner-meta h3 {
+    margin: 0 0 0.5rem;
+    font-family: var(--font-cinzel);
+    color: var(--community-gold);
+}
+
+.weekly-winner-meta p,
+.weekly-winner-empty {
+    margin: 0;
+    color: var(--community-text-muted);
+}
+
+/* --- 7. Paneles: gap consistente --- */
+.community-left-panel,
+.community-center-panel,
+.community-right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* --- 8. Cards Nexus (comunidad): estilo unificado --- */
+.community-main .nexus-card {
+    background: var(--community-card);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--community-card-border);
+    border-radius: var(--community-radius);
+    padding: 1.25rem 1.35rem;
+    box-shadow: var(--community-shadow);
+    transition: border-color var(--community-transition), box-shadow var(--community-transition), transform var(--community-transition);
+}
+
+.community-main .nexus-card:hover {
+    border-color: rgba(229, 57, 53, 0.55);
+    box-shadow: 0 12px 40px rgba(229, 57, 53, 0.15);
+    transform: translateY(-2px);
+}
+
+/* --- 9. Headers de sección --- */
+.community-main .nexus-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--community-border);
+}
+
+/* Header con botón: título a la izquierda, botón a la derecha */
+.community-main .nexus-header.nexus-header-with-btn {
+    justify-content: space-between;
+}
+.community-main .nexus-header-with-btn .nexus-header-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+}
+.community-main .nexus-header-with-btn .nexus-header-title h2 {
+    margin: 0;
+}
+
+.community-main .nexus-header h2,
+.community-main .nexus-header h3 {
+    font-family: var(--font-cinzel);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--community-text);
+    margin: 0;
+    letter-spacing: 0.02em;
+}
+
+.community-main .nexus-header i {
+    color: var(--community-gold);
+    font-size: 1.25rem;
+    margin-right: 0.35rem;
+}
+
+/* --- 10. Badge de subidas --- */
+.nexus-profile-badge {
+    background: var(--community-gold-soft);
+    border: 1px solid rgba(255, 179, 71, 0.4);
+    color: var(--community-gold);
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    font-family: var(--font-orbitron);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+/* --- 11. Zona de subida (Forja) --- */
+.forge-upload-area {
+    border: 2px dashed var(--community-card-border);
+    border-radius: var(--community-radius);
+    padding: 1.75rem 1.25rem;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    transition: all var(--community-transition);
+    margin-bottom: 1rem;
+}
+
+.forge-upload-area:hover {
+    border-color: var(--community-gold);
+    background: var(--community-gold-soft);
+    box-shadow: 0 0 24px rgba(255, 179, 71, 0.2);
+}
+
+.forge-upload-area i {
+    font-size: 2.25rem;
+    color: var(--community-gold);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.forge-upload-area p {
+    margin: 0 0 0.35rem;
+    color: var(--community-text);
+    font-size: 0.95rem;
+}
+
+.forge-upload-area small {
+    font-size: 0.75rem;
+    color: var(--community-text-muted);
+}
+
+.upload-link {
+    color: var(--community-gold);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+
+.forge-upload-mode {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0 0 0.9rem;
+    justify-content: center;
+    align-items: center;
+}
+
+.forge-mode-btn {
+    border: 1px solid var(--community-border);
+    background: rgba(255,255,255,0.05);
+    color: var(--community-text);
+    padding: 0.45rem 0.65rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    transition: all var(--community-transition);
+    flex: 1;
+    min-width: 0;
+    max-width: 140px;
+    text-align: center;
+}
+
+.forge-mode-btn.active {
+    border-color: var(--community-primary);
+    box-shadow: 0 0 0 2px rgba(229,57,53,0.18);
+    background: rgba(229,57,53,0.14);
+}
+
+/* --- 12. Preview de imagen antes de subir --- */
+.forge-preview-area {
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: var(--community-radius-sm);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    border: 1px solid rgba(255, 179, 71, 0.3);
+}
+
+.forge-preview-area img {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid var(--community-primary);
+}
+
+.forge-preview-area video {
+    width: 160px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid var(--community-primary);
+}
+
+.forge-preview-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.forge-preview-details input,
+.forge-preview-details select {
+    background: rgba(20, 24, 28, 0.9);
+    border: 1px solid var(--community-border);
+    color: var(--community-text);
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+#forgeTitleField,
+#forgeEmbedFields,
+#forgeFileFields {
+    width: 100%;
+}
+
+#forgeEmbedFields small,
+#forgeFileFields small {
+    display: block;
+    margin-top: 0.3rem;
+    color: var(--community-text-muted);
+    font-size: 0.75rem;
+}
+
+.forge-preview-details input:focus,
+.forge-preview-details select:focus {
+    outline: none;
+    border-color: var(--community-primary);
+}
+
+.forge-gallery-item.forge-latest {
+    border-color: var(--community-gold);
+    box-shadow: 0 0 18px rgba(255, 179, 71, 0.45);
+}
+
+.forge-latest-showcase {
+    margin-top: 0.85rem;
+    padding: 0.75rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 179, 71, 0.35);
+    background: linear-gradient(180deg, rgba(255, 179, 71, 0.08), rgba(0, 0, 0, 0.25));
+}
+
+.forge-latest-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--community-gold);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.forge-latest-media {
+    border-radius: 10px;
+    overflow: hidden;
+    max-height: 220px;
+    background: #000;
+}
+
+.forge-latest-media img,
+.forge-latest-media video {
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+    display: block;
+}
+
+.forge-latest-meta {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.82rem;
+    color: var(--community-text-muted);
+}
+
+.forge-latest-reactions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.weekly-winner-media-fallback {
+    width: 100%;
+    min-height: 180px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #000;
+}
+
+.weekly-winner-media-fallback img,
+.weekly-winner-media-fallback video {
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+    display: block;
+}
+
+.forge-epic-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at center, rgba(229, 57, 53, 0.25), rgba(0, 0, 0, 0.88) 65%);
+    pointer-events: none;
+}
+
+.forge-epic-overlay.is-active {
+    display: flex;
+    pointer-events: auto;
+}
+
+.forge-epic-stage {
+    position: relative;
+    width: min(360px, 88vw);
+    height: min(360px, 88vw);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.forge-epic-blast {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, #ffb347 35%, #e53935 70%, transparent 72%);
+    opacity: 0;
+    transform: scale(0.2);
+}
+
+.forge-epic-overlay.is-active .forge-epic-blast {
+    animation: forgeBlast 0.9s ease-out forwards;
+}
+
+.forge-epic-sparks {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    background:
+        radial-gradient(circle at 50% 50%, rgba(255, 179, 71, 0.5) 0, transparent 45%),
+        radial-gradient(circle at 30% 40%, rgba(229, 57, 53, 0.4) 0, transparent 30%),
+        radial-gradient(circle at 70% 60%, rgba(88, 166, 255, 0.35) 0, transparent 28%);
+}
+
+.forge-epic-overlay.is-active .forge-epic-sparks {
+    animation: forgeSparks 1.2s ease-out 0.2s forwards;
+}
+
+.forge-epic-egg {
+    position: absolute;
+    width: 90px;
+    height: 120px;
+    border-radius: 50% 50% 48% 48% / 58% 58% 42% 42%;
+    background: linear-gradient(160deg, #fff8e7 0%, #ffd27a 45%, #c98a2e 100%);
+    box-shadow: 0 0 30px rgba(255, 210, 122, 0.65), inset 0 -12px 20px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    transform: scale(0.3) translateY(30px);
+}
+
+.forge-epic-egg-glow {
+    position: absolute;
+    inset: 12px;
+    border-radius: inherit;
+    background: radial-gradient(circle at 40% 35%, rgba(255, 255, 255, 0.85), transparent 55%);
+}
+
+.forge-epic-overlay.phase-egg .forge-epic-egg {
+    animation: forgeEggAppear 0.8s ease-out forwards, forgeEggPulse 1.2s ease-in-out 0.8s infinite;
+}
+
+.forge-epic-dragon {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 0;
+    transform: scale(0.2) translateY(40px);
+    filter: drop-shadow(0 0 24px rgba(229, 57, 53, 0.8));
+}
+
+.forge-epic-dragon img {
+    width: min(200px, 55vw);
+    height: auto;
+    animation: forgeDragonFloat 1.4s ease-in-out infinite;
+}
+
+.forge-epic-dragon p {
+    margin: 0;
+    color: #ffd27a;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    text-shadow: 0 0 12px rgba(229, 57, 53, 0.8);
+}
+
+.forge-epic-overlay.phase-dragon .forge-epic-egg {
+    animation: forgeEggCrack 0.5s ease-in forwards;
+}
+
+.forge-epic-overlay.phase-dragon .forge-epic-dragon {
+    animation: forgeDragonRise 1s ease-out forwards;
+}
+
+.forge-epic-overlay.phase-done {
+    animation: forgeOverlayFade 0.7s ease-in forwards;
+}
+
+@keyframes forgeBlast {
+    0% { opacity: 0; transform: scale(0.2); }
+    30% { opacity: 1; transform: scale(2.5); }
+    100% { opacity: 0; transform: scale(6); }
+}
+
+@keyframes forgeSparks {
+    0% { opacity: 0; transform: scale(0.5); }
+    40% { opacity: 1; transform: scale(1.1); }
+    100% { opacity: 0.2; transform: scale(1.4); }
+}
+
+@keyframes forgeEggAppear {
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes forgeEggPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+}
+
+@keyframes forgeEggCrack {
+    to { opacity: 0; transform: scale(1.3); filter: blur(4px); }
+}
+
+@keyframes forgeDragonRise {
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes forgeDragonFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+@keyframes forgeOverlayFade {
+    to { opacity: 0; }
+}
+
+/* --- 13. Galería Forja --- */
+.forge-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.forge-gallery-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.forge-gallery-grid::-webkit-scrollbar-track {
+    background: rgba(48, 54, 61, 0.3);
+    border-radius: 3px;
+}
+
+.forge-gallery-grid::-webkit-scrollbar-thumb {
+    background: var(--community-primary);
+    border-radius: 3px;
+}
+
+.forge-gallery-item {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    aspect-ratio: 1;
+    border: 2px solid transparent;
+    transition: all var(--community-transition);
+}
+
+.forge-gallery-item:hover {
+    border-color: var(--community-gold);
+    transform: scale(1.03);
+    box-shadow: 0 8px 24px rgba(255, 179, 71, 0.25);
+}
+
+.forge-gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.forge-gallery-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #000;
+}
+
+.forge-embed-mark {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(229,57,53,0.25), rgba(255,179,71,0.2));
+    color: var(--community-gold);
+    font-weight: 700;
+}
+
+.forge-embed-shell {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    background: #000;
+}
+
+.forge-embed-shell iframe {
+    width: 100%;
+    height: 100%;
+    min-height: 180px;
+    border: 0;
+    display: block;
+}
+
+.forge-embed-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.35rem 0.45rem;
+    font-size: 0.68rem;
+    color: #cfd3dc;
+    background: rgba(0, 0, 0, 0.65);
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.forge-embed-fallback a {
+    color: var(--community-gold);
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.forge-embed-fallback a:hover {
+    text-decoration: underline;
+}
+
+.forge-gallery-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+    color: white;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.72rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+}
+
+.forge-gallery-overlay > span:first-child {
+    width: 100%;
+    font-weight: 600;
+}
+
+.forge-fame-badge {
+    font-size: 0.65rem;
+    color: var(--community-gold);
+    margin-left: auto;
+}
+
+.forge-reactions {
+    display: flex;
+    gap: 0.25rem;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.forge-reaction-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff;
+    padding: 0.2rem 0.4rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.forge-reaction-btn:hover,
+.forge-reaction-btn.active {
+    background: var(--community-primary);
+    border-color: var(--community-gold);
+}
+
+.forge-gallery-item.forge-featured {
+    border-color: var(--community-gold);
+    box-shadow: 0 0 0 2px rgba(255, 179, 71, 0.4);
+}
+
+.forge-gallery-item.forge-legend {
+    box-shadow: 0 0 0 2px rgba(255, 179, 71, 0.45), 0 0 24px rgba(229,57,53,0.35);
+}
+
+.forge-gallery-overlay i {
+    color: var(--community-gold);
+}
+
+/* --- Toque de Corneta: toast de Llamada a Batalla --- */
+.battle-call-toast-container {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+}
+
+.battle-call-toast {
+    padding: 0.9rem 1.4rem;
+    background: linear-gradient(135deg, rgba(229, 57, 53, 0.95) 0%, rgba(180, 40, 40, 0.98) 100%);
+    color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(229, 57, 53, 0.4), 0 0 0 1px rgba(255, 179, 71, 0.3);
+    font-weight: 600;
+    font-size: 0.95rem;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.3s, transform 0.3s;
+    max-width: 90vw;
+    max-width: min(420px, 90vw);
+}
+
+.battle-call-toast.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.battle-call-toast i {
+    margin-right: 0.5rem;
+    color: var(--community-gold);
+}
+
+/* --- 14. Consejo de Guerra (hilos) --- */
+.war-council-threads {
+    max-height: 280px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+    padding-right: 4px;
+}
+
+.war-council-threads::-webkit-scrollbar {
+    width: 6px;
+}
+
+.war-council-threads::-webkit-scrollbar-thumb {
+    background: var(--community-primary);
+    border-radius: 3px;
+}
+
+.thread-item {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.5rem;
+    border-left: 4px solid var(--community-primary);
+    cursor: pointer;
+    transition: all var(--community-transition);
+}
+
+.thread-item:hover {
+    background: rgba(229, 57, 53, 0.08);
+    border-left-width: 5px;
+    transform: translateX(4px);
+}
+
+.thread-mentor-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    color: var(--community-gold);
+    background: rgba(255, 179, 71, 0.2);
+    padding: 0.15rem 0.4rem;
+    border-radius: 6px;
+    margin-left: 0.35rem;
+    font-weight: 600;
+}
+
+.thread-help-badge { margin-right: 0.35rem; }
+.thread-item-help { border-left-color: var(--community-gold); }
+
+.mentor-toggle-wrap {
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--community-border);
+    margin-top: 0.25rem;
+}
+
+.mentor-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--community-text-muted);
+    cursor: pointer;
+}
+
+.mentor-toggle-label input { accent-color: var(--community-gold); }
+.mentor-toggle-label i { color: var(--community-gold); }
+
+.mentors-section .nexus-header { margin-bottom: 0.5rem; }
+.mentors-list { max-height: 180px; overflow-y: auto; }
+.mentor-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    margin-bottom: 0.35rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.mentor-item:hover { background: rgba(255, 179, 71, 0.15); }
+.mentor-item img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+.mentor-item span { flex: 1; font-size: 0.85rem; }
+.mentor-item i { color: var(--community-gold); font-size: 0.8rem; }
+.mentors-empty { font-size: 0.8rem; color: var(--community-text-muted); padding: 0.5rem 0; }
+
+.thread-title {
+    font-weight: 600;
+    color: var(--community-text);
+    font-size: 0.9rem;
+}
+
+.thread-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.72rem;
+    color: var(--community-text-muted);
+    margin-top: 0.35rem;
+}
+
+/* --- 15. Llamada a batalla (CTA) --- */
+.council-call-to-action {
+    text-align: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--community-border);
+}
+
+.council-call-to-action p {
+    margin: 0 0 0.75rem;
+    font-size: 0.9rem;
+    color: var(--community-text-muted);
+}
+
+.legendary-action-btn.primary {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: var(--community-radius-sm);
+    border: 1px solid var(--community-gold);
+    background: linear-gradient(135deg, rgba(255, 179, 71, 0.2), rgba(229, 57, 53, 0.2));
+    color: var(--community-gold);
+    font-family: var(--font-orbitron);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all var(--community-transition);
+}
+
+.legendary-action-btn.primary:hover {
+    background: linear-gradient(135deg, rgba(255, 179, 71, 0.35), rgba(229, 57, 53, 0.3));
+    box-shadow: 0 0 20px rgba(255, 179, 71, 0.3);
+    transform: translateY(-2px);
+}
+
+.nexus-footer-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 8px;
+    border: 1px solid var(--community-border);
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--community-text);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all var(--community-transition);
+}
+
+.nexus-footer-btn:hover {
+    background: rgba(229, 57, 53, 0.15);
+    border-color: var(--community-primary);
+    color: var(--community-gold);
+}
+
+/* --- 16. Fuego de Campamento (Chat) --- */
+.campfire-chat-section .nexus-header {
+    margin-bottom: 0.75rem;
+}
+
+.chat-status {
+    font-size: 0.75rem;
+    color: var(--community-text-muted);
+}
+
+.chat-status i {
+    color: #3fb950;
+    font-size: 0.5rem;
+    margin-right: 0.25rem;
+    vertical-align: middle;
+}
+
+.campfire-messages {
+    height: 320px;
+    overflow-y: auto;
+    padding: 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--community-radius-sm);
+    margin-bottom: 0.75rem;
+}
+
+.campfire-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.campfire-messages::-webkit-scrollbar-thumb {
+    background: var(--community-primary);
+    border-radius: 3px;
+}
+
+.campfire-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    animation: communityFadeIn 0.3s ease;
+}
+
+@keyframes communityFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message-avatar {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid var(--community-primary);
+    object-fit: cover;
+}
+
+.message-bubble {
+    background: rgba(20, 24, 28, 0.9);
+    padding: 0.5rem 0.9rem;
+    border-radius: 14px;
+    max-width: 85%;
+    border: 1px solid var(--community-border);
+}
+
+.message-author {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--community-gold);
+    cursor: pointer;
+    margin-bottom: 0.2rem;
+    display: block;
+}
+
+.message-author:hover {
+    text-decoration: underline;
+}
+
+.message-text {
+    color: var(--community-text);
+    font-size: 0.88rem;
+    word-wrap: break-word;
+    line-height: 1.4;
+}
+
+.message-mention {
+    color: var(--community-gold);
+    font-weight: 600;
+    background: var(--community-gold-soft);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+}
+
+.campfire-message-bot .message-bubble { background: rgba(255, 179, 71, 0.15); border-left: 3px solid var(--community-gold); }
+
+.message-forge-card { max-width: 200px; }
+.message-forge-preview { width: 100%; max-height: 120px; border-radius: 8px; overflow: hidden; margin: 0.3rem 0; background: rgba(0,0,0,0.2); }
+.message-forge-preview img { width: 100%; height: auto; display: block; object-fit: cover; max-height: 120px; }
+.message-forge-preview video { width: 100%; height: auto; display: block; max-height: 120px; background: #000; }
+.forge-embed-link { color: var(--community-gold); text-decoration: underline; font-size: 0.8rem; }
+.message-forge-title { font-size: 0.75rem; color: var(--community-text); opacity: 0.9; display: block; margin-bottom: 0.4rem; }
+.message-forge-reactions { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.3rem; }
+.message-forge-reactions .forge-reaction-btn { font-size: 0.7rem; padding: 0.2rem 0.4rem; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid var(--community-border); color: var(--community-text); cursor: pointer; transition: all 0.15s; }
+.message-forge-reactions .forge-reaction-btn:hover { background: rgba(255,179,71,0.15); border-color: var(--community-gold); }
+.message-forge-reactions .forge-reaction-btn.active { background: rgba(255,179,71,0.2); border-color: var(--community-gold); color: var(--community-gold); }
+.message-status-badge { margin-right: 0.35rem; font-size: 0.85em; }
+.player-status-wrap { margin-left: auto; }
+.player-status-select {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid var(--community-border);
+    color: var(--community-text);
+    padding: 0.3rem 0.5rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+.player-status-select:focus { outline: none; border-color: var(--community-gold); }
+
+.campfire-input-area {
+    display: flex;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--community-border);
+}
+
+.campfire-input-area input {
+    flex: 1;
+    background: rgba(20, 24, 28, 0.95);
+    border: 1px solid var(--community-border);
+    border-radius: 999px;
+    padding: 0.6rem 1rem;
+    color: var(--community-text);
+    font-size: 0.9rem;
+    transition: border-color var(--community-transition);
+}
+
+.campfire-input-area input:focus {
+    outline: none;
+    border-color: var(--community-primary);
+}
+
+.chat-action-btn.send {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, var(--community-primary), #ff6b6b);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform var(--community-transition), box-shadow var(--community-transition);
+}
+
+.chat-action-btn.send:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px var(--community-primary-glow);
+}
+
+/* --- 17. El Pregonero (Feed) --- */
+.herald-feed {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.herald-feed::-webkit-scrollbar {
+    width: 5px;
+}
+
+.herald-feed::-webkit-scrollbar-thumb {
+    background: var(--community-primary);
+    border-radius: 3px;
+}
+
+.herald-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 0.82rem;
+}
+
+.herald-item:last-child {
+    border-bottom: none;
+}
+
+.herald-icon {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--community-gold-soft);
+    color: var(--community-gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+
+.herald-text {
+    color: var(--community-text-muted);
+}
+
+.herald-text strong {
+    color: var(--community-text);
+    cursor: pointer;
+}
+
+.herald-text strong:hover {
+    color: var(--community-gold);
+}
+
+/* --- 18. Mini perfil (Tu Honor) --- */
+.mini-profile-section .nexus-header h3 {
+    font-size: 1rem;
+}
+
+.mini-profile-avatar-wrap {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+    overflow: visible;
+}
+
+.mini-profile-avatar-wrap.has-profile-frame .mini-profile-avatar {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    clip-path: circle(48% at 50% 50%);
+    transform: scale(1.02);
+    transform-origin: center center;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.mini-profile-avatar-wrap.has-profile-frame .mini-profile-avatar:hover {
+    transform: scale(1.05);
+    box-shadow: none !important;
+    animation: none;
+}
+
+.mini-profile-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.mini-profile-avatar {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    border-radius: 50%;
+    border: 2px solid var(--community-primary);
+    cursor: pointer;
+    object-fit: cover;
+    transition: box-shadow var(--community-transition);
+}
+
+.mini-profile-avatar:hover {
+    box-shadow: 0 0 16px var(--community-primary-glow);
+}
+
+.mini-profile-info h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--community-text);
+    cursor: pointer;
+}
+
+.mini-profile-info h4:hover {
+    color: var(--community-gold);
+}
+
+.mini-profile-rank {
+    margin: 0.15rem 0 0;
+    font-size: 0.78rem;
+    color: var(--community-text-muted);
+}
+
+.mini-profile-honor-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    margin-top: 0.35rem;
+}
+
+.mini-honor-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--community-text-muted);
+}
+
+.mini-honor-value,
+.honor-display-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.55rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.profile-honor-bar #honorPoints {
+    font-size: 1.35rem;
+    font-weight: 800;
+    min-width: 3ch;
+}
+
+.honor-tier-base { color: #b0b8c4; text-shadow: 0 0 6px rgba(176, 184, 196, 0.35); }
+.honor-tier-rising { color: #7dd87a; text-shadow: 0 0 10px rgba(125, 216, 122, 0.45); }
+.honor-tier-veteran {
+    color: #ffb347;
+    text-shadow: 0 0 14px rgba(255, 179, 71, 0.55), 0 0 28px rgba(229, 57, 53, 0.25);
+    animation: honorPulseVeteran 2.8s ease-in-out infinite;
+}
+.honor-tier-legend {
+    background: linear-gradient(90deg, #ff6b6b, #ffd27a, #58a6ff, #ff6b6b);
+    background-size: 220% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: honorLegendShift 3.5s linear infinite, honorPulseLegend 2s ease-in-out infinite;
+    filter: drop-shadow(0 0 10px rgba(255, 210, 122, 0.55));
+}
+
+@keyframes honorPulseVeteran {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.15); }
+}
+
+@keyframes honorLegendShift {
+    to { background-position: 220% center; }
+}
+
+@keyframes honorPulseLegend {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+}
+
+.community-user-link { cursor: pointer; }
+.community-user-link:hover { color: var(--community-gold); }
+
+.council-title-wrap { position: relative; display: inline-flex; align-items: center; gap: 0.35rem; }
+.council-title-tip { cursor: help; margin: 0; }
+.council-tooltip {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 8px);
+    width: min(300px, 72vw);
+    padding: 0.65rem 0.75rem;
+    background: rgba(10, 12, 15, 0.96);
+    border: 1px solid rgba(255, 179, 71, 0.35);
+    border-radius: 10px;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: #d8dee8;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition: opacity 0.2s, transform 0.2s, visibility 0.2s;
+    z-index: 30;
+    pointer-events: none;
+    font-weight: 400;
+}
+.council-title-wrap:hover .council-tooltip,
+.council-title-tip:focus + .council-tooltip,
+.council-title-wrap:focus-within .council-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.herald-section-right .herald-feed { max-height: 280px; }
+
+.friends-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 220px; overflow-y: auto; }
+.friends-empty { font-size: 0.82rem; color: var(--community-text-muted); margin: 0; }
+.friend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.45rem 0.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--community-border);
+    background: rgba(255,255,255,0.03);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+.friend-item:hover { border-color: var(--community-gold); background: rgba(255,179,71,0.06); }
+.friend-item img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+.friend-item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
+.friend-item-info strong { font-size: 0.85rem; }
+.friend-item-info span { font-size: 0.72rem; }
+.friend-chat-btn {
+    border: 1px solid var(--community-border);
+    background: rgba(255,255,255,0.05);
+    color: var(--community-text);
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+}
+.friend-chat-btn:hover { color: var(--community-gold); border-color: var(--community-gold); }
+
+.thread-item-resolved { border-left: 3px solid #3fb950; opacity: 0.92; }
+.thread-resolved-badge {
+    display: inline-block;
+    margin-right: 0.35rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 6px;
+    background: rgba(63, 185, 80, 0.15);
+    color: #3fb950;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.thread-detail-modal { max-width: 640px; text-align: left; }
+.thread-detail-resolved {
+    display: flex;
+    gap: 0.65rem;
+    padding: 0.75rem;
+    margin: 0.75rem 0;
+    border-radius: 10px;
+    background: rgba(63, 185, 80, 0.1);
+    border: 1px solid rgba(63, 185, 80, 0.3);
+    color: #d8f5dc;
+}
+.thread-detail-body { white-space: pre-wrap; line-height: 1.55; color: #d0d7de; }
+.thread-detail-replies { margin-top: 1rem; border-top: 1px solid var(--community-border); padding-top: 0.75rem; }
+.thread-reply-item {
+    padding: 0.65rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.thread-reply-head { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 0.35rem; font-size: 0.82rem; }
+.thread-reply-time { color: var(--community-text-muted); font-size: 0.72rem; margin-left: auto; }
+.thread-reply-mentor { background: rgba(88, 166, 255, 0.05); padding-left: 0.5rem; border-left: 2px solid rgba(88, 166, 255, 0.35); }
+.thread-reply-resolution { background: rgba(63, 185, 80, 0.06); border-left: 2px solid rgba(63, 185, 80, 0.4); padding-left: 0.5rem; }
+
+.featured-honor { font-size: 0.78rem; font-weight: 700; }
+
+.mini-profile-info p {
+    margin: 0.25rem 0 0;
+    font-size: 0.8rem;
+    color: var(--community-text-muted);
+}
+
+.profile-honor-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    flex-wrap: wrap;
+}
+
+.profile-honor-bar span:first-child {
+    color: var(--community-text-muted);
+    min-width: 100%;
+}
+
+.profile-honor-bar .mana-bar-container {
+    flex: 1;
+    height: 10px;
+    min-height: 10px;
+    margin: 0;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid var(--community-border);
+}
+
+.profile-honor-bar .mana-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--community-gold), var(--community-primary));
+    transition: width 0.6s ease;
+}
+
+.profile-honor-bar #honorPoints {
+    font-family: var(--font-orbitron);
+    font-weight: 700;
+    color: var(--community-gold);
+}
+
+/* --- 19. Campeones del Nexo --- */
+.featured-members-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.featured-member-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    transition: all var(--community-transition);
+    cursor: pointer;
+}
+
+.featured-member-item:hover {
+    background: rgba(229, 57, 53, 0.08);
+    border-color: rgba(229, 57, 53, 0.3);
+}
+
+.featured-member-item img {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--community-border);
+}
+
+.featured-member-item span {
+    flex: 1;
+    color: var(--community-text);
+    font-size: 0.88rem;
+}
+
+.featured-member-item i {
+    color: var(--community-gold);
+    font-size: 0.75rem;
+}
+
+/* --- 20. Acciones rápidas --- */
+.quick-actions-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.quick-actions-section .nexus-footer-btn {
+    justify-content: flex-start;
+    padding: 0.7rem 1rem;
+    text-align: left;
+}
+
+/* --- 21-25. Modales --- */
+.modal-container {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.modal-content {
+    background: var(--community-card);
+    border: 1px solid var(--community-card-border);
+    border-radius: 16px;
+    padding: 1.75rem;
+    max-width: 440px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+    position: relative;
+}
+
+.modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--community-text-muted);
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 1;
+    transition: background var(--community-transition), color var(--community-transition);
+}
+
+.modal-close:hover {
+    background: rgba(229, 57, 53, 0.2);
+    color: var(--community-text);
+}
+
+.modal-content h2 {
+    font-family: var(--font-cinzel);
+    font-size: 1.25rem;
+    margin: 0 0 0.5rem;
+    color: var(--community-text);
+    padding-right: 36px;
+}
+
+.modal-content > p {
+    font-size: 0.9rem;
+    color: var(--community-text-muted);
+    margin-bottom: 1.25rem;
+}
+
+.modal-input-group {
+    margin-bottom: 1rem;
+}
+
+.modal-input-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--community-text-muted);
+    margin-bottom: 0.35rem;
+}
+
+.modal-input-group .modal-input,
+.modal-input-group .modal-textarea {
+    width: 100%;
+    padding: 0.6rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid var(--community-border);
+    background: rgba(20, 24, 28, 0.9);
+    color: var(--community-text);
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}
+
+.modal-input-group .modal-input:focus,
+.modal-input-group .modal-textarea:focus {
+    outline: none;
+    border-color: var(--community-primary);
+}
+
+.modal-textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.modal-save-btn {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, var(--community-primary), #ff6b6b);
+    color: white;
+    font-family: var(--font-orbitron);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--community-transition);
+}
+
+.modal-save-btn:hover {
+    box-shadow: 0 4px 20px var(--community-primary-glow);
+    transform: translateY(-1px);
+}
+
+#battleCallModal .modal-content {
+    border-color: rgba(255, 179, 71, 0.4);
+}
+
+#battleCallModal h2 {
+    color: var(--community-gold);
+    text-align: center;
+}
+
+.report-results {
+    position: relative;
+    top: 0;
+    margin-top: 4px;
+    max-height: 160px;
+}
+
+.report-selected {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    background: rgba(229, 57, 53, 0.15);
+    border: 1px solid var(--community-card-border);
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--community-text);
+}
+
+.report-clear-btn {
+    background: none;
+    border: none;
+    color: var(--community-text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+}
+
+.report-clear-btn:hover {
+    color: var(--community-primary);
+}
+
+/* --- 26. Botón principal Forjar / Electric --- */
+.electric-btn-dashboard {
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--community-primary), #ff6b6b);
+    color: white;
+    transition: all var(--community-transition);
+}
+
+.electric-btn-dashboard:hover {
+    box-shadow: 0 4px 20px var(--community-primary-glow);
+    transform: translateY(-1px);
+}
+
+/* --- 27. Notificaciones --- */
+.notification-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 360px;
+}
+
+.notification-item {
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: var(--community-shadow);
+    animation: communityFadeIn 0.3s ease;
+}
+
+.notification-item.success {
+    background: rgba(63, 185, 80, 0.2);
+    border: 1px solid rgba(63, 185, 80, 0.5);
+    color: #fff;
+}
+
+.notification-item.error {
+    background: rgba(248, 81, 73, 0.2);
+    border: 1px solid rgba(248, 81, 73, 0.5);
+    color: #fff;
+}
+
+.notification-item.info {
+    background: rgba(229, 57, 53, 0.15);
+    border: 1px solid rgba(229, 57, 53, 0.4);
+    color: var(--community-text);
+}
+
+/* --- 28. Skeleton loading --- */
+.nexus-skeleton-text {
+    background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+    background-size: 200% 100%;
+    animation: skeletonShine 1.2s ease-in-out infinite;
+    border-radius: 8px;
+}
+
+@keyframes skeletonShine {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* --- 29. Focus visible (accesibilidad) --- */
+body:has(.community-main) *:focus-visible {
+    outline: 2px solid var(--community-primary);
+    outline-offset: 2px;
+}
+
+/* --- 30-35. Responsive --- */
+@media (max-width: 1200px) {
+    .community-main {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+    }
+
+    .community-right-panel {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .quick-actions-section {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .quick-actions-section .nexus-footer-btn {
+        flex: 1;
+        min-width: 140px;
+    }
+}
+
+@media (max-width: 768px) {
+    body:has(.community-main) header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    body:has(.community-main) .header-search {
+        max-width: none;
+    }
+
+    .community-main {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+
+    .community-right-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .forge-gallery-grid {
+        max-height: 300px;
+    }
+
+    .campfire-messages {
+        height: 260px;
+    }
+
+    .herald-feed {
+        max-height: 130px;
+    }
+}
+
+@media (max-width: 480px) {
+    .community-main {
+        padding: 0.75rem;
+    }
+
+    .community-main .nexus-card {
+        padding: 1rem 1.1rem;
+    }
+
+    .forge-upload-area {
+        padding: 1.25rem;
+    }
+
+    .legendary-action-btn.primary {
+        font-size: 0.75rem;
+    }
+}
+
+/* --- 36. Ajuste body cuando no hay clase (fallback) --- */
+body:not([class]):has(.community-main) {
+    min-height: 100vh;
+}
+
+/* --- 37. Search results dropdown (compatible con header tipo Dashboard) --- */
+body:has(.community-main) .header-search .search-results {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: #1a1a1a;
+    border: 2px solid #333;
+    border-top: none;
+    border-radius: 0 0 15px 15px;
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    z-index: 1000;
+}
+
+body:has(.community-main) .header-search .search-results.open {
+    display: block;
+}
+
+/* --- 38. Scrollbar global en main --- */
+.community-main ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.community-main ::-webkit-scrollbar-track {
+    background: rgba(48, 54, 61, 0.25);
+    border-radius: 3px;
+}
+
+.community-main ::-webkit-scrollbar-thumb {
+    background: var(--community-primary);
+    border-radius: 3px;
+}
+
+.community-main ::-webkit-scrollbar-thumb:hover {
+    background: #ff6b6b;
+}
+
+/* ========== 20 MEJORAS VISUALES ADICIONALES ========== */
+.campfire-loading { color: var(--community-gold) !important; }
+.campfire-empty-state code { font-size: 0.8em; background: rgba(0,0,0,0.3); padding: 0.2rem 0.4rem; border-radius: 4px; }
+.forge-empty-state,
+.threads-empty-state,
+.campfire-empty-state,
+.featured-empty-state {
+    padding: 1.25rem;
+    text-align: center;
+    color: var(--community-text-muted);
+    font-size: 0.88rem;
+    border-radius: var(--community-radius-sm);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed var(--community-border);
+}
+.herald-empty-state {
+    padding: 1rem;
+    text-align: center;
+    color: var(--community-text-muted);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+.herald-empty-state i { color: var(--community-gold); opacity: 0.8; }
+.search-loading, .search-no-results { padding: 0.75rem 1rem; color: var(--community-text-muted); font-size: 0.85rem; }
+.search-results.open .search-result-item {
+    padding: 0.65rem 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--community-text);
+    font-size: 0.88rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background var(--community-transition);
+}
+.search-results.open .search-result-item:hover {
+    background: rgba(229, 57, 53, 0.12);
+    color: var(--community-gold);
+}
+.search-results.open .search-result-item i { color: var(--community-gold); opacity: 0.9; }
+.chat-status i { animation: pulseGreen 2s ease-in-out infinite; }
+@keyframes pulseGreen { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+.campfire-messages { scroll-behavior: smooth; }
+.community-main .nexus-card { animation: cardFadeIn 0.4s ease backwards; }
+.community-left-panel .nexus-card { animation-delay: 0.05s; }
+.community-center-panel .nexus-card { animation-delay: 0.1s; }
+.community-right-panel .nexus-card { animation-delay: 0.15s; }
+@keyframes cardFadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.herald-item { transition: background var(--community-transition), transform var(--community-transition); }
+.herald-item:hover { background: rgba(255, 255, 255, 0.03); transform: translateX(4px); }
+.quick-actions-section .nexus-footer-btn:hover {
+    transform: translateX(4px) scale(1.02);
+    box-shadow: 0 4px 12px rgba(229, 57, 53, 0.2);
+}
+.modal-content { animation: modalContentIn 0.3s ease 0.05s backwards; }
+@keyframes modalContentIn {
+    from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.profile-honor-bar .mana-fill[style*="100"] { box-shadow: 0 0 12px var(--community-gold-soft); }
+.war-council-threads .thread-item:first-child {
+    border-left-color: var(--community-gold);
+    background: rgba(255, 179, 71, 0.04);
+}
+.forge-gallery-item:focus-visible { outline: 2px solid var(--community-gold); outline-offset: 2px; }
+.campfire-input-area input::placeholder,
+.forge-preview-details input::placeholder { color: var(--community-text-muted); opacity: 0.9; }
+.featured-member-item i.fa-crown { color: var(--community-gold); text-shadow: 0 0 8px rgba(255, 179, 71, 0.4); }
+.chat-status { padding: 0.25rem 0.5rem; border-radius: 999px; background: rgba(63, 185, 80, 0.08); transition: background var(--community-transition); }
+.chat-action-btn.send:active { transform: scale(0.98); }
+.nexus-header-title h2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+@media (min-width: 769px) { .nexus-header-title h2 { max-width: none; } }
+.forge-gallery-overlay span:first-child { font-weight: 600; color: #fff; }
+.community-main .nexus-card:hover { border-color: rgba(229, 57, 53, 0.6); }
+
+/* ========== 40+ MEJORAS VISUALES LEGENDARIAS — LUCETE MUÑECO ========== */
+
+/* 5. Dashboard link: icono que salta */
+.dashboard-link-btn i { transition: transform var(--community-transition); }
+.dashboard-link-btn:hover i { transform: scale(1.15) translateY(-2px); }
+
+/* 6. Cards: sombra interior + borde que brilla al hover */
+.community-main .nexus-card { position: relative; overflow: hidden; box-shadow: var(--community-shadow), inset 0 1px 0 rgba(255,255,255,0.03); }
+.community-main .nexus-card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; background: linear-gradient(135deg, transparent 0%, rgba(255,179,71,0.15) 50%, transparent 100%); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity: 0; transition: opacity var(--community-transition); pointer-events: none; }
+.community-main .nexus-card:hover::after { opacity: 1; }
+
+/* 7. Cards hover: elevación legendaria */
+.community-main .nexus-card:hover { box-shadow: 0 20px 50px rgba(0,0,0,0.4), 0 0 40px rgba(229,57,53,0.12), inset 0 1px 0 rgba(255,255,255,0.04); transform: translateY(-4px); }
+
+/* 8. Headers de sección: iconos con resplandor */
+.community-main .nexus-header i { filter: drop-shadow(0 0 6px rgba(255,179,71,0.4)); transition: filter var(--community-transition), transform var(--community-transition); }
+.community-main .nexus-card:hover .nexus-header i { filter: drop-shadow(0 0 10px rgba(255,179,71,0.6)); transform: scale(1.05); }
+
+/* 9. Títulos h2/h3: texto con profundidad */
+.community-main .nexus-header h2, .community-main .nexus-header h3 { text-shadow: 0 2px 4px rgba(0,0,0,0.3), 0 0 30px rgba(255,179,71,0.08); }
+
+/* 10. Badge de subidas: shimmer dorado */
+.nexus-profile-badge { position: relative; overflow: hidden; box-shadow: 0 0 15px rgba(255,179,71,0.2); }
+.nexus-profile-badge::before { content: ''; position: absolute; top: 0; left: -100%; width: 60%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent); animation: badgeShine 3s ease-in-out infinite; }
+@keyframes badgeShine { 0% { left: -100%; } 60%, 100% { left: 150%; } }
+
+/* 11. Forja upload: borde punteado animado + icono flotante */
+.forge-upload-area { position: relative; }
+.forge-upload-area:hover { box-shadow: 0 0 40px rgba(255,179,71,0.25), inset 0 0 30px rgba(255,179,71,0.05); }
+.forge-upload-area i { animation: iconFloat 3s ease-in-out infinite; }
+@keyframes iconFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+/* 12. Upload link: subrayado gradiente animado */
+.upload-link { background: linear-gradient(90deg, var(--community-gold), var(--community-primary)); background-size: 200% 2px; background-position: 0 100%; background-repeat: no-repeat; text-underline-offset: 4px; transition: background-position 0.4s ease; }
+.upload-link:hover { background-position: 100% 100%; }
+
+/* 13. Preview de imagen: borde que brilla */
+.forge-preview-area { box-shadow: 0 0 20px rgba(255,179,71,0.15), inset 0 0 20px rgba(0,0,0,0.2); }
+.forge-preview-area img { box-shadow: 0 4px 15px rgba(229,57,53,0.3); }
+
+/* 14–15. Galería: overlay más intenso al hover + imagen escala suave */
+.forge-gallery-overlay { transition: transform var(--community-transition-slow), opacity var(--community-transition), background var(--community-transition); }
+.forge-gallery-item:hover .forge-gallery-overlay { background: linear-gradient(transparent, rgba(0,0,0,0.98)); }
+.forge-gallery-item img { transition: transform 0.5s cubic-bezier(0.4,0,0.2,1); }
+.forge-gallery-item:hover img { transform: scale(1.08); }
+
+/* 16. Thread item: borde izquierdo con gradiente */
+.thread-item { border-left: 4px solid var(--community-primary); }
+.thread-item:hover { box-shadow: 4px 0 20px rgba(229,57,53,0.2); }
+
+/* 17. Primer hilo: corona dorada */
+.war-council-threads .thread-item:first-child { box-shadow: 0 0 25px rgba(255,179,71,0.15); border-left-width: 5px; }
+
+/* 18. Botón Llamada a batalla: gradiente animado + iconos que vibran */
+.legendary-action-btn.primary { background-size: 200% 200%; background-position: 0% 50%; background-image: linear-gradient(135deg, rgba(255,179,71,0.3) 0%, rgba(229,57,53,0.3) 50%, rgba(255,179,71,0.25) 100%); animation: gradientShift 6s ease infinite; }
+.legendary-action-btn.primary:hover { animation: none; box-shadow: 0 0 35px rgba(255,179,71,0.4), 0 0 60px rgba(229,57,53,0.2); transform: translateY(-3px) scale(1.01); }
+.legendary-action-btn.primary i { transition: transform 0.2s ease; }
+.legendary-action-btn.primary:hover i:first-of-type { transform: rotate(-15deg) scale(1.1); }
+.legendary-action-btn.primary:hover i:last-of-type { transform: rotate(15deg) scale(1.1); }
+@keyframes gradientShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+/* 19. Botones nexus-footer: icono se desliza */
+.nexus-footer-btn i { transition: transform var(--community-transition); }
+.nexus-footer-btn:hover i { transform: translateX(4px); }
+
+/* 20. Contenedor del chat: brillo de fogata */
+.campfire-chat-section .nexus-card { box-shadow: var(--community-shadow), 0 0 60px rgba(229,57,53,0.06); }
+.campfire-messages { background: radial-gradient(ellipse 80% 50% at 50% 100%, rgba(229,57,53,0.08) 0%, transparent 60%), rgba(0,0,0,0.2); border: none; }
+.cf-shell .campfire-messages { background: transparent; border: none; }
+
+/* 21. Chat status: pulso verde legendario */
+.chat-status { box-shadow: 0 0 15px rgba(63,185,80,0.15); }
+.chat-status i { animation: pulseGreen 2s ease-in-out infinite; text-shadow: 0 0 10px #3fb950; }
+
+/* 22. Burbuja de mensaje: gradiente sutil + sombra */
+.message-bubble { background: linear-gradient(135deg, rgba(24,28,34,0.98) 0%, rgba(20,24,28,0.95) 100%); box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04); border: 1px solid rgba(255,179,71,0.1); }
+
+/* 23. Avatar del mensaje: anillo al hover */
+.message-avatar { transition: box-shadow var(--community-transition), transform var(--community-transition); }
+.campfire-message:hover .message-avatar { box-shadow: 0 0 20px var(--community-primary-glow), 0 0 30px rgba(255,179,71,0.3); transform: scale(1.05); }
+
+/* 24. Input del chat: enfoque épico */
+.campfire-input-area input:focus { box-shadow: 0 0 0 2px var(--community-primary), 0 0 20px rgba(229,57,53,0.25); }
+
+/* 25. Botón enviar: brillo pulsante */
+.chat-action-btn.send { background: var(--legendary-gradient); background-size: 200% 200%; box-shadow: 0 4px 20px rgba(229,57,53,0.4); }
+.chat-action-btn.send:hover { animation: sendPulse 1.5s ease infinite; box-shadow: 0 6px 28px rgba(229,57,53,0.5), 0 0 30px rgba(255,179,71,0.2); }
+@keyframes sendPulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.15); } }
+
+/* 26. Herald: icono escala y brilla */
+.herald-icon { transition: transform var(--community-transition), box-shadow var(--community-transition); }
+.herald-item:hover .herald-icon { transform: scale(1.15); box-shadow: 0 0 15px rgba(255,179,71,0.35); }
+
+/* 27. Herald items: filas alternadas sutil */
+.herald-item:nth-child(even) { background: rgba(255,255,255,0.01); border-radius: 6px; }
+
+/* 28. Mini perfil avatar: anillo animado */
+.mini-profile-avatar { box-shadow: 0 0 0 2px var(--community-primary), 0 0 20px rgba(229,57,53,0.2); }
+.mini-profile-avatar:hover { box-shadow: 0 0 0 3px var(--community-gold), 0 0 30px rgba(255,179,71,0.4), 0 0 40px rgba(229,57,53,0.2); animation: ringPulse 2s ease-in-out infinite; }
+@keyframes ringPulse { 0%, 100% { box-shadow: 0 0 0 3px var(--community-gold), 0 0 30px rgba(255,179,71,0.4); } 50% { box-shadow: 0 0 0 5px var(--community-gold), 0 0 40px rgba(255,179,71,0.5); } }
+
+/* 29. Barra de honor: brillo cuando está llena */
+.profile-honor-bar .mana-fill { box-shadow: inset 0 0 10px rgba(255,179,71,0.2); }
+.profile-honor-bar .mana-fill[style*="100"] { box-shadow: 0 0 20px var(--community-gold-soft), 0 0 40px rgba(255,179,71,0.2); }
+
+/* 30. Campeones: primer puesto con corona épica */
+.featured-members-list .featured-member-item:first-child { background: linear-gradient(135deg, rgba(255,179,71,0.12) 0%, rgba(229,57,53,0.06) 100%); border: 1px solid rgba(255,179,71,0.3); box-shadow: 0 0 25px rgba(255,179,71,0.15); }
+.featured-members-list .featured-member-item:first-child i { animation: crownGlow 2s ease-in-out infinite; }
+@keyframes crownGlow { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px rgba(255,179,71,0.6)); } 50% { opacity: 0.9; filter: drop-shadow(0 0 12px rgba(255,179,71,0.9)); } }
+
+/* 31. Featured member img: escala al hover */
+.featured-member-item img { transition: transform var(--community-transition), box-shadow var(--community-transition); }
+.featured-member-item:hover img { transform: scale(1.1); box-shadow: 0 0 15px rgba(255,179,71,0.3); }
+
+/* 32–36. Acciones rápidas: iconos escalonados con delay */
+.quick-actions-section .nexus-footer-btn { transition: transform var(--community-transition), box-shadow var(--community-transition), background var(--community-transition); }
+.quick-actions-section .nexus-footer-btn:nth-child(1) { transition-delay: 0.02s; }
+.quick-actions-section .nexus-footer-btn:nth-child(2) { transition-delay: 0.04s; }
+.quick-actions-section .nexus-footer-btn:nth-child(3) { transition-delay: 0.06s; }
+.quick-actions-section .nexus-footer-btn:nth-child(4) { transition-delay: 0.08s; }
+.quick-actions-section .nexus-footer-btn:nth-child(5) { transition-delay: 0.1s; }
+.quick-actions-section .nexus-footer-btn:hover { transform: translateX(8px) scale(1.03); box-shadow: 0 6px 24px rgba(229,57,53,0.25); }
+.quick-actions-section .nexus-footer-btn i { transition: transform 0.2s ease; }
+.quick-actions-section .nexus-footer-btn:hover i { transform: scale(1.2) rotate(-5deg); }
+
+/* 37. Modal overlay: blur más intenso */
+.modal-container { background: rgba(0,0,0,0.82); backdrop-filter: blur(12px); }
+
+/* 38. Modal content: borde gradiente */
+.modal-content { border: 1px solid transparent; background-clip: padding-box; box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,179,71,0.2), 0 0 60px rgba(229,57,53,0.1); }
+
+/* 39. Modal save btn: barrido de luz */
+.modal-save-btn { position: relative; overflow: hidden; background: var(--legendary-gradient); background-size: 200% 200%; }
+.modal-save-btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); transition: left 0.6s ease; }
+.modal-save-btn:hover::before { left: 150%; }
+.modal-save-btn:hover { box-shadow: 0 6px 30px var(--community-primary-glow), 0 0 40px rgba(255,179,71,0.2); transform: translateY(-2px); }
+
+/* 40. Modal close: rotación al hover */
+.modal-close { transition: transform var(--community-transition), background var(--community-transition); }
+.modal-close:hover { transform: rotate(90deg) scale(1.1); }
+
+/* 41. Botón Forjar: efecto shine */
+.electric-btn-dashboard { position: relative; overflow: hidden; }
+.electric-btn-dashboard:hover { box-shadow: 0 6px 28px var(--community-primary-glow), 0 0 25px rgba(255,179,71,0.2); transform: translateY(-2px); }
+
+/* 42. Notificaciones: entrada desde la derecha */
+.notification-item { animation: notificationSlide 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+@keyframes notificationSlide { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+
+/* 43. Skeleton: shimmer más suave */
+.nexus-skeleton-text { animation: skeletonShine 1.5s ease-in-out infinite; background-size: 300% 100%; }
+
+/* 44. Selección de texto: colores del Nexo */
+body.community-page ::selection { background: rgba(255,179,71,0.35); color: #fff; }
+body.community-page ::-moz-selection { background: rgba(255,179,71,0.35); color: #fff; }
+
+/* 45. Scrollbars: thumb con gradiente */
+.community-main ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--community-gold), var(--community-primary)); border-radius: 4px; }
+.community-main ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #ffc107, #ff6b6b); }
+
+/* 46. Search results: borde dorado cuando está abierto */
+.search-results.open { box-shadow: var(--community-shadow), 0 0 25px rgba(255,179,71,0.15); border-color: rgba(255,179,71,0.3); }
+
+/* 47. Empty states: icono con flotación sutil */
+.forge-empty-state i, .threads-empty-state strong, .campfire-empty-state i { display: inline-block; animation: floatSoft 4s ease-in-out infinite; }
+@keyframes floatSoft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+/* 48. Campfire loading: spinner dorado */
+.campfire-loading i { background: linear-gradient(135deg, var(--community-gold), var(--community-primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+/* 49. Vigneta sutil en main */
+.community-main { box-shadow: inset 0 0 120px rgba(0,0,0,0.15); }
+
+/* 50. Focus visible mejorado (accesibilidad épica) */
+body:has(.community-main) *:focus-visible { outline: 2px solid var(--community-gold); outline-offset: 3px; box-shadow: 0 0 0 6px rgba(255,179,71,0.15); }
+
+/* --- Skip link (accesibilidad) --- */
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    z-index: 9999;
+    padding: 0.75rem 1.25rem;
+    background: var(--community-primary);
+    color: #fff;
+    font-weight: 700;
+    border-radius: var(--community-radius-sm);
+    transition: left 0.2s ease, transform 0.2s ease;
+}
+.skip-link:focus {
+    left: 1rem;
+    top: 1rem;
+    outline: 2px solid var(--community-gold);
+    outline-offset: 2px;
+}
+
+/* --- Racha del Día --- */
+.streak-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    padding: 0.35rem 0.6rem;
+    background: rgba(255, 179, 71, 0.15);
+    border: 1px solid rgba(255, 179, 71, 0.35);
+    border-radius: var(--community-radius-sm);
+    font-size: 0.8rem;
+}
+.streak-count { font-family: var(--font-orbitron); font-weight: 700; color: var(--community-gold); }
+.streak-label { color: var(--community-text-muted); }
+
+/* --- Cuerno de Batalla: badge y filtro --- */
+.battle-horn-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background: rgba(229, 57, 53, 0.2);
+    border: 1px solid rgba(229, 57, 53, 0.4);
+    border-radius: 999px;
+    font-size: 0.8rem;
+    color: var(--community-primary);
+    font-weight: 600;
+}
+#filterBattleCallsBtn.active { border-color: var(--community-primary); background: rgba(229, 57, 53, 0.2); color: var(--community-primary); }
+
+/* --- Piedra de Runas (Pregonero) --- */
+.rune-stone-wrap {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 179, 71, 0.25);
+    border-radius: var(--community-radius-sm);
+}
+.rune-stone-wrap .rune-title { font-family: var(--font-cinzel); font-size: 0.95rem; color: var(--community-gold); margin-bottom: 0.5rem; }
+.rune-stone-wrap .rune-desc { font-size: 0.8rem; color: var(--community-text-muted); margin-bottom: 0.5rem; }
+.rune-stone-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.rune-stone-btns button {
+    padding: 0.5rem 0.85rem;
+    border: 1px solid var(--community-border);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    color: var(--community-text);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: border-color var(--community-transition), background var(--community-transition);
+}
+.rune-stone-btns button:hover { border-color: var(--community-gold); background: var(--community-gold-soft); }
+.rune-stone-result { margin-top: 0.5rem; font-size: 0.85rem; color: var(--community-text-muted); }
+
+/* --- Muro de los Anales --- */
+.annals-section .annals-content { display: flex; flex-direction: column; gap: 0.75rem; }
+.annals-item {
+    padding: 0.6rem 0.85rem;
+    background: rgba(0, 0, 0, 0.25);
+    border-left: 3px solid var(--community-gold);
+    border-radius: 0  var(--community-radius-sm) var(--community-radius-sm) 0;
+    font-size: 0.9rem;
+    color: var(--community-text);
+}
+.annals-item .annals-days { color: var(--community-text-muted); font-size: 0.8rem; }
+
+/* --- Sello del Forjador (badge en chat) --- */
+.message-author .forger-seal-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.25rem;
+    padding: 0 0.25rem;
+    font-size: 0.7rem;
+    color: var(--community-gold);
+    background: rgba(255, 179, 71, 0.2);
+    border-radius: 4px;
+    vertical-align: middle;
+}
+
+/* --- Reduced motion --- */
+@media (prefers-reduced-motion: reduce) {
+    body.community-page *,
+    body.community-page *::before,
+    body.community-page *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

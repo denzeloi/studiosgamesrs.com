@@ -1,0 +1,2350 @@
+/* ======== CSS FOR competition-hub.css (VERSIÓN MEJORADA Y OPTIMIZADA) ======== */
+
+/* dashboard-styles.css se carga desde competition-hub.html — no duplicar @import */
+
+/* --- 2. HEADER & NAVIGATION OVERRIDES --- */
+.branding-link {
+    text-decoration: none;
+    color: inherit;
+    display: inline-block;
+}
+
+.dashboard-return-btn-main {
+    background: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.7rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.dashboard-return-btn-main:hover {
+    background: #45a049;
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+}
+.dashboard-return-btn-main i {
+    font-size: 0.9rem;
+}
+
+/* Ocultar el botón viejo si todavía existe en dashboard-styles.css */
+button.dashboard-return-btn {
+    display: none;
+}
+
+
+/* --- 3. SIDEBAR STYLES --- */
+.competition-status-sidebar {
+  width: 320px;
+  background-color: #1a1a1a;
+  border-radius: 16px;
+  padding: 1.2rem;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+  border-top: 3px solid #2196f3;
+  flex-shrink: 0;
+}
+
+.sidebar-section {
+    margin-bottom: 1.5rem;
+}
+.sidebar-header {
+    margin-bottom: 0.8rem;
+}
+.sidebar-title {
+    color: #fff;
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.status-widget-content {
+    color: #ccc;
+    font-size: 0.9rem;
+}
+.status-widget-content a {
+    color: #4bdfff;
+    text-decoration: none;
+    font-weight: bold;
+}
+.status-widget-content a:hover {
+    text-decoration: underline;
+}
+
+/* --- 4. HUB CONTENT & TOGGLE --- */
+.main {
+    justify-content: center; /* Centra el contenido */
+}
+.hub-layout {
+    display: flex;
+    flex-wrap: nowrap; 
+    gap: 2rem;
+    width: 100%;
+    max-width: 1400px;
+    align-items: flex-start;
+}
+.hub-main-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* Estilo de Tarjeta para Secciones */
+.hub-card {
+    background: #1a1a1a;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+    width: 100%;
+    position: relative; 
+}
+.hub-section-title {
+    font-size: 1.5rem;
+    color: #fff;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.1);
+}
+
+.hub-view-toggle {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+  background: #2a2a2a;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.hub-toggle-btn {
+  flex: 1;
+  padding: 1rem 2rem;
+  background: #2a2a2a;
+  color: #aaa;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hub-toggle-btn:hover {
+  background: #333;
+  color: #fff;
+}
+
+.hub-toggle-btn.active {
+  background: linear-gradient(135deg, #2196f3, #1976d2);
+  color: #fff;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* --- 5. TOURNAMENT CARDS --- */
+.tournaments-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+/* Grid responsivo: 1 columna en móvil, 2 en desktop */
+@media (min-width: 900px) {
+    .tournaments-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+
+.tournament-card {
+  background: #20222a;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  border: 1px solid #333;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+.tournament-card:hover {
+  transform: translateY(-5px);
+  border-color: #2196f3;
+  box-shadow: 0 8px 20px rgba(33, 150, 243, 0.2);
+}
+.tournament-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.game-logo-container {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.tournament-title-container { flex: 1; }
+.tournament-name { font-size: 1.4rem; color: #fff; margin: 0 0 0.25rem 0; }
+.tournament-format { font-size: 0.9rem; color: #ccc; }
+.tournament-details { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; }
+.detail-item { text-align: center; }
+.detail-item-title { font-size: 0.8rem; color: #888; text-transform: uppercase; }
+.detail-item-value { font-size: 1.2rem; font-weight: bold; color: #fff; }
+.detail-item-value.prize-pool { color: #4caf50; }
+.tournament-footer { margin-top: auto; display: flex; justify-content: flex-end; align-items: center; }
+.tournament-status { font-weight: bold; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.9rem; margin-right: auto; text-transform: capitalize; }
+.status-active { background-color: #e53935; color: white; }
+.status-upcoming { background-color: #f7c744; color: #222; }
+.status-finished { background-color: #333; color: #aaa; }
+.view-tournament-btn { background: #2196f3; color: white; border: none; border-radius: 8px; padding: 0.7rem 1.5rem; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.2s ease; }
+.view-tournament-btn:hover { background: #1976d2; }
+.tournament-card.skeleton {
+    height: 250px; 
+    background: #20222a;
+    opacity: 0.5;
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+
+/* --- 6. HUB CARD & ACTION STYLES --- */
+/* Sección del Botón de Acción */
+.hub-actions {
+    text-align: center;
+}
+.hub-actions p {
+    color: #ccc;
+    font-size: 1.1rem;
+    max-width: 500px;
+    margin: 0 auto 1.5rem auto;
+    line-height: 1.5;
+}
+.create-team-btn {
+  background: linear-gradient(135deg, #e53935, #d32f2f);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.8rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(229, 57, 53, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.create-team-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(229, 57, 53, 0.5);
+}
+.create-team-btn i {
+  font-size: 1.2rem;
+}
+
+
+/* --- 7. TOP TEAMS WIDGET --- */
+.top-teams-header {
+    border-top: 2px solid #ffca3a; /* Borde dorado */
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.team-browser-open-btn {
+    background: rgba(255, 202, 58, 0.12);
+    color: #ffca3a;
+    border: 1px solid rgba(255, 202, 58, 0.45);
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+.team-browser-open-btn:hover {
+    background: rgba(255, 202, 58, 0.25);
+    box-shadow: 0 0 12px rgba(255, 202, 58, 0.45);
+    transform: translateY(-1px);
+}
+.top-teams-header .sidebar-title {
+    text-shadow: 0 0 8px rgba(255, 202, 58, 0.5);
+}
+.teams-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.team-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #20222a;
+    padding: 0.8rem;
+    border-radius: 8px;
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease-in-out;
+}
+.team-item:hover {
+    border-left-color: #ffca3a;
+    transform: translateX(5px);
+    background: #2a2c3a;
+}
+.team-emblem {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #444;
+}
+.team-info {
+    flex: 1;
+}
+.team-name {
+    color: #fff;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 0.3rem;
+}
+.team-stats {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: #ccc;
+}
+.team-stats i {
+    margin-right: 0.3rem;
+}
+.team-stats .fa-trophy { color: #4caf50; }
+.team-stats .fa-coins { color: #ffca3a; }
+
+
+/* --- 8. CREATE TEAM MODAL STYLES --- */
+.modal-container { 
+    z-index: 2000; 
+    /* Propiedades de modal-container ya se definieron en dashboard-styles.css */
+}
+.modal-content { 
+    max-width: 500px; 
+}
+.modal-content.large { max-width: 850px; text-align: center; }
+.modal-title { font-size: 1.8rem; color: #fff; margin-bottom: 0.5rem; }
+.modal-subtitle { font-size: 1rem; color: #ccc; margin-bottom: 2rem; }
+.token-cost-notice { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; }
+.token-cost-notice p { margin: 0.5rem 0; font-size: 1.1rem; }
+.token-amount { color: #ffca3a; font-weight: bold; }
+.token-balance { color: #888; font-size: 0.9rem; }
+
+/* Estilos de botones de acción del modal */
+.modal-action-btn { width: 100%; max-width: 300px; padding: 0.8rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: all 0.3s ease; margin: 0.5rem auto; }
+.modal-action-btn.primary { background: linear-gradient(90deg, #4caf50 0%, #45a049 90%); color: white; }
+.modal-action-btn.primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); }
+.modal-action-btn.primary:disabled { background: #555; color: #999; cursor: not-allowed; box-shadow: none; transform: none; }
+.modal-action-btn.secondary { background: #444; color: #ccc; }
+.modal-action-btn.secondary:hover { background: #555; }
+.modal-action-btn.final { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 2rem; }
+
+/* Grid del formulario de creación de equipo */
+.modal-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; text-align: left; }
+.form-section-title { color: #4bdfff; border-bottom: 2px solid #333; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+
+/* Subida de emblema */
+.team-emblem-uploader { display: flex; align-items: center; gap: 1rem; }
+#teamEmblemPreview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #444; }
+.upload-emblem-btn { background: #333; color: #fff; border: 1px solid #555; padding: 0.6rem 1rem; border-radius: 8px; cursor: pointer; }
+.upload-emblem-btn:hover { background: #444; }
+
+/* Búsqueda y Roster inicial */
+.user-search-wrapper { position: relative; }
+.user-search-wrapper i { position: absolute; top: 50%; left: 1rem; transform: translateY(-50%); color: #888; }
+#inviteUserInput { padding-left: 2.5rem; }
+.search-results-modal { 
+    position: absolute; top: 100%; left: 0; right: 0; 
+    background: #2a2a2a; border: 1px solid #444; border-top: none; 
+    border-radius: 0 0 8px 8px; z-index: 2100; max-height: 200px; 
+    overflow-y: auto; 
+}
+.search-results-modal .search-result-item { padding: 0.6rem 1rem; display: flex; align-items:center; gap: 0.8rem; cursor: pointer; }
+.search-results-modal .search-result-item img { width: 30px; height: 30px; border-radius: 50%;}
+.search-results-modal .search-result-item:hover { background: #333; }
+.team-roster-list { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
+.roster-member { display: flex; align-items: center; gap: 0.8rem; background: #20222a; padding: 0.5rem 0.8rem; border-radius: 8px; }
+.roster-member-img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
+.roster-member-name { color: #fff; flex: 1; }
+.roster-member-role { font-size: 0.8rem; font-weight: bold; padding: 0.2rem 0.6rem; border-radius: 6px; color: #fff; text-transform: uppercase; }
+.roster-member-role.captain { background: #e53935; }
+.roster-member-role.member { background: #2196f3; }
+.roster-remove-btn { 
+    background: none; border: none; color: #888; cursor: pointer; 
+    font-size: 1.2rem; margin-left: auto; padding: 0 0.3rem; 
+    transition: color 0.2s ease; 
+}
+.roster-remove-btn:hover { color: #e53935; }
+
+
+/* --- 9. TEAM DASHBOARD STYLES --- */
+.team-dashboard-card {
+    padding-top: 1rem;
+    position: relative;
+    background-size: cover;
+    background-position: top center;
+    overflow: hidden;
+}
+
+/* Sombras para que nombre, emblema, chat y 3 puntos se lean sobre cualquier imagen de fondo */
+.team-dashboard-card.has-bg-image .team-dashboard-emblem {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.75);
+    border-color: rgba(255, 255, 255, 0.65);
+}
+.team-dashboard-card.has-bg-image .team-dashboard-name,
+.team-dashboard-card.has-bg-image .stylized-team-name {
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.9));
+}
+.team-dashboard-card.has-bg-image .team-chat-btn,
+.team-dashboard-card.has-bg-image .team-edit-btn {
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.7);
+}
+.team-dashboard-card.has-bg-image .team-profile-link,
+.team-dashboard-card.has-bg-image .team-dashboard-header {
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+.team-chat-btn {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(33, 150, 243, 0.4);
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+.team-chat-btn:hover {
+    background: #1976d2;
+    transform: scale(1.1);
+}
+
+.member-actions-container {
+    position: absolute;
+    top: 1.5rem;
+    right: 5.5rem;
+    z-index: 11;
+}
+
+.team-edit-btn {
+    background: #444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.team-edit-btn:hover {
+    background: #555;
+    transform: scale(1.1);
+}
+
+.team-dashboard-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #333;
+}
+.team-dashboard-emblem {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 3px solid #555;
+    object-fit: cover;
+}
+.team-dashboard-name {
+    font-size: 2rem;
+    color: #fff;
+    margin: 0;
+}
+
+/* Estilo Único de Nombre de Equipo */
+.stylized-team-name {
+    font-weight: 700;
+    /* Gradiente dorado/rojo */
+    background: linear-gradient(120deg, #ffca3a, #e53935);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-fill-color: transparent;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+
+.team-dashboard-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+}
+.dashboard-section-title {
+    font-size: 1.2rem;
+    color: #4bdfff;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #333;
+    padding-bottom: 0.5rem;
+}
+.dashboard-column {
+    /* Permitir scroll si el contenido es demasiado largo */
+    max-height: 100%; 
+    overflow-y: auto;
+}
+/* Limpiar scroll en móvil */
+@media (max-width: 768px) {
+     .dashboard-column {
+        max-height: unset;
+        overflow-y: visible;
+     }
+}
+
+.roster-list, .pending-requests-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-bottom: 2rem;
+}
+.roster-member-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    background: #20222a;
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+}
+.roster-member-item img {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+}
+.roster-member-item .roster-name {
+    flex: 1;
+    color: #fff;
+    font-weight: 500;
+}
+
+.roster-member-item .kick-member-btn {
+    background: none;
+    border: none;
+    color: #e53935;
+    cursor: pointer;
+    font-size: 1.2rem;
+    margin-left: auto;
+    padding: 0 0.3rem;
+    transition: color 0.2s ease;
+}
+.roster-member-item .kick-member-btn:hover {
+    color: #ff7961;
+}
+
+/* Las X de cada miembro solo se ven al activar el "modo eliminar" (botón único). */
+.roster-list .roster-member-item .kick-member-btn { display: none; }
+.roster-list.remove-mode .roster-member-item .kick-member-btn { display: inline-flex; }
+.roster-list.remove-mode .roster-member-item { outline: 1px dashed rgba(229, 57, 53, 0.45); }
+
+/* Cabecera del Roster con los botones de acción (solo capitán). */
+.roster-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.roster-header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.roster-invite-btn {
+    background: none;
+    border: 1px solid rgba(75, 223, 255, 0.5);
+    color: #4bdfff;
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 1;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.roster-invite-btn:hover {
+    background: rgba(75, 223, 255, 0.15);
+    color: #9df0ff;
+}
+.roster-remove-toggle {
+    background: none;
+    border: 1px solid rgba(229, 57, 53, 0.5);
+    color: #e53935;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.roster-remove-toggle:hover {
+    background: rgba(229, 57, 53, 0.15);
+    color: #ff7961;
+}
+.roster-remove-toggle.active {
+    background: #e53935;
+    color: #fff;
+    border-color: #e53935;
+}
+
+.request-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    background: #20222a;
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+}
+.request-item .roster-name { /* Link Style */
+    flex: 1;
+    color: #4bdfff;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+.request-item .roster-name:hover {
+    color: #82e9ff;
+    text-decoration: underline;
+}
+.request-actions {
+    margin-left: auto; 
+}
+.request-actions button {
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem; 
+    font-size: 0.85rem; 
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 0.5rem; 
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.request-actions button:hover:not(:disabled) {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.accept-btn { background: #4caf50; color: white; }
+.decline-btn { background: #e53935; color: white; }
+.accept-btn:disabled, .decline-btn:disabled {
+    background: #555;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.next-event-widget {
+    background: #20222a;
+    padding: 1rem;
+    border-radius: 8px;
+    color: #ccc;
+    text-align: center;
+}
+.next-event-widget p { margin: 0.3rem 0; }
+.next-event-widget strong { color: #fff; }
+.next-event-widget .event-time {
+    color: #e53935;
+    font-weight: bold;
+    font-size: 1.1rem;
+    display: block;
+    margin-top: 0.5rem;
+}
+
+/* Ficha de información del equipo (fundación, fundador, partidas ganadas) */
+.team-info-widget {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+}
+.team-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.2rem;
+    border-bottom: 1px solid #2b2e38;
+}
+.team-info-row:last-child { border-bottom: none; }
+.team-info-label {
+    color: #8b97a7;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.team-info-label i { color: #4bdfff; width: 1.1rem; text-align: center; }
+.team-info-value {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-align: right;
+}
+#teamInfoWins { color: #4caf50; }
+
+
+/* --- 10. JOIN TEAM SECTION --- */
+.join-team-section {
+    margin-top: 2.5rem;
+    border-top: 1px solid #333;
+    padding-top: 2rem;
+}
+.join-team-title {
+    text-align: center;
+    color: #ccc;
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+}
+
+/* Estilos para Invitaciones Recibidas */
+#receivedInvitesSection {
+    margin-top: 2.5rem;
+    border-top: 1px solid #ffca3a; /* Borde dorado para destacar */
+    padding-top: 2rem;
+}
+#receivedInvitesSection .join-team-title {
+    color: #ffca3a; /* Título dorado */
+    text-shadow: 0 0 8px rgba(255, 202, 58, 0.5);
+}
+
+.team-join-bar.invite {
+    border-color: #4caf50; /* Borde verde para invitación */
+    gap: 1rem;
+}
+.team-join-bar.invite .team-emblem {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid #555;
+}
+.team-join-bar.invite:hover {
+    border-color: #81c784;
+    background: #2a2c3a;
+}
+.team-join-bar.invite .team-join-details {
+    color: #ccc;
+}
+.team-join-bar.invite .team-join-details .fa-user-plus {
+    color: #4caf50;
+}
+
+.invite-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+.invite-actions .join-request-btn { 
+    padding: 0.6rem 1rem;
+}
+.invite-actions .join-request-btn[onclick*="acceptReceivedInvite"] {
+    background: #4caf50;
+}
+.invite-actions .join-request-btn[onclick*="declineReceivedInvite"] {
+    background: #e53935;
+}
+.invite-actions .join-request-btn[onclick*="acceptReceivedInvite"]:hover:not(:disabled) {
+    background: #45a049;
+}
+.invite-actions .join-request-btn[onclick*="declineReceivedInvite"]:hover:not(:disabled) {
+    background: #d32f2f;
+}
+
+
+.joinable-teams-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px;
+    /* Scrollbar styles for list */
+    scrollbar-width: thin;
+    scrollbar-color: #444 #20222a;
+}
+.joinable-teams-list::-webkit-scrollbar {
+    width: 8px;
+}
+.joinable-teams-list::-webkit-scrollbar-thumb {
+    background-color: #444;
+    border-radius: 10px;
+    border: 2px solid #20222a;
+}
+.joinable-teams-list::-webkit-scrollbar-thumb:hover {
+    background-color: #2196f3;
+}
+
+.team-join-bar {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    background: #20222a;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #333;
+    transition: all 0.2s ease-in-out;
+}
+.team-join-bar:hover {
+    border-color: #4bdfff;
+    background: #2a2c3a;
+}
+.team-join-info { flex: 1; }
+.team-join-info .team-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #fff;
+    margin: 0;
+}
+.team-join-details {
+    display: flex;
+    flex-wrap: wrap; 
+    gap: 1rem 1.5rem; 
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 0.3rem;
+}
+.team-join-details span { display: flex; align-items: center; gap: 0.3rem; }
+.team-join-details .fa-calendar-alt { color: #f7c744; }
+.team-join-details .fa-users { color: #2196f3; }
+.team-join-game {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #ccc;
+    background: #333;
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px;
+    text-transform: uppercase;
+    white-space: nowrap; 
+}
+.join-request-btn {
+    background: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap; 
+}
+.join-request-btn:hover:not(:disabled) {
+    background: #45a049;
+    transform: scale(1.05);
+}
+.join-request-btn:disabled {
+    background: #555;
+    color: #999;
+    cursor: not-allowed;
+}
+.team-join-bar-skeleton {
+    height: 70px;
+    background: #20222a;
+    border-radius: 12px;
+    opacity: 0.5;
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+
+/* --- 11. POPUP CARD (HOVER) --- */
+.user-popup-card {
+    background-color: #2a2c3a;
+    border: 2px solid #4bdfff; 
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    padding: 1rem;
+    width: 250px;
+    color: #ccc;
+    font-size: 0.9rem;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out, border-color 0.3s ease;
+    opacity: 0;
+    transform: translateY(10px);
+    z-index: 1000;
+}
+.user-popup-card.visible { opacity: 1; transform: translateY(0); }
+.popup-header {
+    display: flex; align-items: center; gap: 0.8rem;
+    padding-bottom: 0.8rem; margin-bottom: 0.8rem; 
+    border-bottom: 1px solid #444;
+    transition: border-color 0.3s ease;
+}
+#popupUserPhoto {
+    width: 45px; height: 45px; border-radius: 50%;
+    border: 2px solid #555; object-fit: cover;
+}
+#popupUserNick {
+    font-weight: bold; font-size: 1.1rem; color: #fff; flex: 1;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+.popup-body { display: flex; flex-direction: column; gap: 0.5rem; }
+.popup-detail { display: flex; justify-content: space-between; align-items: center; }
+.detail-label { color: #888; font-weight: 500; }
+#popupUserGroup, #popupUserHonor, #popupUserRank { color: #fff; font-weight: 600; text-transform: capitalize; }
+
+
+/* --- 12. MEMBER ACTIONS DROPDOWN & RANKS --- */
+.member-actions-dropdown {
+    position: absolute; top: calc(100% + 10px); right: 0;
+    background-color: #2a2a2a; border: 1px solid #444; border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    min-width: 180px; z-index: 12; overflow: hidden; padding: 0.5rem 0;
+}
+.dropdown-item {
+    display: flex; align-items: center; gap: 0.8rem;
+    padding: 0.7rem 1.2rem; color: #ccc; text-decoration: none;
+    background: none; border: none; width: 100%; text-align: left;
+    cursor: pointer; font-size: 0.95rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+.dropdown-item i { width: 1.1em; text-align: center; color: #888; }
+.dropdown-item:hover { background-color: #333; color: #fff; }
+.dropdown-item:hover i { color: #fff; }
+.dropdown-item.leave-team { color: #e53935; }
+.dropdown-item.leave-team i { color: #e53935; }
+.dropdown-item.leave-team:hover { background-color: rgba(229, 57, 53, 0.2); color: #ff7961; }
+.dropdown-item.leave-team:hover i { color: #ff7961; }
+.dropdown-item.edit-team i { color: #4bdfff; }
+.dropdown-item.edit-team:hover i { color: #fff; }
+
+/* Dropdown specific items */
+.dropdown-item.invite-player i { color: #4caf50; }
+.dropdown-item.invite-player:hover i { color: #fff; }
+
+.dropdown-item.create-tournament i { 
+    color: #ffca3a; /* Dorado */
+}
+.dropdown-item.create-tournament:hover { 
+    color: #fff; 
+}
+.dropdown-item.create-tournament:hover i { 
+    color: #fff; 
+}
+
+/* RANK STYLES (POPUP) */
+
+/* Estilos para el texto del Rango dentro del popup */
+.user-rank { font-weight: 600; }
+.user-rank.rank-tribal { color: #4bdfff; }
+.user-rank.rank-divisional { color: #f7c744; }
+.user-rank.rank-commander { color: #e53935; }
+
+/* Estilos para la TARJETA COMPLETA (Visual) */
+.user-popup-card.rank-tribal { border-color: #4bdfff; }
+/* Divisional Commander */
+.user-popup-card.rank-divisional {
+    border-color: #f7c744; 
+    box-shadow: 0 5px 20px rgba(247, 199, 68, 0.2);
+}
+.user-popup-card.rank-divisional .popup-header {
+    border-bottom-color: #c7a13a; 
+}
+/* Commander */
+.user-popup-card.rank-commander {
+    border-color: #e53935; 
+    background: linear-gradient(145deg, #2a2c3a, #3a2b30); 
+    box-shadow: 0 5px 25px rgba(229, 57, 53, 0.3);
+}
+.user-popup-card.rank-commander .popup-header {
+    border-bottom-color: #b02c29; 
+}
+.user-popup-card.rank-commander #popupUserNick {
+    color: #ff7961; 
+    text-shadow: 0 0 8px rgba(229, 57, 53, 0.7);
+}
+
+
+/* --- 13. NOTIFICATION STYLES --- */
+.notification-container {
+    position: fixed;
+    top: 80px; 
+    right: 20px;
+    z-index: 3000; 
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end; 
+    gap: 10px;
+}
+
+.notification-item {
+    background-color: #2a2c3a;
+    color: #fff;
+    padding: 12px 18px;
+    border-radius: 8px;
+    border-left: 5px solid #555; 
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 280px;
+    max-width: 350px;
+    opacity: 0;
+    transform: translateX(100%); 
+    animation: slideInNotification 0.5s forwards, fadeOutNotification 0.5s 4.5s forwards; 
+}
+
+.notification-item i { 
+    font-size: 1.3em;
+}
+
+.notification-item.success {
+    background-color: #2e4b37; 
+    border-left-color: #4caf50; 
+}
+.notification-item.success i {
+    color: #4caf50;
+}
+
+.notification-item.error {
+    background-color: #5d3031; 
+    border-left-color: #e53935; 
+}
+.notification-item.error i {
+    color: #e53935;
+}
+
+/* Animations */
+@keyframes slideInNotification {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+@keyframes fadeOutNotification {
+    to {
+        opacity: 0;
+        transform: translateX(50px); 
+    }
+}
+
+
+/* --- 14. CONFIRMATION MODAL STYLES --- */
+.confirmation-modal .modal-content {
+    max-width: 450px; 
+    text-align: center;
+    padding: 2rem 2.5rem; 
+}
+
+.confirmation-title {
+    font-size: 1.6rem; 
+    margin-bottom: 1rem;
+    color: #f7c744; 
+}
+
+.confirmation-message {
+    color: #ccc;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+.confirmation-actions {
+    display: flex;
+    justify-content: center; 
+    gap: 1rem;
+}
+.confirmation-actions .modal-action-btn {
+    margin: 0; 
+    max-width: 150px; 
+}
+.confirmation-actions .confirm {
+     background: linear-gradient(90deg, #e53935 0%, #d32f2f 90%);
+}
+.confirmation-actions .confirm:hover:not(:disabled) {
+    box-shadow: 0 4px 15px rgba(229, 57, 53, 0.4);
+}
+.confirmation-actions .cancel {
+    background: #444;
+}
+.confirmation-actions .cancel:hover {
+    background: #555;
+}
+
+
+/* --- 15. INVITE PLAYER MODAL STYLES --- */
+#invitePlayerModal .modal-content {
+    max-width: 550px;
+}
+#invitePlayerModal .user-search-wrapper {
+    position: relative;
+}
+#invitePlayerModal .modal-input {
+    padding-left: 2.5rem; /* Para el icono de búsqueda */
+}
+/* El contenedor de resultados dentro del modal */
+#teamInviteSearchResults {
+    position: relative; 
+    top: 0;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 8px;
+    z-index: 2100;
+    max-height: 250px;
+    overflow-y: auto;
+    margin-top: 1rem; 
+    display: none; 
+}
+#teamInviteSearchResults .search-result-item {
+    padding: 0.8rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    background: #2a2a2a;
+    transition: background 0.2s ease;
+}
+#teamInviteSearchResults .search-result-item:first-child {
+    border-radius: 8px 8px 0 0;
+}
+ #teamInviteSearchResults .search-result-item:last-child {
+    border-radius: 0 0 8px 8px;
+}
+#teamInviteSearchResults .search-result-item img {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+}
+ #teamInviteSearchResults .search-result-item .search-result-nick {
+    flex: 1;
+    color: #fff;
+    font-weight: 500;
+}
+#teamInviteSearchResults .search-result-item:not(:contains("No")) {
+    cursor: default;
+}
+#teamInviteSearchResults .search-result-item:hover:not(:contains("No")) {
+    background: #333;
+}
+
+/* Botón de invitar dentro de los resultados */
+.invite-send-btn {
+    background: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: auto;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.invite-send-btn:hover:not(:disabled) {
+    background: #1976d2;
+    transform: scale(1.05);
+}
+.invite-send-btn:disabled {
+    background: #555;
+    cursor: not-allowed;
+}
+.invite-send-btn .fa-check {
+    color: #4caf50; /* Verde para 'Sent' */
+}
+
+
+/* --- 16. RESPONSIVENESS --- */
+@media (max-width: 1300px) {
+  .hub-layout { flex-direction: column; align-items: center; }
+  .competition-status-sidebar, .hub-main-content { width: 100%; max-width: 900px; }
+}
+@media (max-width: 880px) {
+  .modal-form-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+    .team-dashboard-grid { grid-template-columns: 1fr; }
+    .team-join-bar { flex-direction: column; align-items: stretch; gap: 1rem; }
+    .team-join-game { width: fit-content; }
+    
+    .invite-actions {
+        margin-left: 0;
+        margin-top: 0.5rem;
+        justify-content: flex-start;
+    }
+    
+    .notification-container {
+        top: 70px;
+        right: 10px;
+        left: 10px; 
+        align-items: center; 
+    }
+    .notification-item {
+        min-width: unset; 
+        width: 90%; 
+        max-width: 400px; 
+    }
+     .confirmation-modal .modal-content {
+        max-width: 90%;
+        padding: 1.5rem;
+    }
+    .confirmation-actions {
+        flex-direction: column; 
+        align-items: center;
+    }
+     .confirmation-actions .modal-action-btn {
+        max-width: 250px; 
+    }
+
+    /* Ajustes para modals en mobile */
+    #teamProfileModal .modal-content {
+        max-width: 90%;
+    }
+    #teamProfileModal .team-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Chat en móvil (pantalla completa) */
+    .team-chat-window {
+        width: 100%;
+        height: 100%; 
+        right: 0;
+        border-radius: 0;
+        border: none;
+    }
+}
+
+
+/* --- 17. PUBLIC PROFILES & SEARCH --- */
+/* Distinción de Usuario en Búsqueda */
+.search-result-item[data-user-id] .search-result-img {
+    border-radius: 50%;
+    border: 2px solid #4bdfff; /* Azul para usuario */
+}
+.search-result-item[data-user-id] .search-result-rank {
+    color: #4bdfff;
+}
+
+/* Distinción de Equipo en Búsqueda */
+.search-result-item[data-team-id] .search-result-img {
+    border-radius: 50%;
+    border: 2px solid #ffca3a; /* Dorado para equipo */
+}
+.search-result-item[data-team-id] .search-result-rank {
+    color: #ffca3a;
+}
+
+/* Mini-Tarjeta de Equipo (Hover) */
+#teamPopupCard {
+    background-color: #2a2c3a;
+    border: 2px solid #ffca3a; /* Borde dorado para equipo */
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    padding: 1rem;
+    width: 250px;
+    color: #ccc;
+    font-size: 0.9rem;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+    z-index: 1000;
+}
+#teamPopupCard.visible { opacity: 1; transform: translateY(0); }
+#teamPopupCard .popup-header {
+    border-bottom: 1px solid #444;
+}
+#teamPopupCard .popup-header img {
+    border-radius: 50%;
+    border: none; 
+}
+#teamPopupCard #popupTeamWins {
+    color: #4caf50;
+    font-weight: 600;
+}
+
+/* Modal de Perfil de Equipo (Click) */
+#teamProfileModal .modal-content {
+    max-width: 700px;
+    text-align: center;
+}
+#teamProfileModal .team-dashboard-header {
+    border-bottom: none;
+    margin-bottom: 1rem;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+}
+/* Sombra para que el texto del encabezado se lea sobre cualquier imagen de fondo */
+#teamProfileModal .team-profile-header h2,
+#teamProfileModal .team-profile-header p {
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+#teamProfileModal .team-profile-emblem {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+}
+
+/* Botón de Unirse (Verde) */
+#modalJoinTeamBtn {
+    background: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.7rem 1.5rem;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 auto 1.5rem auto;
+}
+#modalJoinTeamBtn:hover:not(:disabled) {
+    background: #45a049;
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+}
+#modalJoinTeamBtn:disabled {
+    background: #555;
+    color: #999;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+#teamProfileModal .team-dashboard-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    text-align: left;
+}
+#modalRosterList {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+#modalTeamStats {
+    text-align: left;
+    padding: 1.5rem;
+}
+#modalTeamStats p {
+    font-size: 1rem;
+    margin-bottom: 0.8rem;
+}
+#modalTeamStats p:last-child {
+    margin-bottom: 0;
+}
+#modalTeamStats p strong {
+    color: #ccc;
+    font-weight: 500;
+    min-width: 120px;
+    display: inline-block;
+}
+#modalTeamStats p span {
+    color: #fff;
+    font-weight: 600;
+}
+#modalTeamStats #modalStatWins { color: #4caf50; }
+#modalTeamStats #modalStatTokens { color: #ffca3a; }
+#modalTeamStats #modalStatCreated { color: #ccc; font-weight: 500; }
+
+
+/* --- 18. TEAM CHAT STYLES --- */
+
+.team-chat-window {
+    position: fixed;
+    bottom: 0;
+    right: 20px;
+    width: 380px;
+    height: 500px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    z-index: 1900;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    
+    transform: translateY(100%);
+    opacity: 0;
+    transition: all 0.3s ease-out;
+}
+.team-chat-window.visible {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.team-chat-header {
+    background: #20222a;
+    padding: 0.8rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #333;
+    flex-shrink: 0;
+}
+
+.team-chat-title-link {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+.team-chat-title-link:hover {
+    color: #4bdfff;
+    text-decoration: underline;
+}
+
+.team-chat-close-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 1.5rem;
+    font-weight: 300;
+    cursor: pointer;
+    padding: 0 0.5rem;
+    transition: color 0.2s ease;
+}
+.team-chat-close-btn:hover {
+    color: #fff;
+}
+
+.team-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    min-height: 0;
+}
+
+/* Estilo de cada item de mensaje */
+.message-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    max-width: 90%;
+}
+
+.message-avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-top: 5px;
+    cursor: pointer;
+}
+
+.message-bubble {
+    display: flex;
+    flex-direction: column;
+}
+
+.message-author {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #ccc;
+    margin-bottom: 0.2rem;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+.message-author:hover {
+    color: #4bdfff;
+    text-decoration: underline;
+}
+
+.message-content {
+    background: #2a2c3a;
+    color: #fff;
+    padding: 0.6rem 0.9rem;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+/* Mensajes de "Otros" (izquierda) */
+.message-item.theirs {
+    align-self: flex-start;
+}
+.message-item.theirs .message-text-content {
+    border-top-left-radius: 4px;
+}
+
+/* Mensajes "Míos" (derecha) */
+.message-item.mine {
+    align-self: flex-end;
+    flex-direction: row-reverse; /* Invierte orden (burbuja, luego avatar) */
+}
+.message-item.mine .message-text-content {
+    background: #2196f3;
+    color: #fff;
+    border-top-right-radius: 4px;
+}
+.message-item.mine .message-author {
+    display: none; /* No mostrar mi propio nombre */
+}
+
+/* Mensaje Especial: (/) Importante */
+.message-item.important .message-content {
+    background: linear-gradient(135deg, #e53935, #b02c29);
+    border: 1px solid #ff7961;
+    box-shadow: 0 0 10px rgba(229, 57, 53, 0.5);
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+/* Mensaje Especial: Transferencia */
+.message-item.transfer {
+    width: 100%;
+    max-width: 100%;
+    align-self: center;
+}
+.message-item.transfer .message-content {
+    width: 100%;
+    background: #2e4b37; /* Verde oscuro */
+    border: 1px solid #4caf50;
+    color: #fff;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+.message-item.transfer .message-content .fa-coins {
+    color: #ffca3a;
+    margin: 0 0.3rem;
+}
+.message-item.transfer .message-avatar,
+.message-item.transfer .message-author {
+    display: none; /* Ocultar avatar y autor para mensajes del sistema */
+}
+
+/* Manejo de Contenido (Texto/Imagen) */
+.message-item .message-image {
+    max-width: 250px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 0.3rem;
+    border: 2px solid #555;
+    transition: border-color 0.2s ease;
+}
+.message-item .message-image:hover {
+    border-color: #2196f3;
+}
+
+/* Contenido de la burbuja que maneja texto e imagen */
+.message-item .message-text-content {
+    /* Base para texto sin imagen */
+    background: #2a2c3a;
+    padding: 0.6rem 0.9rem;
+    border-radius: 12px;
+}
+.message-item.mine .message-text-content {
+    background: #2196f3;
+}
+.message-item.image-only .message-text-content {
+    display: none; /* Ocultar burbuja si solo hay imagen */
+}
+.message-item.image-only .message-bubble .message-content {
+     padding: 0; /* Eliminar padding de content si es solo imagen */
+}
+
+/* Área de Input del Chat */
+.team-chat-input-area {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem;
+    background: #20222a;
+    border-top: 1px solid #333;
+    flex-shrink: 0;
+}
+
+.team-chat-input {
+    flex: 1;
+    min-width: 0;
+    background: #2a2c3a;
+    border: 1px solid #444;
+    border-radius: 20px;
+    padding: 0.6rem 1rem;
+    color: #fff;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+.team-chat-input:focus {
+    border-color: #2196f3;
+}
+
+.chat-action-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    flex-shrink: 0;
+}
+.chat-action-btn:hover {
+    background: #333;
+    color: #fff;
+}
+
+/* Estilos de botones de acción específicos */
+.chat-action-btn#openTokenTransferBtn:hover {
+    color: #ffca3a; /* Dorado */
+}
+.chat-action-btn[for="chatImageUpload"]:hover {
+    color: #4caf50; /* Verde */
+}
+
+/* Corrección de estilo para el botón de enviar (ID es más fuerte) */
+#sendChatBtn {
+    color: #fff !important; 
+    background-color: #2196f3 !important; 
+}
+
+#sendChatBtn:hover {
+    background-color: #1976d2 !important; 
+    color: #fff !important;
+}
+
+/* Modal de Transferencia de Tokens (reutiliza estilos base) */
+#tokenTransferModal .modal-content {
+    max-width: 450px;
+    text-align: left;
+}
+#tokenTransferModal .modal-input-group {
+    margin-bottom: 1rem;
+}
+
+
+/* --- 19. SCROLLBAR STYLES (Cleaned and Placed at End) --- */
+
+/* --- Para Chrome, Edge, Safari --- */
+.team-chat-messages::-webkit-scrollbar,
+#modalRosterList::-webkit-scrollbar,
+.joinable-teams-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.team-chat-messages::-webkit-scrollbar-track,
+#modalRosterList::-webkit-scrollbar-track,
+.joinable-teams-list::-webkit-scrollbar-track {
+    background: #20222a;
+    border-radius: 10px;
+}
+
+.team-chat-messages::-webkit-scrollbar-thumb,
+#modalRosterList::-webkit-scrollbar-thumb,
+.joinable-teams-list::-webkit-scrollbar-thumb {
+    background-color: #444;
+    border-radius: 10px;
+    border: 2px solid #20222a;
+}
+
+.team-chat-messages::-webkit-scrollbar-thumb:hover,
+#modalRosterList::-webkit-scrollbar-thumb:hover,
+.joinable-teams-list::-webkit-scrollbar-thumb:hover {
+    background-color: #2196f3;
+}
+
+/* --- Para Firefox --- */
+.team-chat-messages,
+#modalRosterList,
+.joinable-teams-list {
+    scrollbar-width: thin;
+    scrollbar-color: #444 #20222a;
+}
+
+/* ======================================================= */
+/* SOLUCIÓN DEFINITIVA: MODAL BONITO + ROSTER SEPARADO */
+/* ======================================================= */
+
+/* --- PARTE 1: RESTAURAR EL MODAL BONITO (Centrado y Elegante) --- */
+
+#teamProfileModal {
+    position: fixed !important; /* Flotar sobre todo */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85); /* Fondo oscuro */
+    z-index: 9999;
+    /* Estas líneas son CLAVE para el centrado cuando JS activa 'display: flex' */
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px); /* Efecto borroso premium */
+}
+
+.team-profile-card {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    width: 90%;
+    max-width: 500px; /* Ancho perfecto */
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+    overflow: hidden;
+    position: relative;
+    animation: modalPopIn 0.3s ease-out;
+}
+
+@keyframes modalPopIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Botón cerrar X */
+#closeTeamProfileModal {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    color: #fff;
+    font-size: 1.8rem;
+    cursor: pointer;
+    z-index: 10;
+    transition: color 0.2s;
+}
+#closeTeamProfileModal:hover { color: #e53935; }
+
+
+/* --- PARTE 2: ESTILOS *SOLO* PARA DENTRO DEL MODAL (Cuadritos) --- */
+/* Usamos el ID #teamProfileModal antes de la clase para aislarlo */
+
+#teamProfileModal .team-profile-header {
+    background: linear-gradient(to bottom, #252525, #1a1a1a);
+    padding: 2rem 1.5rem 1rem;
+    text-align: center;
+}
+
+#teamProfileModal .team-roster-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 columnas de cuadros */
+    gap: 10px;
+    padding: 15px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+/* Aquí definimos que DENTRO del modal, son cuadros verticales */
+#teamProfileModal .roster-member-item {
+    display: flex;
+    flex-direction: column; /* Vertical: Foto arriba, texto abajo */
+    align-items: center;
+    justify-content: center;
+    background: #252525;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+#teamProfileModal .roster-member-item img {
+    width: 45px;
+    height: 45px;
+    margin-bottom: 8px; /* Margen hacia abajo */
+    margin-right: 0;
+    border: 2px solid #ffca3a;
+}
+
+
+/* --- PARTE 3: LISTA PRINCIPAL (DELGADA PERO CON ESTILO) --- */
+
+/* Estilo base de la fila */
+.roster-list .roster-member-item {
+    display: flex !important;
+    flex-direction: row !important; /* Horizontal */
+    align-items: center !important;
+    padding: 8px 12px !important;
+    height: auto !important;
+    
+    /* MEJORAS VISUALES AQUÍ */
+    background: linear-gradient(to right, #20222a, #252525) !important;
+    border: 1px solid #333 !important;
+    border-left: 3px solid #555 !important; /* Acento gris a la izquierda */
+    border-radius: 6px !important;
+    margin-bottom: 6px !important;
+    transition: all 0.2s ease-in-out !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
+}
+
+/* Efecto Hover (Al pasar el mouse) */
+.roster-list .roster-member-item:hover {
+    transform: translateX(5px); /* Se mueve un poquito a la derecha */
+    background: linear-gradient(to right, #252525, #2a2a2a) !important;
+    border-color: #444 !important;
+    border-left-color: #ffca3a !important; /* El borde se pone dorado */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4) !important;
+}
+
+/* La imagen pequeña */
+.roster-list .roster-member-item img {
+    width: 32px !important;
+    height: 32px !important;
+    margin-bottom: 0 !important;
+    margin-right: 12px !important;
+    border-radius: 50% !important;
+    border: 1px solid #444 !important;
+}
+
+/* El nombre */
+.roster-list .roster-member-item .roster-name {
+    font-size: 0.95rem !important;
+    color: #e0e0e0 !important;
+    font-weight: 500 !important;
+    text-align: left !important;
+    width: auto !important;
+}
+
+/* El Rol (Captain / Member) */
+.roster-list .roster-member-item .roster-role {
+    margin-top: 0 !important;
+    margin-left: auto !important; /* Lo empuja a la derecha */
+    font-size: 0.75rem !important;
+    padding: 3px 8px !important;
+    border-radius: 4px !important;
+    background: #151515 !important;
+    color: #888 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    border: 1px solid #333 !important;
+}
+
+/* Rol de Capitán destacado */
+.roster-list .roster-member-item .roster-role.captain {
+    color: #ffca3a !important; /* Dorado */
+    border-color: rgba(255, 202, 58, 0.3) !important;
+    background: rgba(255, 202, 58, 0.05) !important;
+}
+
+/* ================================================= */
+/* FIX: ANIMACIÓN FLUIDA SIN CORTES NI SCROLL */
+/* ================================================= */
+
+/* 1. El contenedor padre (la lista) */
+.roster-list {
+    /* Ocultamos el scroll horizontal que genera la animación */
+    overflow-x: hidden !important; 
+    overflow-y: auto !important;
+    
+    /* Padding interno para que la sombra no se corte arriba/abajo */
+    padding: 5px !important;
+    
+    /* Aseguramos que ocupe el ancho correcto */
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* 2. El item (la fila del jugador) */
+.roster-list .roster-member-item {
+    /* Ancho completo real */
+    width: 100% !important;
+    
+    /* Margen negativo a la derecha para compensar el desplazamiento */
+    margin-right: -10px !important; 
+    
+    /* Padding interno compensatorio para que el contenido no pegue al borde */
+    padding-right: 15px !important; 
+    
+    /* Estilos visuales base */
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    background: linear-gradient(to right, #20222a, #252525) !important;
+    border: 1px solid #333 !important;
+    border-left: 3px solid #555 !important;
+    border-radius: 6px !important;
+    margin-bottom: 6px !important;
+    
+    /* La magia de la animación suave */
+    transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.2s ease !important;
+    box-sizing: border-box !important;
+}
+
+/* 3. Efecto Hover (Al pasar el mouse) */
+.roster-list .roster-member-item:hover {
+    /* Movemos el elemento */
+    transform: translateX(4px); 
+    
+    /* Estilos visuales activos */
+    background: linear-gradient(to right, #252525, #2a2a2a) !important;
+    border-color: #444 !important;
+    border-left-color: #ffca3a !important; /* Dorado */
+    box-shadow: -2px 4px 10px rgba(0,0,0,0.3) !important;
+    z-index: 10; /* Se pone por encima de los otros para no cortarse */
+}
+
+/* Asegurar que la imagen y texto no se aplasten */
+.roster-list .roster-member-item img {
+    flex-shrink: 0; /* Evita que la foto se encoja */
+}
+.roster-list .roster-member-item .roster-name {
+    flex-grow: 1; /* Ocupa el espacio disponible */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 10px;
+}
+
+/* ============================================================= */
+/* --- EXPLORAR EQUIPOS (Team Browser) + APARIENCIA DE GRUPO --- */
+/* ============================================================= */
+
+/* Overlay genérico para modales con clase .modal (centrado flotante).
+   Antes solo #teamProfileModal tenía posicionamiento; por eso los nuevos
+   modales aparecían al final de la página. */
+.modal {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+/* Botón "Editar apariencia de grupo" dentro de Team Info */
+.team-appearance-btn {
+    margin-top: 1rem;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: #20222a;
+    color: #4bdfff;
+    border: 1px solid #33475a;
+    border-radius: 8px;
+    padding: 0.7rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.team-appearance-btn:hover {
+    background: #262a35;
+    border-color: #4bdfff;
+    box-shadow: 0 0 10px rgba(75, 223, 255, 0.25);
+}
+
+/* Modal buscador de equipos */
+.team-browser-card {
+    max-width: 640px !important;
+    width: 90%;
+    text-align: left;
+}
+.team-browser-top { margin-bottom: 1rem; }
+.team-browser-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.team-browser-search-wrap i {
+    position: absolute;
+    left: 12px;
+    color: #8b97a7;
+    pointer-events: none;
+}
+.team-browser-search-wrap .modal-input {
+    width: 100%;
+    padding-left: 2.4rem;
+}
+.team-browser-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-height: 55vh;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.team-browser-empty {
+    color: #8b97a7;
+    text-align: center;
+    padding: 1.5rem 0;
+    font-size: 0.95rem;
+}
+
+/* Paginación del explorador de equipos (3 por página) */
+.team-browser-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.9rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.tb-page-btn {
+    min-width: 30px;
+    height: 30px;
+    padding: 0 0.45rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 202, 58, 0.35);
+    background: rgba(255, 202, 58, 0.08);
+    color: #ffca3a;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+.tb-page-btn:hover:not(:disabled):not(.active) {
+    background: rgba(255, 202, 58, 0.2);
+}
+.tb-page-btn.active {
+    background: #ffca3a;
+    color: #1a1a1a;
+    border-color: #ffca3a;
+}
+.tb-page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Cabecera de "Or Join an Existing Team" con la lupa */
+.join-team-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.8rem;
+}
+.team-browser-item {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    background: #20222a;
+    border: 1px solid #2b2e38;
+    border-left: 4px solid #ffca3a;
+    border-radius: 10px;
+    padding: 0.7rem 0.9rem;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+.team-browser-item:hover { background: #262a35; transform: translateX(3px); }
+.team-browser-emblem {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ffca3a;
+    flex-shrink: 0;
+}
+.team-browser-info { flex: 1; min-width: 0; cursor: pointer; }
+.team-browser-name {
+    display: block;
+    font-weight: 700;
+    font-size: 1.02rem;
+    color: #ffca3a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.team-browser-motto {
+    display: block;
+    color: #b7c0cc;
+    font-size: 0.82rem;
+    font-style: italic;
+    margin: 2px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.team-browser-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    color: #8b97a7;
+    font-size: 0.8rem;
+    margin-top: 2px;
+}
+.team-browser-stats i { color: #ffca3a; }
+.team-browser-action-wrap { flex-shrink: 0; }
+.team-browser-action {
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s ease;
+}
+.team-browser-action.join { background: #ffca3a; color: #1a1a1a; }
+.team-browser-action.join:hover { background: #ffd766; }
+.team-browser-action.leave { background: #33383f; color: #ff8f8f; border: 1px solid #5a3535; }
+.team-browser-action.leave:hover { background: #3f2a2a; }
+.team-browser-badge {
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.35rem 0.7rem;
+    border-radius: 20px;
+}
+.team-browser-badge.own { background: rgba(76, 175, 80, 0.18); color: #6ee07a; border: 1px solid rgba(76, 175, 80, 0.4); }
+
+/* Modal apariencia de grupo */
+.appearance-preview {
+    cursor: default;
+    margin: 0.5rem 0 1.25rem;
+}
+.appearance-field { margin-bottom: 1.1rem; text-align: left; }
+.appearance-field > label {
+    display: block;
+    color: #b7c0cc;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+.appearance-color-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+.appearance-color {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    padding: 0;
+}
+.appearance-color:hover { transform: scale(1.1); }
+.appearance-color.selected {
+    border-color: #fff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* Fondos del perfil (swatches rectangulares) */
+.appearance-bg-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+.appearance-bg {
+    width: 60px;
+    height: 40px;
+    border-radius: 8px;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    padding: 0;
+}
+.appearance-bg:hover { transform: scale(1.06); }
+.appearance-bg.selected {
+    border-color: #fff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.45);
+}
+
+/* Uploader de imagen de fondo personalizada */
+.appearance-bgimg-uploader {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.appearance-bgimg-preview {
+    width: 130px;
+    height: 74px;
+    border-radius: 10px;
+    border: 1px solid #33475a;
+    background: #14161c center/cover no-repeat;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.appearance-bgimg-preview span { color: #6e7681; font-size: 0.8rem; }
+.appearance-bgimg-preview.has-image { border-color: #4bdfff; }
+.appearance-bgimg-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+.upload-emblem-btn.danger { background: #3a2626; color: #ff8f8f; border-color: #5a3535; }
+.upload-emblem-btn.danger:hover { background: #4a2c2c; }
+.appearance-hint { color: #6e7681; font-size: 0.75rem; margin-top: 0.5rem; }
+
+/* ---- Fondos comprables (premium) + bloqueo por nivel ---- */
+.appearance-bg-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+.appearance-bg { position: relative; }
+.appearance-bg.locked { cursor: pointer; opacity: 0.9; }
+.appearance-bg.locked::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.45);
+}
+.appearance-bg-lock {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffd166;
+    font-size: 0.9rem;
+    z-index: 1;
+}
+.appearance-bg-label {
+    font-size: 0.68rem;
+    color: #9aa4b2;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+.appearance-bg-label .fa-coins { color: #ffd166; }
+
+/* Etiqueta de nivel en el uploader personalizado */
+.appearance-level-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.12rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(255, 209, 102, 0.15);
+    color: #ffd166;
+    border: 1px solid rgba(255, 209, 102, 0.35);
+    vertical-align: middle;
+    margin-left: 0.4rem;
+}
+.appearance-level-tag.unlocked {
+    background: rgba(75, 223, 255, 0.14);
+    color: #4bdfff;
+    border-color: rgba(75, 223, 255, 0.35);
+}
+.upload-emblem-btn.locked,
+.upload-emblem-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: #2a2a2a;
+    color: #8a8a8a;
+}
+
+/* ---- Nivel de equipo (Team Info) ---- */
+.team-level-block {
+    margin-top: 0.9rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid #2b2e38;
+}
+.team-level-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+}
+.team-level-badge {
+    background: linear-gradient(90deg, #ffca3a, #ff8f3a);
+    color: #1a1a1a;
+    font-weight: 800;
+    font-size: 0.85rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+}
+.team-level-xp { color: #8b97a7; font-size: 0.8rem; }
+.team-level-bar {
+    width: 100%;
+    height: 8px;
+    background: #2b2e38;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.team-level-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4bdfff, #4caf50);
+    border-radius: 6px;
+    transition: width 0.4s ease;
+}
+.team-level-next { color: #8b97a7; font-size: 0.75rem; margin-top: 0.35rem; text-align: right; }
+
+/* ---- Verificación de equipo (Team Info) ---- */
+.team-verify-block {
+    margin-top: 0.9rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid #2b2e38;
+}
+.team-verify-head { margin-bottom: 0.4rem; }
+.team-verify-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 800;
+    font-size: 0.85rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 20px;
+}
+.team-verify-badge.verified {
+    background: rgba(76, 175, 80, 0.18);
+    color: #6ee07a;
+    border: 1px solid rgba(76, 175, 80, 0.45);
+}
+.team-verify-badge.unverified {
+    background: rgba(139, 151, 167, 0.15);
+    color: #b7c0cc;
+    border: 1px solid rgba(139, 151, 167, 0.35);
+}
+.team-verify-meta { color: #8b97a7; font-size: 0.8rem; margin-bottom: 0.3rem; }
+.team-verify-progress { color: #ffca3a; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.5rem; }
+.team-verify-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: #ffca3a;
+    color: #1a1a1a;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.team-verify-btn:hover:not(:disabled) { background: #ffd766; transform: translateY(-1px); }
+.team-verify-btn:disabled { background: #33383f; color: #8b97a7; cursor: default; }

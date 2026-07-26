@@ -1,0 +1,473 @@
+/* ============================================================
+   PLAYZONE FORGE - 150 MEJORAS (120 visuales + 30 lógica)
+   Fondo animado + Estética gremio guerrero
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Uncial+Antiqua&family=MedievalSharp&display=swap');
+
+:root {
+  --forge-iron: #2a2a2a;
+  --forge-stone: #1a1a1a;
+  --forge-bronze: #c62828;
+  --forge-bronze-dim: #6d1010;
+  --forge-copper: #b71c1c;
+  --forge-fire: #ff6b35;
+  --forge-red: var(--pz-primary, #e53935);
+  --forge-gold: var(--pz-coral, #ef5350);
+  --forge-parchment: #f4e4bc;
+}
+
+/* ========== 1-15: FONDO ANIMADO (principal) ========== */
+body.playzone-forge {
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: #0a0806 !important;
+  background-image: none !important;
+}
+
+/* Capa base con gradiente animado */
+body.playzone-forge::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background: 
+    radial-gradient(ellipse 80% 50% at 50% 100%, rgba(255,80,40,0.25) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 20% 80%, rgba(229,57,53,0.15) 0%, transparent 40%),
+    radial-gradient(ellipse 50% 30% at 80% 20%, rgba(198,40,40,0.12) 0%, transparent 35%),
+    linear-gradient(180deg, #0a0806 0%, #1a120a 25%, #0d0a08 50%, #120a0a 75%, #0a0608 100%);
+  background-size: 100% 100%;
+  animation: bg-shift 15s ease-in-out infinite alternate;
+}
+
+@keyframes bg-shift {
+  0% { opacity: 1; filter: hue-rotate(0deg) brightness(0.9); }
+  50% { opacity: 0.95; filter: hue-rotate(2deg) brightness(0.95); }
+  100% { opacity: 1; filter: hue-rotate(-1deg) brightness(0.9); }
+}
+
+/* Orbes flotantes de fuego */
+body.playzone-forge::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: 
+    radial-gradient(circle 15% at 10% 20%, rgba(255,107,53,0.15) 0%, transparent 30%),
+    radial-gradient(circle 20% at 90% 70%, rgba(229,57,53,0.12) 0%, transparent 35%),
+    radial-gradient(circle 12% at 50% 40%, rgba(229,57,53,0.08) 0%, transparent 25%);
+  animation: orbs-float 20s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes orbs-float {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+  25% { transform: translate(2%, -1%) scale(1.02); opacity: 1; }
+  50% { transform: translate(-1%, 2%) scale(0.98); opacity: 0.9; }
+  75% { transform: translate(1%, 1%) scale(1.01); opacity: 1; }
+}
+
+/* Contenedor de partículas animadas */
+.forge-bg-animated {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.forge-bg-animated .forge-bg-particle {
+  position: absolute;
+  border-radius: 50%;
+  animation: particle-drift 12s linear infinite;
+}
+
+.forge-bg-animated .forge-bg-particle:nth-child(odd) {
+  background: radial-gradient(circle, rgba(255,107,53,0.3) 0%, transparent 70%);
+  width: 6px; height: 6px;
+}
+
+.forge-bg-animated .forge-bg-particle:nth-child(even) {
+  background: radial-gradient(circle, rgba(229,57,53,0.2) 0%, transparent 70%);
+  width: 4px; height: 4px;
+}
+
+@keyframes particle-drift {
+  0% { transform: translateY(100vh) translateX(0) scale(0.5); opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.3; }
+  100% { transform: translateY(-20vh) translateX(30px) scale(1); opacity: 0; }
+}
+
+@keyframes forge-fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========== 16-35: TIPOGRAFÍA Y COLORES ========== */
+body.playzone-forge {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  color: #e8e0d0 !important;
+}
+
+.playzone-forge h1, .playzone-forge h2, .playzone-forge .form-wrapper h2 {
+  font-family: 'Cinzel', serif !important;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--pz-primary) !important;
+  text-shadow: 0 0 20px rgba(229,57,53,0.3), 0 2px 4px rgba(0,0,0,0.5) !important;
+}
+
+.playzone-forge .mission-hub-header h1,
+.playzone-forge .card-title {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+  text-transform: none !important;
+  color: #ffffff !important;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.55) !important;
+}
+
+.playzone-forge h3 { font-family: 'MedievalSharp', cursive !important; color: #d4c4a0 !important; }
+
+.playzone-forge .hub-p-nick, .playzone-forge .card-creator span, .playzone-forge .emblem-label {
+  font-family: 'Uncial Antiqua', cursive !important;
+  color: var(--pz-primary) !important;
+}
+
+/* ========== 56-80: BARRA PESTAÑAS Y FILTROS ========== */
+.playzone-forge .view-toggle-container {
+  background: linear-gradient(180deg, #2a2218 0%, #1a1510 100%) !important;
+  border: 2px solid #c62828 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 25px rgba(0,0,0,0.6), inset 0 1px 0 rgba(198,40,40,0.3), 0 0 20px rgba(198,40,40,0.1) !important;
+  overflow: hidden;
+}
+
+.playzone-forge .toggle-btn {
+  color: #c4b896 !important;
+  border-right: 1px solid rgba(198,40,40,0.4) !important;
+  transition: all 0.3s ease !important;
+}
+.playzone-forge .toggle-btn:hover {
+  background: rgba(198,40,40,0.15) !important;
+  color: var(--pz-primary) !important;
+  text-shadow: 0 0 10px rgba(229,57,53,0.3) !important;
+}
+.playzone-forge .toggle-btn.active {
+  background: transparent !important;
+  color: #fff !important;
+  border: none !important;
+  border-right: 1px solid rgba(198,40,40,0.4) !important;
+  box-shadow: inset 0 -3px 0 rgba(255, 255, 255, 0.35) !important;
+}
+.playzone-forge .toggle-btn.create-btn.active {
+  background: #1f1518 !important;
+  color: var(--pz-salmon) !important;
+  border: none !important;
+  box-shadow: inset 0 -3px 0 var(--pz-salmon) !important;
+}
+
+.playzone-forge .filters-bar {
+  background: linear-gradient(180deg, rgba(42,35,28,0.95), rgba(26,22,18,0.98)) !important;
+  border: 2px solid #6d1010 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+}
+.playzone-forge .filters-bar select {
+  background: rgba(20,18,15,0.9) !important;
+  border: 1px solid #5a4a3a !important;
+  color: #e8e0d0 !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+}
+.playzone-forge .filters-bar select:hover, .playzone-forge .filters-bar select:focus {
+  border-color: #c62828 !important;
+  box-shadow: 0 0 15px rgba(198,40,40,0.3) !important;
+}
+
+/* ========== 81-100: TARJETAS MISIÓN ========== */
+.playzone-forge .mission-card {
+  background: linear-gradient(180deg, rgba(35,30,25,0.95), rgba(20,18,15,0.98)) !important;
+  border: 2px solid #6d1010 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 25px rgba(0,0,0,0.6), inset 0 1px 0 rgba(198,40,40,0.15) !important;
+  transition: all 0.4s ease !important;
+  overflow: hidden;
+}
+
+.playzone-forge .mission-card:hover {
+  transform: translateY(-8px) scale(1.02) !important;
+  border-color: #c62828 !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7), 0 0 30px rgba(255,107,53,0.2), inset 0 1px 0 rgba(198,40,40,0.3) !important;
+}
+
+.playzone-forge .mission-card.active-mission {
+  animation: card-glow 3s ease-in-out infinite alternate !important;
+}
+
+@keyframes card-glow {
+  from { box-shadow: 0 6px 25px rgba(0,0,0,0.6), 0 0 20px rgba(255,107,53,0.15) !important; }
+  to { box-shadow: 0 6px 25px rgba(0,0,0,0.6), 0 0 40px rgba(255,107,53,0.35), 0 0 60px rgba(229,57,53,0.2) !important; }
+}
+
+.playzone-forge .card-header { border-bottom: 1px solid rgba(198,40,40,0.3) !important; }
+.playzone-forge .card-game-tag {
+  background: rgba(0,0,0,0.8) !important;
+  border: 1px solid #c62828 !important;
+  color: var(--pz-primary) !important;
+  border-radius: 6px !important;
+}
+.playzone-forge .card-body { color: #d8d0c0 !important; }
+.playzone-forge .card-bottom-info {
+  border-top-color: rgba(198, 40, 40, 0.25) !important;
+}
+.playzone-forge .card-footer {
+  background: rgba(0,0,0,0.4) !important;
+  border-top: 1px solid rgba(198,40,40,0.3) !important;
+}
+.playzone-forge .card-comments { color: #b8a88a !important; }
+
+/* ========== 101-115: BOTONES ========== */
+.playzone-forge .card-join-btn {
+  background: linear-gradient(180deg, transparent, rgba(198,40,40,0.1)) !important;
+  border: 2px solid #c62828 !important;
+  color: var(--pz-primary) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 3px 0 #3d1515, 0 4px 10px rgba(0,0,0,0.4) !important;
+  transition: all 0.2s ease !important;
+}
+.playzone-forge .card-join-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #c62828, #6d1010) !important;
+  color: #fff !important;
+  transform: translateY(2px) !important;
+  box-shadow: 0 1px 0 #3d1515, 0 0 25px rgba(229,57,53,0.4) !important;
+}
+.playzone-forge .card-join-btn:active:not(:disabled) { transform: translateY(4px) !important; }
+
+.playzone-forge .launch-mission-btn:not(:disabled) {
+  border: 2px solid var(--pz-primary, var(--pz-primary)) !important;
+  color: var(--pz-coral, #ef5350) !important;
+  box-shadow: 0 3px 0 #3d1515, 0 0 16px rgba(var(--pz-rgb, 229, 57, 53), 0.22) !important;
+  transition: all 0.3s ease !important;
+}
+.playzone-forge .launch-mission-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--pz-primary, var(--pz-primary)), var(--pz-primary-dark, #c62828)) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 0 28px rgba(var(--pz-rgb, 229, 57, 53), 0.45) !important;
+}
+
+/* ========== 116-130: FORMULARIO Y HUB ========== */
+.playzone-forge .form-wrapper {
+  background: linear-gradient(180deg, rgba(35,30,25,0.95), rgba(22,18,15,0.98)) !important;
+  border: 2px solid #6d1010 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 35px rgba(0,0,0,0.6), inset 0 1px 0 rgba(198,40,40,0.2), 0 0 40px rgba(198,40,40,0.08) !important;
+}
+
+.playzone-forge .hub-card {
+  background: linear-gradient(180deg, rgba(35,30,25,0.95), rgba(22,18,15,0.98)) !important;
+  border: 2px solid #6d1010 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 6px 25px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04) !important;
+}
+
+.playzone-forge .mission-hub-header {
+  border: 2px solid #c62828 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 0 40px rgba(255,107,53,0.15), inset 0 0 60px rgba(0,0,0,0.3) !important;
+}
+
+.playzone-forge .prize-card {
+  background: linear-gradient(135deg, rgba(229,57,53,0.15), rgba(198,40,40,0.05)) !important;
+  border-color: #c62828 !important;
+  box-shadow: 0 0 20px rgba(229,57,53,0.15) !important;
+}
+
+/* ========== 131-140: AVATARES Y PARTICIPANTES ========== */
+.playzone-forge .participant-avatar img,
+.playzone-forge .hub-participant-avatar,
+.playzone-forge .card-creator img {
+  border: 3px solid #c62828 !important;
+  box-shadow: 0 0 15px rgba(198,40,40,0.4), inset 0 0 10px rgba(229,57,53,0.1) !important;
+  transition: all 0.3s ease !important;
+}
+.playzone-forge .participant-avatar:hover img,
+.playzone-forge .hub-participant-avatar:hover {
+  border-color: var(--pz-primary) !important;
+  box-shadow: 0 0 25px rgba(229,57,53,0.5) !important;
+  transform: scale(1.05);
+}
+.playzone-forge .hub-player-slot.empty {
+  border-color: rgba(198, 40, 40, 0.45) !important;
+  background: linear-gradient(145deg, rgba(42,30,26,0.85), rgba(16,12,10,0.95)) !important;
+}
+.playzone-forge .hub-player-slot.filled {
+  border-color: rgba(198, 40, 40, 0.4) !important;
+}
+.playzone-forge .hub-slot-plus {
+  border-color: rgba(229, 57, 53, 0.45) !important;
+  color: rgba(255,255,255,0.7) !important;
+}
+.playzone-forge .hub-chat-tab.active {
+  border-color: rgba(229, 57, 53, 0.55) !important;
+  box-shadow: 0 0 14px rgba(229, 57, 53, 0.2) !important;
+}
+
+/* ========== 141-150: SCROLLBARS, BOTÓN TEATRO, OTROS ========== */
+.playzone-forge ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+.playzone-forge ::-webkit-scrollbar-track {
+  background: linear-gradient(90deg, #1a1510, #2a2218);
+  border-radius: 6px;
+  border: 1px solid #5a4a3a;
+}
+.playzone-forge ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #b71c1c, #6d1010);
+  border-radius: 6px;
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.4);
+}
+.playzone-forge ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #c62828, #b71c1c);
+  box-shadow: 0 0 10px rgba(198,40,40,0.5);
+}
+
+.forge-theater-btn {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  padding: 12px 20px;
+  background: linear-gradient(180deg, #2a2218, #1a1510);
+  border: 2px solid #c62828;
+  border-radius: 8px;
+  color: var(--pz-primary);
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 6px 25px rgba(0,0,0,0.6), 0 0 20px rgba(198,40,40,0.2);
+  transition: all 0.3s ease;
+  display: block;
+}
+.forge-theater-btn:hover {
+  background: linear-gradient(180deg, #3a3228, #2a2218);
+  border-color: var(--pz-primary);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 30px rgba(229,57,53,0.3);
+}
+.forge-theater-btn.active {
+  background: linear-gradient(180deg, #4a3a20, #2a2010);
+  border-color: var(--pz-primary);
+  box-shadow: 0 0 35px rgba(229,57,53,0.4);
+}
+
+/* Capa ceniza */
+.forge-ash-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.forge-ash-particle {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: radial-gradient(circle, rgba(140,120,100,0.5) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: ash-float 14s linear infinite;
+}
+@keyframes ash-float {
+  0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+  8% { opacity: 0.6; }
+  92% { opacity: 0.3; }
+  100% { transform: translateY(-10vh) translateX(25px); opacity: 0; }
+}
+
+.playzone-forge .playzone-main,
+.playzone-forge #playzone-onboarding { position: relative; z-index: 1; }
+
+/* Modo teatro */
+body.playzone-forge.theater-mode .playzone-main { position: relative; z-index: 1; }
+body.playzone-forge.theater-mode header,
+body.playzone-forge.theater-mode .view-toggle-container,
+body.playzone-forge.theater-mode .filters-bar { opacity: 0.2 !important; pointer-events: none; }
+body.playzone-forge.theater-mode #missionsBrowser,
+body.playzone-forge.theater-mode #activeMissionView {
+  box-shadow: 0 0 80px rgba(255,107,53,0.25) !important;
+}
+
+/* Mensaje flotante */
+.playzone-forge .floating-message {
+  border: 2px solid rgba(198,40,40,0.5) !important;
+  box-shadow: 0 6px 30px rgba(0,0,0,0.6), 0 0 20px rgba(198,40,40,0.2) !important;
+  border-radius: 10px !important;
+  backdrop-filter: blur(8px);
+  animation: forge-fadeIn 0.3s ease-out;
+}
+.playzone-forge .floating-message.error {
+  border-color: rgba(229,57,53,0.7) !important;
+  box-shadow: 0 6px 30px rgba(0,0,0,0.6), 0 0 25px rgba(229,57,53,0.3) !important;
+}
+
+/* Inputs y placeholders */
+.playzone-forge input, .playzone-forge textarea {
+  transition: border-color 0.3s, box-shadow 0.3s !important;
+}
+.playzone-forge input:focus, .playzone-forge textarea:focus {
+  border-color: #c62828 !important;
+  box-shadow: 0 0 15px rgba(198,40,40,0.3) !important;
+  outline: none !important;
+}
+.playzone-forge input::placeholder, .playzone-forge textarea::placeholder {
+  color: #8a7a6a !important;
+  opacity: 0.9;
+}
+
+/* Estado vacío mejorado */
+.playzone-forge #missionsBrowser p,
+.playzone-forge #playersBrowser p {
+  color: #b8a88a !important;
+  font-family: 'MedievalSharp', cursive !important;
+  font-size: 1.1rem !important;
+  padding: 2rem !important;
+  text-shadow: 0 0 15px rgba(198,40,40,0.2) !important;
+}
+
+/* Onboarding cards Forge */
+.playzone-forge .playstyle-card, .playzone-forge .game-card {
+  border: 2px solid #5a4a3a !important;
+  transition: all 0.3s ease !important;
+}
+.playzone-forge .playstyle-card:hover, .playzone-forge .game-card:hover {
+  border-color: #c62828 !important;
+  box-shadow: 0 0 25px rgba(198,40,40,0.2) !important;
+}
+.playzone-forge .playstyle-card.selected, .playzone-forge .game-card.selected {
+  border-color: var(--pz-primary) !important;
+  box-shadow: 0 0 30px rgba(229,57,53,0.3), inset 0 0 20px rgba(229,57,53,0.05) !important;
+}
+
+/* Bloque cooperativo — visible en tema Forja (display lo controla playzone.js) */
+.playzone-forge .missions-coop-promo,
+.playzone-forge .missions-coop-header {
+  background: linear-gradient(135deg, rgba(75, 223, 255, 0.14) 0%, rgba(20, 12, 8, 0.85) 100%) !important;
+  border: 1px solid rgba(75, 223, 255, 0.35) !important;
+  box-shadow: 0 0 24px rgba(75, 223, 255, 0.12) !important;
+}
+.playzone-forge .missions-coop-promo-content h3,
+.playzone-forge .missions-coop-header-text h3 {
+  color: #4bdfff !important;
+}
+.playzone-forge .missions-coop-promo-content p,
+.playzone-forge .missions-coop-header-text p {
+  color: #d4c4a0 !important;
+  font-family: 'Segoe UI', system-ui, sans-serif !important;
+  padding: 0 !important;
+}

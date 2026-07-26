@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<title>Studiosgamesrs - Login</title>
+	<link rel="icon" href="/dragon_profile_studiosgamesrs.png" type="image/png">
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		/* === MEJORA: FONDO CON IMAGEN PNG + DEGRADADO === */
+		body {
+			font-family: 'Segoe UI', sans-serif;
+			background: linear-gradient(180deg,
+					rgba(0, 0, 0, 0.8),
+					rgba(48, 0, 0, 0.7),
+					rgba(0, 17, 51, 0.8)),
+				url('/bg_01csgo.png');
+			background-size: cover;
+			background-position: center center;
+			background-attachment: fixed;
+			color: white;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			min-height: 100vh;
+			padding: 40px 0;
+			overflow-x: hidden;
+		}
+
+		/* === PRELOADER === */
+		#preloader {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: #000;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			z-index: 9999;
+			transition: opacity 0.75s ease-out;
+		}
+
+		#preloader .branding {
+			font-size: 42px;
+			animation: pulse 1.5s infinite ease-in-out;
+		}
+
+		#preloader p {
+			margin-top: 15px;
+			font-size: 16px;
+			letter-spacing: 1px;
+			color: #ccc;
+		}
+
+		#preloader.hidden {
+			opacity: 0;
+			pointer-events: none;
+		}
+
+		/* === NOTIFICACIONES CUSTOM === */
+		#custom-alert {
+			position: fixed;
+			top: 20px;
+			left: 50%;
+			transform: translateX(-50%);
+			padding: 12px 20px;
+			border-radius: 5px;
+			font-weight: 600;
+			z-index: 9000;
+			opacity: 0;
+			visibility: hidden;
+			transition: opacity 0.3s, top 0.3s;
+			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+		}
+
+		#custom-alert.show {
+			opacity: 1;
+			visibility: visible;
+			top: 30px;
+		}
+
+		#custom-alert.error {
+			background: #d90429;
+			color: white;
+		}
+
+		#custom-alert.success {
+			background: #00b400;
+			color: white;
+		}
+
+		/* === LOGO ANIMADO === */
+		.branding {
+			cursor: pointer;
+			font-size: 38px;
+			font-weight: 700;
+			text-transform: uppercase;
+			margin-bottom: 20px;
+			letter-spacing: 1px;
+			text-shadow: 0 0 10px rgba(255, 255, 255, 0.2), 0 0 20px rgba(230, 0, 0, 0.5);
+			animation: fadeInDown 1s ease-out;
+		}
+
+		.studio { color: white; }
+
+		.gamesrs {
+			background: linear-gradient(90deg, #ff8000, #e60000, #ff8000);
+			background-size: 200% auto;
+			color: #fff;
+			background-clip: text;
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			animation: molten-metal 3s linear infinite;
+			font-weight: 800;
+		}
+
+		/* === CONTENEDORES === */
+		.wrapper {
+			background: rgba(255, 255, 255, 0.05);
+			border-radius: 10px;
+			padding: 20px;
+			width: 320px;
+			text-align: center;
+			box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+			border: 1px solid rgba(255, 255, 255, 0.1);
+			margin-bottom: 20px;
+		}
+
+		#login-wrapper {
+			animation: fadeInUp 1s ease-out 0.2s;
+			animation-fill-mode: both;
+			opacity: 0;
+		}
+
+		#register-wrapper {
+			display: none;
+			animation: fadeInUp 0.7s ease-out;
+		}
+
+		/* === SLOGAN ROTATIVO === */
+		#slogan-container {
+			font-size: 18px;
+			font-weight: 500;
+			color: #ddd;
+			margin: -5px 0 15px 0;
+			text-align: center;
+			height: 25px;
+			animation: fadeIn 1s ease-out 0.5s;
+			animation-fill-mode: both;
+		}
+
+		#slogan-container span {
+			transition: opacity 0.5s ease-in-out;
+		}
+
+		/* === BOTÓN ELÉCTRICO === */
+		.electric-btn {
+			width: 320px;
+			padding: 12px 20px;
+			margin-bottom: 20px;
+			background: transparent;
+			border: 2px solid #e60000;
+			border-radius: 5px;
+			color: #e60000;
+			font-family: 'Segoe UI', sans-serif;
+			font-size: 16px;
+			font-weight: 700;
+			text-transform: uppercase;
+			cursor: pointer;
+			position: relative;
+			overflow: hidden;
+			transition: all 0.3s ease;
+			letter-spacing: 0.5px;
+		}
+
+		.electric-btn:hover {
+			background: #e60000;
+			color: white;
+			box-shadow: 0 0 15px #e60000, 0 0 25px #e60000, 0 0 40px #ff0033;
+			transform: scale(1.02);
+		}
+		
+		.electric-btn::before, .electric-btn::after {
+			content: '';
+			position: absolute;
+			width: 100%;
+			height: 2px;
+			background: linear-gradient(90deg, transparent, #fff, transparent);
+			top: 0;
+			left: -100%;
+			opacity: 0;
+			transition: opacity 0.1s linear;
+		}
+		.electric-btn::after {
+			top: auto;
+			bottom: 0;
+			animation-delay: 0.6s;
+		}
+
+		.electric-btn:hover::before {
+			left: 100%;
+			opacity: 1;
+			transition: left 1.2s linear, opacity 0.3s linear;
+		}
+		.electric-btn:hover::after {
+			left: 100%;
+			opacity: 1;
+			transition: left 1.2s linear 0.4s, opacity 0.3s linear 0.4s;
+		}
+
+		.electric-btn:active, .electric-btn.clicked {
+			transform: scale(0.98);
+			box-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60000, 0 0 40px #e60000;
+			color: #fff;
+			background: #ff0033;
+		}
+
+		h2 {
+			font-size: 32px;
+			font-weight: 800;
+			text-transform: uppercase;
+			color: #fff;
+			text-shadow: 0 0 5px rgba(255, 255, 255, 0.7), 0 0 10px rgba(230, 0, 0, 0.8), 0 0 15px rgba(230, 0, 0, 0.8);
+			position: relative;
+			padding-bottom: 10px;
+			margin-bottom: 15px;
+		}
+
+		h2::after {
+			content: '';
+			position: absolute;
+			bottom: 0;
+			left: 50%;
+			transform: translateX(-50%);
+			width: 60px;
+			height: 3px;
+			background: #e60000;
+			border-radius: 2px;
+			box-shadow: 0 0 10px #e60000, 0 0 15px #ff0033;
+		}
+
+        /* === ESTILO BOTÓN STEAM === */
+        .steam-btn {
+            background: #171a21;
+            color: #ffffff;
+            border: 1px solid #2a475e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+            font-weight: bold;
+            margin-top: 10px;
+            text-decoration: none;
+            width: 100%;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .steam-btn:hover {
+            background-color: #2a475e;
+            box-shadow: 0 0 15px rgba(102, 192, 244, 0.4);
+            transform: scale(1.03);
+        }
+
+        .steam-btn img {
+            width: 20px;
+            height: 20px;
+        }
+
+		input, select {
+			width: 100%;
+			padding: 10px;
+			margin: 8px 0;
+			border: 1px solid transparent;
+			border-radius: 5px;
+			background: #f2f2f2;
+			color: black;
+			font-family: 'Segoe UI', sans-serif;
+			font-size: 14px;
+			transition: border-color 0.3s, box-shadow 0.3s;
+		}
+
+		input:focus, select:focus {
+			outline: none;
+			border-color: #e60000;
+			box-shadow: 0 0 10px rgba(230, 0, 0, 0.5);
+		}
+
+		button[type="submit"] {
+			width: 100%;
+			padding: 10px;
+			background: crimson;
+			border: none;
+			border-radius: 5px;
+			color: white;
+			font-weight: bold;
+			cursor: pointer;
+			margin-top: 10px;
+			transition: transform 0.2s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+		}
+
+		button[type="submit"]:hover {
+			transform: scale(1.03);
+			box-shadow: 0 0 15px rgba(230, 0, 0, 0.8), 0 0 5px rgba(255, 255, 255, 0.5);
+			background-color: #ff0033;
+		}
+
+		.google-btn {
+			background: white;
+			color: #000;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 10px;
+			padding: 8px;
+			font-weight: bold;
+			margin-top: 10px;
+			width: 100%;
+			border: none;
+			border-radius: 5px;
+			cursor: pointer;
+		}
+
+		.google-btn:hover {
+			background-color: #f2f2f2;
+			box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+		}
+
+		.google-btn img {
+			width: 20px;
+			height: 20px;
+		}
+
+		.footer-note {
+			font-size: 12px;
+			margin-top: 10px;
+			color: #ccc;
+		}
+
+		.footer-note a {
+			color: #e60000;
+			text-decoration: none;
+			font-weight: 600;
+			cursor: pointer;
+			transition: text-shadow 0.3s;
+		}
+
+		.footer-note a:hover {
+			text-decoration: underline;
+			text-shadow: 0 0 5px #e60000;
+		}
+
+		.recaptcha-container {
+			display: none;
+			justify-content: center;
+			margin-top: 15px;
+			transform: scale(0.9);
+			transform-origin: center;
+			transition: opacity 0.5s ease-in-out;
+		}
+
+		@keyframes pulse {
+			0% { transform: scale(1); opacity: 0.8; }
+			50% { transform: scale(1.05); opacity: 1; }
+			100% { transform: scale(1); opacity: 0.8; }
+		}
+		@keyframes fadeInDown {
+			from { opacity: 0; transform: translateY(-20px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+		@keyframes fadeInUp {
+			from { opacity: 0; transform: translateY(30px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+		@keyframes fadeIn {
+			from { opacity: 0; }
+			to { opacity: 1; }
+		}
+		@keyframes molten-metal {
+			0% { background-position: 0% 50%; }
+			50% { background-position: 100% 50%; }
+			100% { background-position: 0% 50%; }
+		}
+	</style>
+</head>
+
+<body>
+
+	<div id="preloader">
+		<div class="branding">
+			<span class="studio">Studios</span>
+			<span class="gamesrs">gamesrs</span>
+		</div>
+		<p>Preparing your experience...</p>
+	</div>
+
+	<div id="custom-alert"></div>
+
+	<div class="branding" tabindex="0" aria-label="Ir al Home de Studiosgamesrs">
+		<span class="studio">Studios</span>
+		<span class="gamesrs">gamesrs</span>
+	</div>
+
+	<div class="wrapper" id="login-wrapper">
+		<h2>Login</h2>
+		<form id="login-form">
+			<input type="email" id="login-email" placeholder="Email" required>
+			<input type="password" id="login-password" placeholder="Password" required>
+			<button type="submit">Login</button>
+		</form>
+		<button class="google-btn" id="google-login">
+			<img src="https://img.icons8.com/color/48/000000/google-logo.png" alt="Google Logo"> &nbsp; &nbsp; Login with Google &nbsp; &nbsp; 
+		</button>
+		<a href="steam_login.php?intent=login" style="text-decoration: none;">
+			<button type="button" class="steam-btn">
+				<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Steam_Logo.png" alt="Steam Logo">
+				&nbsp; &nbsp; Login with Steam &nbsp; &nbsp;
+			</button>
+		</a>
+		<div class="footer-note">
+			<a href="#" id="forgot-password-link">Forgot your password?</a>
+		</div>
+	</div>
+
+	<div id="slogan-container">
+		<span id="slogan-text"></span>
+	</div>
+
+	<button id="toggle-form-btn" class="electric-btn">
+		<span>Register Here</span>
+	</button>
+
+	<div class="wrapper" id="register-wrapper">
+		<h2>Register</h2>
+		<form id="register-form">
+			<input type="text" id="register-username" placeholder="Username" required>
+			<input type="email" id="register-email" placeholder="Email" required>
+			<select id="register-age" required>
+				<option value="" disabled selected>Select your age</option>
+			</select>
+			<input type="password" id="register-password" placeholder="Password" required>
+			<button type="submit">Register</button>
+		</form>
+		<button class="google-btn" id="google-register">
+			<img src="https://img.icons8.com/color/48/000000/google-logo.png" alt="Google Logo"> &nbsp; &nbsp; Register with Google &nbsp; &nbsp; 
+		</button>
+		<a href="steam_login.php?intent=register" style="text-decoration: none;">
+			<button type="button" class="steam-btn">
+				<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Steam_Logo.png" alt="Steam Logo">
+				&nbsp; &nbsp; Register with Steam &nbsp; &nbsp;
+			</button>
+		</a>
+		<div class="footer-note">By registering, you accept the Terms of Studiosgamesrs.</div>
+		<div class="footer-note">If you don't receive the verification email, check your spam folder.</div>
+	</div>
+
+	<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-check-compat.js"></script>
+	<script src="/sg-firebase-init.js?v=20260724nocaptcha"></script>
+	<script>
+		// Desregistrar SW de Community en login (evita "Failed to convert value to Response")
+		(function() {
+			if (!('serviceWorker' in navigator)) return;
+			navigator.serviceWorker.getRegistrations().then(function(regs) {
+				regs.forEach(function(r) {
+					if (r.active && r.active.scriptURL.indexOf('sw-community') !== -1) r.unregister();
+				});
+			}).catch(function() {});
+		})();
+
+		// === VARIABLE DE CONTROL CLAVE PARA EVITAR AUTO-LOGIN AL REGISTRAR ===
+		let isAuthenticatingForm = false; 
+
+		let alertTimeout;
+		function showAlert(message, type = 'error') {
+			const alertBox = document.getElementById('custom-alert');
+			if (!alertBox) return; 
+			if (alertTimeout) clearTimeout(alertTimeout);
+			alertBox.textContent = message;
+			alertBox.className = type;
+			alertBox.classList.add('show');
+			alertTimeout = setTimeout(() => { alertBox.classList.remove('show'); }, 5000);
+		}
+
+		window.onload = function() {
+			const preloader = document.getElementById('preloader');
+			if (preloader) setTimeout(() => { preloader.classList.add('hidden'); }, 1500); 
+
+			const slogans = [
+				"Forge your legend. Join the next era of gaming.",
+				"Log in and enter the battlefield of legends."
+			];
+			let sloganIndex = 0;
+			const sloganElement = document.getElementById('slogan-text');
+			const sloganContainer = document.getElementById('slogan-container');
+
+			function changeSlogan() {
+				if (!sloganElement) return;
+				sloganElement.style.opacity = '0';
+				setTimeout(() => {
+					sloganIndex = (sloganIndex + 1) % slogans.length;
+					sloganElement.textContent = slogans[sloganIndex];
+					sloganElement.style.opacity = '1';
+				}, 500);
+			}
+			if (sloganElement) {
+				sloganElement.textContent = slogans[0]; 
+				setInterval(changeSlogan, 5000); 
+			}
+
+			const loginWrapper = document.getElementById('login-wrapper');
+			const registerWrapper = document.getElementById('register-wrapper');
+			const toggleBtn = document.getElementById('toggle-form-btn');
+
+			if (loginWrapper && registerWrapper && toggleBtn && sloganContainer) {
+				toggleBtn.addEventListener('click', () => {
+					toggleBtn.classList.add('clicked');
+					setTimeout(() => { toggleBtn.classList.remove('clicked'); }, 200);
+
+					if (registerWrapper.style.display === 'none' || registerWrapper.style.display === '') {
+						loginWrapper.style.display = 'none';
+						registerWrapper.style.display = 'block';
+						sloganContainer.style.display = 'none';
+						toggleBtn.querySelector('span').textContent = 'Login Here';
+					} else {
+						registerWrapper.style.display = 'none';
+						loginWrapper.style.display = 'block';
+						sloganContainer.style.display = 'block';
+						toggleBtn.querySelector('span').textContent = 'Register Here';
+					}
+				});
+			}
+
+			// --- FIREBASE (sg-firebase-init.js — SEC-022) ---
+			sgInitFirebaseApp();
+			const auth = firebase.auth();
+			const provider = new firebase.auth.GoogleAuthProvider();
+			const database = firebase.database();
+
+			// === PROTECCIÓN DE RUTAS INTELIGENTE ===
+			auth.onAuthStateChanged(function(fbUser) {
+				// Solo actúa si NO estamos en medio del proceso de registro/login del formulario
+				if (fbUser && !isAuthenticatingForm) {
+					// Verificamos si es un proveedor de email clásico (que obliga verificación)
+					const isEmailPass = fbUser.providerData.some(p => p.providerId === 'password');
+
+					if (isEmailPass && !fbUser.emailVerified) {
+						// La cuenta no está verificada, sacamos al usuario por seguridad
+						auth.signOut();
+					} else {
+						// Commander Panel is TOP: only Commanders can apply ban. If this user is blocked, deny access.
+						database.ref('users/' + fbUser.uid + '/blocked').once('value').then(function(snap) {
+							if (snap.val() === true) {
+								auth.signOut();
+								showAlert("Account restricted by site administration. Contact support if you believe this is an error.", "error");
+								return;
+							}
+							window.location.href = "/dashboard";
+						}).catch(function() {
+							window.location.href = "/dashboard";
+						});
+					}
+				}
+			});
+
+			// Capturar código de referido (?ref=NEXUS-XXX). refCodes usa 8 chars; aceptamos hasta 12 por compatibilidad.
+			const urlParams = new URLSearchParams(window.location.search);
+			const refCode = urlParams.get('ref');
+			if (refCode && /^NEXUS-[A-Z0-9]{1,12}$/i.test(refCode)) {
+				localStorage.setItem('pending_referral_code', refCode.toUpperCase());
+			}
+
+			// Mensaje tras intentar login con Steam
+			const steamMsg = urlParams.get('steam_msg');
+			if (steamMsg) {
+				setTimeout(function() { showAlert(decodeURIComponent(steamMsg), 'success'); }, 500);
+				window.history.replaceState({}, '', '/login');
+			}
+			const steamError = urlParams.get('steam_error');
+			if (steamError) {
+				setTimeout(function() { showAlert(decodeURIComponent(steamError), 'error'); }, 500);
+				window.history.replaceState({}, '', '/login');
+			}
+			// Account restricted by Commander Panel (ban)
+			if (urlParams.get('blocked') === '1') {
+				setTimeout(function() { showAlert("Your account has been restricted by site administration. Only Commanders have the authority to apply or remove this. Contact support if you believe this is an error.", "error"); }, 300);
+				window.history.replaceState({}, '', '/login');
+			}
+			
+			async function detectUserCountryCode() {
+				try {
+					const controller = new AbortController();
+					const timeoutId = setTimeout(() => controller.abort(), 2000);
+					const response = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+					clearTimeout(timeoutId);
+					if (!response.ok) return "UNK";
+					const data = await response.json();
+					return data.country_code || "UNK";
+				} catch (error) { return "UNK"; }
+			}
+
+			const ageSelect = document.getElementById('register-age');
+			for (let i = 13; i <= 99; i++) {
+				const option = document.createElement('option');
+				option.value = i;
+				option.textContent = i;
+				ageSelect.appendChild(option);
+			}
+			
+			const badWords = ["palabrota1", "palabrota2", "insulto1", "insulto2"];
+
+			function isUsernameValid(username) {
+				const emailRegex = /\S+@\S+\.\S+/;
+				if (emailRegex.test(username)) {
+					showAlert("Error: The username cannot be an email address.", "error");
+					return false;
+				}
+				const lowerCaseUsername = username.toLowerCase();
+				for (const word of badWords) {
+					if (lowerCaseUsername.includes(word)) {
+						showAlert("Error: The username contains inappropriate words.", "error");
+						return false;
+					}
+				}
+				return true;
+			}
+
+			const registerForm = document.getElementById('register-form');
+
+			// --- REGISTRO POR EMAIL ---
+			document.getElementById("register-form").addEventListener("submit", async (e) => {
+				e.preventDefault();
+				const nick = document.getElementById("register-username").value;
+				if (!isUsernameValid(nick)) return;
+				
+				const email = document.getElementById("register-email").value;
+				const password = document.getElementById("register-password").value;
+				const age = document.getElementById("register-age").value;
+
+				// BLOQUEAMOS LA REDIRECCIÓN AUTOMÁTICA
+				isAuthenticatingForm = true;
+
+				try {
+					const countryCode = await detectUserCountryCode();
+					const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+					const user = userCredential.user;
+					
+					await database.ref('users/' + user.uid).set({
+						nick: nick,
+						nick_lowercase: nick.toLowerCase(),
+						photoURL: "",
+						thought: "",
+						rango: "tribal_warrior",
+						age: age,
+						country: countryCode,
+						registro: new Date().toISOString(),
+						tokens: 10,
+						competitive: {
+							team: "Sin equipo", role: "Sin rol", invites: 0,
+							match: { opponent: "Ninguno", tournament: "Ninguno", time: "N/A" }
+						}
+					});
+
+					// Insignia de Lealtad: solo para registros en periodo de prueba
+					try {
+						const TRIAL_PERIOD_END = 1767225600000; // 1 enero 2026 (epoch ms)
+						if (Date.now() < TRIAL_PERIOD_END) {
+							await database.ref('nexus/users/' + user.uid).update({
+								badges: ['loyalty_trial'],
+								trialPeriodRegisteredAt: Date.now()
+							});
+						}
+					} catch (nexusErr) { console.warn('Nexus loyalty badge:', nexusErr); }
+
+					// Registrar referido (requiere regla refCodes .read auth!=null en Firebase)
+					const pendingRef = localStorage.getItem('pending_referral_code');
+					if (pendingRef) {
+						try {
+							const codeToLookup = pendingRef.length > 8
+								? ('NEXUS-' + pendingRef.replace(/^NEXUS-/i, '').substr(0, 8).toUpperCase())
+								: pendingRef.toUpperCase();
+							const refSnapshot = await database.ref('refCodes/' + codeToLookup).once('value');
+							const referrerUid = refSnapshot.val();
+							if (referrerUid && referrerUid !== user.uid) {
+								await database.ref('users/' + referrerUid + '/referrals/' + user.uid).set({
+									nick: nick,
+									timestamp: Date.now()
+								});
+								localStorage.removeItem('pending_referral_code');
+								showAlert("¡Registrado como referido! Tu amigo recibirá recompensas.", "success");
+							} else if (!referrerUid) {
+								console.warn('Referral: refCodes/' + codeToLookup + ' vacío o sin permiso. Añade regla "refCodes": { ".read": "auth != null" } en Firebase.');
+							}
+						} catch (refErr) {
+							console.error('Referral error (probablemente falta regla refCodes en Firebase):', refErr);
+						}
+					}
+					
+					try {
+						const res = await fetch("send_verification.php", {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+							body: new URLSearchParams({ email: email, nickname: nick, uid: user.uid })
+						});
+						const data = await res.json();
+						if (data.success) {
+							showAlert("Registration successful! Check your email to verify your account.", "success");
+						} else {
+							showAlert("Account created, but verification email failed.", "error");
+						}
+					} catch (verifError) {
+						showAlert("Registration successful! Check your email to verify your account.", "success");
+					}
+
+				} catch (error) {
+					showAlert("Register Error: " + error.message, "error");
+				} finally {
+					document.getElementById("register-form").reset();
+					// Cerramos sesión de la cuenta recién creada y liberamos la redirección
+					auth.signOut().then(() => {
+						isAuthenticatingForm = false; 
+					});
+				}
+			});
+
+			// --- LOGIN MANUAL ---
+			document.getElementById("login-form").addEventListener("submit", (e) => {
+				e.preventDefault();
+				isAuthenticatingForm = true; // Bloqueamos temporalmente
+				const email = document.getElementById("login-email").value;
+				const password = document.getElementById("login-password").value;
+
+				auth.signInWithEmailAndPassword(email, password).then((userCredential) => {
+					const user = userCredential.user;
+					if (user.emailVerified) {
+						window.location.href = "/dashboard";
+					} else {
+						auth.signOut();
+						showAlert("Login Error: Please verify your email first.", "error");
+						isAuthenticatingForm = false; // Liberamos si hubo error
+					}
+				}).catch(error => {
+    let mensajeAmigable = "Ocurrió un error al intentar iniciar sesión.";
+    
+    // Convertimos el error a minúsculas para buscar palabras clave sin fallar
+    const errCode = (error.code || "").toLowerCase();
+    const errMsg = (error.message || "").toLowerCase();
+
+    // El detector a prueba de balas
+    if (errCode.includes('invalid') || errCode.includes('user-not-found') || errCode.includes('wrong-password') || errMsg.includes('invalid_login_credentials')) {
+        mensajeAmigable = "Correo o contraseña incorrectos. Por favor, verifica tus datos e inténtalo de nuevo.";
+    } else if (errCode.includes('too-many-requests') || errMsg.includes('too_many_requests')) {
+        mensajeAmigable = "Demasiados intentos fallidos. Por seguridad, espera unos minutos o restablece tu clave.";
+    } else if (errCode.includes('user-disabled')) {
+        mensajeAmigable = "Esta cuenta ha sido deshabilitada por un administrador.";
+    } else if (errCode.includes('network')) {
+        mensajeAmigable = "Error de conexión. Revisa tu internet e inténtalo de nuevo.";
+    } else {
+        mensajeAmigable = "No se pudo iniciar sesión. Verifica tus datos.";
+        console.error("Error original de Firebase:", error); // Por si sale algo nuevo, lo ves en F12
+    }
+
+    // Mostramos tu alerta roja bonita con el texto traducido
+    showAlert(mensajeAmigable, "error");
+});
+			});
+
+			// --- GOOGLE LOGIN ---
+			document.getElementById("google-login").onclick = () => {
+				isAuthenticatingForm = true;
+				auth.signInWithPopup(provider).then(() => {
+					window.location.href = "/dashboard";
+				}).catch(error => {
+					showAlert("Google Login Error: " + error.message, "error");
+					isAuthenticatingForm = false;
+				});
+			};
+
+			// --- GOOGLE REGISTER ---
+			document.getElementById("google-register").onclick = () => {
+				isAuthenticatingForm = true;
+				auth.signInWithPopup(provider).then(async (result) => { 
+					const user = result.user;
+					database.ref('users/' + user.uid).once('value').then(async snapshot => {
+						if (!snapshot.exists()) {
+							const countryCode = await detectUserCountryCode();
+							database.ref('users/' + user.uid).set({
+								nick: user.displayName || user.email.split('@')[0],
+								nick_lowercase: (user.displayName || user.email.split('@')[0]).toLowerCase(),
+								photoURL: user.photoURL || "",
+								thought: "",
+								rango: "tribal_warrior",
+								age: "",
+								country: countryCode,
+								registro: new Date().toISOString(),
+								tokens: 10, 
+								competitive: {
+									team: "Sin equipo", role: "Sin rol", invites: 0,
+									match: { opponent: "Ninguno", tournament: "Ninguno", time: "N/A" }
+								}
+							}).then(async () => {
+								try {
+									const TRIAL_PERIOD_END = 1767225600000;
+									if (Date.now() < TRIAL_PERIOD_END) {
+										await database.ref('nexus/users/' + user.uid).update({
+											badges: ['loyalty_trial'],
+											trialPeriodRegisteredAt: Date.now()
+										});
+									}
+								} catch (e) {}
+								showAlert("Registration with Google successful!", "success");
+								window.location.href = "/dashboard";
+							});
+						} else {
+							showAlert("Account already exists. Logging in...", "success");
+							window.location.href = "/dashboard";
+						}
+					});
+				}).catch(error => {
+					showAlert("Google Register Error: " + error.message, "error");
+					isAuthenticatingForm = false;
+				});
+			};
+
+// --- RECUPERACIÓN DE CONTRASEÑA ELEGANTE Y BLINDADA ---
+			document.getElementById("forgot-password-link").onclick = async function(e) {
+				e.preventDefault();
+				
+				const emailInput = document.getElementById("login-email");
+				const email = emailInput.value.trim();
+
+				if (!email) {
+					showAlert("Por favor, ingresa tu correo electrónico en la casilla de arriba y vuelve a hacer clic aquí.", "error");
+					emailInput.focus(); 
+					emailInput.style.borderColor = "#e60000";
+					emailInput.style.boxShadow = "0 0 15px rgba(230, 0, 0, 0.8)";
+					setTimeout(() => {
+						emailInput.style.borderColor = "transparent";
+						emailInput.style.boxShadow = "none";
+					}, 2000);
+					return;
+				}
+
+				const originalText = this.innerText;
+				this.innerText = "Enviando enlace...";
+				this.style.pointerEvents = "none";
+
+				try {
+					// Enrutamos hacia el archivo de confianza añadiendo type='reset'
+					const params = new URLSearchParams({ email: email, type: 'reset' });
+					
+					const res = await fetch("send_verification.php", {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+						body: params
+					});
+
+					const textResponse = await res.text(); 
+					let data;
+					
+					// Magia Resiliente
+					const jsonStart = textResponse.indexOf('{');
+					const jsonEnd = textResponse.lastIndexOf('}') + 1;
+					if (jsonStart !== -1 && jsonEnd !== -1) {
+						data = JSON.parse(textResponse.substring(jsonStart, jsonEnd));
+					} else {
+						throw new Error("Respuesta inválida del servidor.");
+					}
+
+					if (data.success) {
+						showAlert("¡Listo! Te hemos enviado un enlace para cambiar tu contraseña a " + email, "success");
+						emailInput.value = ""; 
+					} else {
+						showAlert(data.error || "No se pudo enviar el correo.", "error");
+					}
+
+				} catch (error) {
+					console.error("Error recuperando clave:", error);
+					showAlert("Hubo un error al intentar comunicar con el servidor.", "error");
+				} finally {
+					this.innerText = originalText;
+					this.style.pointerEvents = "auto";
+				}
+			};
+		};
+	</script>
+</body>
+
+</html>

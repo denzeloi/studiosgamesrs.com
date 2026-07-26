@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Creator Nexus | Studiosgamesrs</title>
+    <link rel="icon" href="/dragon_profile_studiosgamesrs.png" type="image/png" />
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-check-compat.js"></script>
+    <script src="/sg-firebase-init.js?v=20260724nocaptcha"></script>
+    <script>sgInitFirebaseApp();</script>
+    
+    <!-- Fuentes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Orbitron:wght@400;500;700&family=Montserrat:wght@300;400;600&family=Rajdhani:wght@500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- Estilos -->
+    <link rel="stylesheet" href="shared-header.css">
+    <link rel="stylesheet" href="shared-notifications.css?v=20260711d">
+    <link rel="stylesheet" href="nexus-styles.css?v=20260721a">
+    <link rel="stylesheet" href="site-engagement.css">
+</head>
+<body data-theme="dark">
+    
+    <!-- Partículas -->
+    <div class="particles-container" id="particles-container"></div>
+    
+    <!-- Efectos de fondo -->
+    <div class="vignette-overlay"></div>
+    <div class="scanlines-effect"></div>
+    
+    <!-- Toast Container -->
+    <div class="nexus-toast-container" id="toast-container"></div>
+    
+    <!-- Logro Desbloqueado -->
+    <div class="achievement-unlock" id="achievement-unlock">
+        <div class="unlock-content">
+            <div class="unlock-icon">🏆</div>
+            <div class="unlock-text">¡LOGRO DESBLOQUEADO!</div>
+            <div class="unlock-xp">+1000 XP</div>
+        </div>
+    </div>
+
+    <!-- Header (mismo que Dashboard y Comunidad) -->
+    <header class="main-header" id="main-header">
+        <div class="unified-header">
+            <div class="header-brand">
+                <a href="/dashboard" class="header-logo" tabindex="0" aria-label="Ir al Home Studiosgamesrs">
+                    <span class="studio">Studios</span><span class="gamesrs">gamesrs</span>
+                </a>
+                <div>
+                    <div class="header-subtitle">/ Nexus Creator</div>
+                    <div class="header-version">Rangos y XP</div>
+                </div>
+            </div>
+            <div class="header-search">
+                <div class="search-input-container">
+                    <input type="text" id="userSearchInput" placeholder="🔍 Buscar usuarios..." class="user-search-input">
+                    <div id="searchResults" class="search-results"></div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="header-toggles">
+                    <label class="nexus-toggle-label" title="Modo Furia">
+                        <span class="toggle-text">Furia</span>
+                        <input type="checkbox" id="themeFuryToggle" aria-label="Modo Furia">
+                        <span class="nexus-toggle-switch"></span>
+                    </label>
+                    <label class="nexus-toggle-label" title="Modo Streamer">
+                        <span class="toggle-text">Streamer</span>
+                        <input type="checkbox" id="streamerModeToggle" aria-label="Modo Streamer">
+                        <span class="nexus-toggle-switch"></span>
+                    </label>
+                </div>
+                <button type="button" class="icon-btn" id="audioAmbientToggle" title="Audio ambiental"><i class="fas fa-music"></i></button>
+                <button type="button" class="icon-btn" id="generatePlayerCardBtn" title="Carta de Jugador"><i class="fas fa-id-card"></i></button>
+                <div class="header-notifications-wrap">
+                    <button type="button" class="icon-btn" id="notificationsToggleBtn" title="Notificaciones" aria-expanded="false" aria-haspopup="true">
+                        <i class="fas fa-bell"></i>
+                        <span id="headerNotifBadge" class="header-notif-badge" style="display:none;">0</span>
+                    </button>
+                    <div id="headerNotificationsPanel" class="header-notifications-panel" style="display:none;" role="menu" aria-label="Notificaciones">
+                        <div class="header-notif-head">
+                            <span><i class="fas fa-bell"></i> Notificaciones</span>
+                            <button type="button" class="header-notif-refresh" id="headerNotifRefreshBtn" title="Actualizar"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                        <div id="headerNotificationsList" class="header-notifications-list">
+                            <p class="header-notif-empty">No tienes notificaciones.</p>
+                        </div>
+                    </div>
+                </div>
+                <button class="dashboard-return-btn" id="dashboardReturnBtn" onclick="returnToDashboard()" style="display:none;">Volver</button>
+                <a href="/commander-panel" class="icon-btn commander-panel-btn" id="commanderPanelBtn" title="Panel de Commander" aria-label="Panel de Commander" style="display:none;"><i class="fas fa-user-shield"></i></a>
+                <button class="icon-btn" onclick="toggleTheme()" title="Cambiar tema"><i class="fas fa-palette" id="theme-icon"></i></button>
+                <div class="header-account-end" role="group" aria-label="Navegación del sitio y sesión">
+                    <div class="nav-dropdown" id="navDropdown">
+                        <button type="button" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
+                            <i class="fas fa-dragon nav-dropdown-icon"></i>
+                            <span class="nav-dropdown-current">Nexus</span>
+                            <i class="fas fa-chevron-down nav-dropdown-chevron"></i>
+                        </button>
+                        <div class="nav-dropdown-menu" role="menu">
+                            <a href="/dashboard" role="menuitem"><i class="fas fa-th-large"></i> Dashboard</a>
+                            <a href="/community" role="menuitem"><i class="fas fa-users"></i> Comunidad</a>
+                            <a href="/nexus" class="current" role="menuitem"><i class="fas fa-bolt"></i> Nexus</a>
+                            <a href="/playzone" role="menuitem"><i class="fas fa-flag-checkered"></i> PlayZone</a>
+                            <a href="/competition-hub" role="menuitem"><i class="fas fa-trophy"></i> Competition</a>
+                        </div>
+                    </div>
+                    <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+        <!-- Pills de Nexus (ocultos en el header; nexus-logic.js los actualiza si existen en la página) -->
+        <div class="nexus-stats nexus-stats-below-header" style="display:none;">
+            <span id="nav-xp-counter">0 XP</span>
+            <span id="community-rank">Nivel 1</span>
+            <span id="referral-code-short">NEXUS-XXXX</span>
+        </div>
+        
+        <!-- Barra de progreso XP (solo Nexus) -->
+        <div class="header-progress">
+            <div id="header-xp-fill" class="xp-progress-animated"></div>
+            <div class="xp-milestone-markers">
+                <div class="milestone-marker" style="left: 25%;" data-level="1"></div>
+                <div class="milestone-marker" style="left: 50%;" data-level="2"></div>
+                <div class="milestone-marker" style="left: 75%;" data-level="3"></div>
+                <div class="milestone-marker" style="left: 100%;" data-level="4"></div>
+            </div>
+        </div>
+        
+        <!-- Notificación de streak -->
+        <div class="streak-notification" id="streak-notification" style="display: none;">
+            <i class="fas fa-fire"></i>
+            <span>Racha: <strong id="streak-display">0 días</strong></span>
+            <button class="close-notif" onclick="closeStreakNotif()">×</button>
+        </div>
+    </header>
+
+    <div id="sgSitePromoMountNexus" class="sg-promo-mount-nexus" aria-live="polite"></div>
+
+    <main class="nexus-content-wrapper">
+        <div class="nexus-main-grid">
+            
+            <!-- Columna Izquierda -->
+            <div class="nexus-left-column">
+                
+                <!-- Jerarquía -->
+                <section class="hierarchy-hero-section profile-card profile-card-compact dragon-fire-glow">
+                    <div class="profile-card-top">
+                        <div class="profile-name-block">
+                            <h2 id="current-rank-title" class="profile-user-name cinzel-subtitle">Usuario</h2>
+                            <p id="profile-honor" class="profile-honor-text">Honor: 0</p>
+                        </div>
+                        <div class="rank-rewards profile-rewards-top">
+                            <div class="reward-tag" id="nexus-access-tag" onclick="showRewardDetails('basic')" title="Ver tu nivel de acceso en Nexus">
+                                <i class="fas fa-layer-group"></i>
+                                <span id="nexus-access-tag-label">Acceso básico</span>
+                            </div>
+                            <div class="reward-tag" onclick="showReferralStats()" data-streamer-blur>
+                                <i class="fas fa-user-plus"></i>
+                                <span id="referral-count">0 Referidos</span>
+                            </div>
+                            <div class="reward-tag" onclick="showBadges()" data-streamer-blur>
+                                <i class="fas fa-medal"></i>
+                                <span id="badge-count">0 Badges</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-avatar-center">
+                        <div class="rank-badge-container">
+                            <div class="hex-glow"></div>
+                            <div class="hex-spin"></div>
+                            <div id="rank-hex" class="hex-rank-display">
+                                <span id="rank-letter">⚔️</span>
+                            </div>
+                            <svg class="progress-ring-svg" width="96" height="96">
+                                <defs>
+                                    <linearGradient id="gradient-ring" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#e53935" />
+                                        <stop offset="100%" stop-color="#ff6b6b" />
+                                    </linearGradient>
+                                </defs>
+                                <circle class="ring-bg" cx="48" cy="48" r="42"></circle>
+                                <circle id="main-progress-ring" class="ring-fill" cx="48" cy="48" r="42"></circle>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="profile-rank-meta">
+                        <p class="next-rank-status">NIVEL DE ACCESO</p>
+                        <h3 id="next-rank-name">Nivel 1</h3>
+                        <p id="next-rank-target" class="next-rank-target">Siguiente: Nivel 2 (500 XP)</p>
+                    </div>
+
+                    <!-- Sistema de XP -->
+                    <div class="xp-master-container">
+                        <div class="xp-labels">
+                            <span class="label-tech">REPUTACIÓN REAL SGRS</span>
+                            <span id="xp-ratio" class="label-tech">0 / 1,000 XP</span>
+                            <button class="xp-boost-btn" type="button" onclick="activateXpBoost()" title="El boost x2 solo lo otorga un Commander de SGRS">
+                                <i class="fas fa-rocket"></i> BOOST
+                            </button>
+                        </div>
+                        
+                        <div class="master-progress-bar">
+                            <div id="xp-fill-dynamic" class="xp-fill-glow">
+                                <div class="xp-shine"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="xp-milestones" id="xp-milestones-dynamic"></div>
+                        
+                        <div class="xp-stats">
+                            <div class="xp-stat" onclick="showStreakDetails()">
+                                <i class="fas fa-fire"></i>
+                                <span>Racha: <strong id="streak-days">0 días</strong></span>
+                            </div>
+                            <div class="xp-stat" onclick="showAchievements()">
+                                <i class="fas fa-trophy"></i>
+                                <span>Logros: <strong id="achievements-count">0/10</strong></span>
+                            </div>
+                            <div class="xp-stat" onclick="showLeaderboard()">
+                                <i class="fas fa-arrow-trend-up"></i>
+                                <span>Ranking: <strong id="global-rank">#-</strong></span>
+                            </div>
+                            <div class="xp-stat" onclick="showActivityLog()">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Actividad: <strong id="activity-score">100%</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recompensas -->
+                    <div class="rewards-container">
+                        <div class="rewards-header">
+                            <h3 class="rewards-title"><i class="fas fa-gift"></i> RECOMPENSAS</h3>
+                            <div class="rewards-counter">
+                                <span class="counter-text" id="unlocked-rewards">0/12</span>
+                                <div class="counter-progress" style="--progress: 0%"></div>
+                            </div>
+                        </div>
+                            <div class="rewards-grid"></div>
+                        <div class="rewards-preview">
+                            <button class="preview-btn" onclick="showAllRewards()">
+                                <i class="fas fa-eye"></i> VER TODAS
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Branding Studio (desplegable) -->
+                <section class="nexus-accordion-panel profile-card branding-studio-container" data-panel="branding">
+                    <button type="button" class="nexus-accordion-header" onclick="toggleNexusPanel('branding')" aria-expanded="false" aria-controls="panel-branding">
+                        <div class="nexus-accordion-header-main">
+                            <span class="nexus-accordion-icon branding-icon"><i class="fas fa-video"></i></span>
+                            <div class="nexus-accordion-titles">
+                                <h2 class="cinzel-subtitle"><i class="fas fa-video"></i> BRANDING STUDIO</h2>
+                                <p class="section-description">Diseña overlays profesionales con sugerencias inteligentes</p>
+                            </div>
+                        </div>
+                        <div class="nexus-accordion-header-meta">
+                            <span class="ai-indicator" id="ai-status"><i class="fas fa-check-circle"></i> Listo</span>
+                            <i class="fas fa-chevron-down nexus-accordion-chevron"></i>
+                        </div>
+                    </button>
+                    <div class="nexus-accordion-body" id="panel-branding">
+                        <div class="studio-layout">
+                            <div class="canvas-main-frame">
+                                <div class="canvas-wrapper-inner">
+                                    <canvas id="nexus-branding-canvas" width="1920" height="1080"></canvas>
+                                    <div class="canvas-overlay-info">
+                                        <div class="overlay-dimensions">1920×1080</div>
+                                        <div class="overlay-status" id="canvas-status">Sube una imagen para comenzar</div>
+                                        <div class="ai-suggestion" id="ai-suggestion" style="display: none;" onclick="applyAISuggestion()">
+                                            <i class="fas fa-lightbulb"></i> Sugerencia disponible
+                                        </div>
+                                    </div>
+                                    <div class="ai-controls">
+                                        <button class="ai-btn" onclick="applyAISuggestion()" title="Aplicar sugerencia"><i class="fas fa-magic"></i></button>
+                                        <button class="ai-btn" onclick="generateWithAI()" title="Generar sugerencia"><i class="fas fa-robot"></i></button>
+                                        <button class="ai-btn" onclick="analyzeDesign()" title="Analizar diseño"><i class="fas fa-chart-bar"></i></button>
+                                    </div>
+                                </div>
+                                <div class="canvas-toolbar">
+                                    <button class="tool-btn" title="Resetear" onclick="resetCanvas()"><i class="fas fa-redo"></i></button>
+                                    <div class="zoom-controls">
+                                        <button class="zoom-btn" onclick="zoomOut()"><i class="fas fa-search-minus"></i></button>
+                                        <span class="zoom-level" id="zoom-level">100%</span>
+                                        <button class="zoom-btn" onclick="zoomIn()"><i class="fas fa-search-plus"></i></button>
+                                    </div>
+                                    <div class="tool-separator"></div>
+                                    <div class="effects-controls">
+                                        <button class="effect-btn" onclick="applyEffect('glow')" title="Efecto brillo"><i class="fas fa-sun"></i></button>
+                                        <button class="effect-btn" onclick="applyEffect('shadow')" title="Efecto sombra"><i class="fas fa-cloud"></i></button>
+                                        <button class="effect-btn" onclick="applyEffect('neon')" title="Efecto neón"><i class="fas fa-lightbulb"></i></button>
+                                    </div>
+                                </div>
+                                <div class="ai-feedback ai-feedback-below-zoom">
+                                    <div class="feedback-header"><i class="fas fa-chart-bar"></i><span>ANÁLISIS DE DISEÑO</span></div>
+                                    <div class="feedback-content" id="ai-feedback">Sube una imagen para obtener análisis de diseño...</div>
+                                </div>
+                            </div>
+                            <div class="canvas-controls-grid">
+                                <div class="control-section">
+                                    <label class="control-label">
+                                        <i class="fas fa-upload"></i> CARGAR IMAGEN
+                                        <span class="ai-badge" onclick="showAITips()"><i class="fas fa-info-circle"></i> Consejos</span>
+                                    </label>
+                                    <div class="upload-zone" id="upload-zone">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <p>Arrastra o haz clic para subir</p>
+                                        <span class="upload-hint">PNG, JPG, WEBP (Max 10MB)</span>
+                                        <input type="file" id="image-input" accept="image/*" hidden>
+                                    </div>
+                                    <div class="upload-stats">
+                                        <span class="stat-item"><i class="fas fa-image"></i> <span id="image-count">0</span> imágenes</span>
+                                        <span class="stat-item"><i class="fas fa-database"></i> <span id="storage-used">0</span> MB</span>
+                                    </div>
+                                </div>
+                                <div class="control-section">
+                                    <label class="control-label"><i class="fas fa-palette"></i> PALETA DE COLORES</label>
+                                    <div class="theme-selector-advanced">
+                                        <button class="theme-dot active" data-color="#58a6ff" data-theme="blue" onclick="setTheme('blue')"><div class="dot-glow"></div><span class="theme-name">Azul</span></button>
+                                        <button class="theme-dot" data-color="#a371f7" data-theme="purple" onclick="setTheme('purple')"><div class="dot-glow"></div><span class="theme-name">Morado</span></button>
+                                        <button class="theme-dot" data-color="#f778ba" data-theme="pink" onclick="setTheme('pink')"><div class="dot-glow"></div><span class="theme-name">Rosa</span></button>
+                                        <button class="theme-dot" data-color="#3fb950" data-theme="green" onclick="setTheme('green')"><div class="dot-glow"></div><span class="theme-name">Verde</span></button>
+                                        <button class="theme-dot" data-color="#e3b341" data-theme="gold" onclick="setTheme('gold')"><div class="dot-glow"></div><span class="theme-name">Oro</span></button>
+                                        <button class="theme-dot" data-color="#f85149" data-theme="red" onclick="setTheme('red')"><div class="dot-glow"></div><span class="theme-name">Rojo</span></button>
+                                    </div>
+                                </div>
+                                <div class="action-buttons">
+                                    <button id="download-render-btn" class="electric-btn-dashboard gold-variant" onclick="downloadOverlay()"><i class="fas fa-download"></i> EXPORTAR<span class="btn-badge">HD</span></button>
+                                    <button id="share-overlay-btn" class="electric-btn-dashboard cyan-variant" onclick="shareOverlay()"><i class="fas fa-link"></i> COMPARTIR<span class="btn-badge">XP</span></button>
+                                    <button id="save-template-btn" class="electric-btn-dashboard purple-variant" onclick="saveTemplate()"><i class="fas fa-save"></i> GUARDAR</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Creator Market (desplegable) -->
+                <section class="nexus-accordion-panel profile-card creator-market-section" id="mercado-tecnico-section" data-panel="creator-market">
+                    <button type="button" class="nexus-accordion-header" onclick="toggleNexusPanel('creator-market')" aria-expanded="false" aria-controls="panel-creator-market">
+                        <div class="nexus-accordion-header-main">
+                            <span class="nexus-accordion-icon market-icon"><i class="fas fa-store"></i></span>
+                            <div class="nexus-accordion-titles">
+                                <h2 class="cinzel-subtitle"><i class="fas fa-store"></i> CREATOR MARKET</h2>
+                                <p class="section-description">Trabaja para StudiosGamesRS subiendo contenido a la web</p>
+                            </div>
+                        </div>
+                        <div class="nexus-accordion-header-meta">
+                            <span class="workspace-tab-badge locked-badge" id="creator-market-tab-badge">BLOQUEADO</span>
+                            <i class="fas fa-chevron-down nexus-accordion-chevron"></i>
+                        </div>
+                    </button>
+                    <div class="nexus-accordion-body" id="panel-creator-market">
+                        <div id="mercado-tecnico-locked" class="mercado-locked-panel">
+                            <div class="mercado-lock-icon"><i class="fas fa-lock"></i></div>
+                            <h3>Área exclusiva para creadores de nivel 4+</h3>
+                            <p>Los creadores del Creator Market pueden enviar contenido para publicarse en la página de Facebook de StudiosGamesRS y ganar según el rendimiento real.</p>
+                            <div class="mercado-unlock-bar">
+                                <div class="progress-bar"><div class="progress-fill" id="mercado-unlock-progress" style="width: 0%"></div></div>
+                                <span id="mercado-unlock-progress-text">0 / 3,000 XP</span>
+                            </div>
+                            <p class="mercado-unlock-hint"><i class="fas fa-shield-halved"></i> Desbloquea al alcanzar <strong>nivel 4</strong> (3,000 XP)</p>
+                        </div>
+                        <div id="mercado-tecnico-unlocked" class="mercado-unlocked-panel" style="display: none;">
+                            <!-- Paso 1: Cuestionario de solicitud -->
+                            <div id="cm-apply-panel" class="cm-stage-panel">
+                                <div class="mercado-info-banner cm-apply-banner">
+                                    <i class="fas fa-user-check"></i>
+                                    <div>
+                                        <strong>Solicitud Creator Market</strong>
+                                        <p>Alcanzaste el nivel 4. Completa el cuestionario para que los Commanders evalúen tu ingreso. Debes indicar qué cuenta de Facebook usarás para publicar.</p>
+                                    </div>
+                                </div>
+                                <form id="cm-application-form" class="mercado-form" onsubmit="submitCreatorMarketApplication(event)">
+                                    <div class="mercado-field">
+                                        <label for="cm-app-name">Nombre / alias de creador</label>
+                                        <input type="text" id="cm-app-name" maxlength="80" required placeholder="Tu nombre público como creador">
+                                    </div>
+                                    <div class="mercado-field-row">
+                                        <div class="mercado-field">
+                                            <label for="cm-app-fb-name"><i class="fab fa-facebook"></i> Cuenta de Facebook a usar</label>
+                                            <input type="text" id="cm-app-fb-name" maxlength="120" required placeholder="Ej: Juan Pérez / @miperfil">
+                                        </div>
+                                        <div class="mercado-field">
+                                            <label for="cm-app-fb-url">URL del perfil Facebook</label>
+                                            <input type="url" id="cm-app-fb-url" maxlength="300" required placeholder="https://facebook.com/tu.perfil">
+                                        </div>
+                                    </div>
+                                    <div class="mercado-field">
+                                        <label for="cm-app-content-type">Tipo de contenido que crearás</label>
+                                        <select id="cm-app-content-type" required>
+                                            <option value="">Selecciona…</option>
+                                            <option value="video">Videos / clips</option>
+                                            <option value="imagen">Imágenes / memes</option>
+                                            <option value="articulo">Artículos / noticias</option>
+                                            <option value="mixto">Mixto (varios formatos)</option>
+                                        </select>
+                                    </div>
+                                    <div class="mercado-field">
+                                        <label for="cm-app-experience">Experiencia creando contenido</label>
+                                        <textarea id="cm-app-experience" rows="3" maxlength="1500" required placeholder="Cuéntanos tu experiencia previa…"></textarea>
+                                    </div>
+                                    <div class="mercado-field">
+                                        <label for="cm-app-motivation">¿Por qué quieres ser parte del Creator Market?</label>
+                                        <textarea id="cm-app-motivation" rows="3" maxlength="1500" required placeholder="Tu motivación…"></textarea>
+                                    </div>
+                                    <div class="mercado-field-row">
+                                        <div class="mercado-field">
+                                            <label for="cm-app-portfolio">Portafolio / muestra (opcional)</label>
+                                            <input type="url" id="cm-app-portfolio" maxlength="300" placeholder="https://">
+                                        </div>
+                                        <div class="mercado-field">
+                                            <label for="cm-app-frequency">Frecuencia estimada</label>
+                                            <select id="cm-app-frequency" required>
+                                                <option value="weekly">Semanal</option>
+                                                <option value="biweekly">Quincenal</option>
+                                                <option value="monthly">Mensual</option>
+                                                <option value="flexible">Flexible</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <label class="cm-terms-check">
+                                        <input type="checkbox" id="cm-app-terms" required>
+                                        Acepto que StudiosGamesRS evaluará mi contenido y pagará según el rendimiento en la página de Facebook.
+                                    </label>
+                                    <button type="submit" class="electric-btn-dashboard gold-variant mercado-submit-btn">
+                                        <i class="fas fa-paper-plane"></i> ENVIAR SOLICITUD A COMMANDERS
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Paso 2: Esperando revisión -->
+                            <div id="cm-pending-panel" class="cm-stage-panel" style="display:none;">
+                                <div class="cm-status-card cm-status-pending">
+                                    <i class="fas fa-hourglass-half"></i>
+                                    <h3>Solicitud en revisión</h3>
+                                    <p>Todos los <strong>Commanders</strong> pueden ver tu petición. Te notificaremos cuando sea aprobada o rechazada.</p>
+                                </div>
+                                <div class="mercado-submissions cm-app-submissions">
+                                    <h4><i class="fas fa-file-alt"></i> Tu solicitud enviada</h4>
+                                    <div id="cm-pending-summary" class="mercado-submissions-list cm-pending-summary-list"></div>
+                                </div>
+                            </div>
+
+                            <!-- Paso 2b: Rechazada -->
+                            <div id="cm-rejected-panel" class="cm-stage-panel" style="display:none;">
+                                <div class="cm-status-card cm-status-rejected">
+                                    <i class="fas fa-times-circle"></i>
+                                    <h3>Solicitud no aprobada</h3>
+                                    <p id="cm-rejected-note">—</p>
+                                    <button type="button" class="electric-btn-dashboard cyan-variant" onclick="resetCreatorMarketApplication()">
+                                        <i class="fas fa-redo"></i> ENVIAR NUEVA SOLICITUD
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Paso 3: Aprobado — dashboard + envíos -->
+                            <div id="cm-approved-panel" class="cm-stage-panel" style="display:none;">
+                                <div class="cm-fb-linked-banner" id="cm-fb-linked-banner">
+                                    <div class="cm-fb-linked-main">
+                                        <i class="fab fa-facebook"></i>
+                                        <div>
+                                            <strong>Facebook enlazado</strong>
+                                            <p id="cm-fb-linked-text">—</p>
+                                        </div>
+                                    </div>
+                                    <div class="cm-fb-banner-nav">
+                                        <button type="button" class="cm-fb-nav-btn active" data-cm-panel="feed" onclick="switchCreatorMarketPanel('feed')">
+                                            <i class="fas fa-chart-line"></i> Publicaciones
+                                        </button>
+                                        <button type="button" class="cm-fb-nav-btn" data-cm-panel="submit" onclick="switchCreatorMarketPanel('submit')">
+                                            <i class="fas fa-cloud-upload-alt"></i> Enviar contenido
+                                        </button>
+                                    </div>
+                                    <span class="cm-approved-badge"><i class="fas fa-check"></i> CREADOR ACTIVO</span>
+                                </div>
+
+                                <div id="cm-panel-feed" class="cm-panel-feed">
+                                    <div class="cm-dashboard-stats cm-stat-tabs" id="cm-stat-tabs" role="tablist">
+                                        <button type="button" class="cm-stat-tab" data-cm-view="earned" onclick="switchCreatorMarketView('earned')">
+                                            <span class="cm-stat-label">Ganado total</span>
+                                            <span class="cm-stat-value" id="cm-stat-earned">$0</span>
+                                            <span class="cm-stat-sub">acumulado</span>
+                                        </button>
+                                        <button type="button" class="cm-stat-tab" data-cm-view="pending" onclick="switchCreatorMarketView('pending')">
+                                            <span class="cm-stat-label">Pendiente</span>
+                                            <span class="cm-stat-value" id="cm-stat-pending">$0</span>
+                                            <span class="cm-stat-sub">en verificación</span>
+                                        </button>
+                                        <button type="button" class="cm-stat-tab active" data-cm-view="posts" onclick="switchCreatorMarketView('posts')">
+                                            <span class="cm-stat-label">Publicaciones</span>
+                                            <span class="cm-stat-value" id="cm-stat-posts">0</span>
+                                        </button>
+                                        <button type="button" class="cm-stat-tab cm-stat-tab-live" data-cm-view="live" onclick="switchCreatorMarketView('live')">
+                                            <span class="cm-stat-label">En vivo</span>
+                                            <span class="cm-stat-value" id="cm-stat-live">0</span>
+                                        </button>
+                                    </div>
+
+                                    <div class="cm-branding-bar">
+                                        <div class="cm-branding-text">
+                                            <img src="/logo%20STGRS.png" alt="StudiosGamesRS" class="cm-branding-logo-preview" width="40" height="40">
+                                            <p>Todo el contenido debe incluir el sello <strong>StudiosGamesRS</strong> y branding Studios antes de subirlo.</p>
+                                        </div>
+                                        <a href="/logo%20STGRS.png" download="logo STGRS.png" class="cm-logo-download-btn">
+                                            <i class="fas fa-download"></i> Descargar logo oficial
+                                        </a>
+                                    </div>
+
+                                    <div class="cm-view-zone" id="cm-view-zone">
+                                        <div class="cm-view-head" id="cm-view-head">
+                                            <div>
+                                                <h4 id="cm-view-title"><i class="fas fa-broadcast-tower"></i> Tus publicaciones</h4>
+                                                <p class="cm-tab-hint" id="cm-view-hint">Todas tus publicaciones en la página de Facebook de StudiosGamesRS.</p>
+                                            </div>
+                                            <span class="cm-metrics-sync-badge cm-metrics-sync-clickable" id="cm-metrics-sync-badge" title="Pulsa para actualizar métricas"><i class="fas fa-sync-alt"></i> Sync</span>
+                                        </div>
+                                        <div id="cm-dynamic-content" class="cm-dynamic-content">
+                                            <div id="cm-publications-list" class="cm-publications-list"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="cm-panel-submit" class="cm-panel-submit" style="display:none;">
+                                    <div class="cm-submit-hero">
+                                        <div class="cm-submit-hero-glow"></div>
+                                        <div class="cm-submit-hero-inner">
+                                            <span class="cm-submit-hero-icon"><i class="fas fa-cloud-upload-alt"></i></span>
+                                            <div>
+                                                <h4>Enviar contenido</h4>
+                                                <p>Sube imagen o video con sello StudiosGamesRS. Un Commander lo publicará en Facebook al aprobarlo.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <form id="mercado-submit-form" class="mercado-form cm-submit-form" onsubmit="submitMercadoTecnico(event)">
+                                        <div class="cm-submit-grid">
+                                            <div class="mercado-field">
+                                                <label for="mercado-title"><i class="fas fa-heading"></i> Título del contenido</label>
+                                                <input type="text" id="mercado-title" maxlength="120" placeholder="Ej: Clutch insano en CS2 — ¿viste esto?" required>
+                                            </div>
+                                            <div class="mercado-field cm-submit-caption-field">
+                                                <label for="mercado-caption"><i class="fas fa-align-left"></i> Descripción / copy para publicar</label>
+                                                <textarea id="mercado-caption" rows="4" maxlength="2000" placeholder="Contexto del clip, pregunta a la comunidad, hashtags…" required></textarea>
+                                            </div>
+                                        </div>
+
+                                        <div class="cm-insight-upload-row">
+                                            <div id="cm-insight-meter" class="cm-insight-meter-host"></div>
+                                            <div class="cm-dropzone-wrap">
+                                                <input type="file" id="mercado-file-input" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" hidden>
+                                                <button type="button" id="mercado-upload-btn" class="cm-dropzone" aria-label="Subir archivo">
+                                                    <span class="cm-dropzone-icon"><i class="fas fa-file-image"></i></span>
+                                                    <strong>Arrastra o pulsa para subir</strong>
+                                                    <span class="cm-dropzone-sub">JPG, PNG, WEBP, GIF (15 MB) · MP4, WEBM, MOV (100 MB)</span>
+                                                </button>
+                                                <div id="mercado-file-preview" class="cm-upload-preview" style="display:none;"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="cm-branding-chip">
+                                            <img src="/logo%20STGRS.png" alt="Logo STGRS" width="36" height="36">
+                                            <div>
+                                                <strong>Sello obligatorio</strong>
+                                                <p>Marca tu contenido con el logo oficial antes de enviar. <a href="/logo%20STGRS.png" download="logo STGRS.png">Descargar logo STGRS.png</a></p>
+                                            </div>
+                                        </div>
+
+                                        <button type="submit" class="electric-btn-dashboard gold-variant mercado-submit-btn cm-submit-cta" id="mercado-submit-btn">
+                                            <i class="fas fa-paper-plane"></i> ENVIAR A REVISIÓN
+                                        </button>
+                                    </form>
+                                    <div class="mercado-submissions">
+                                        <h4><i class="fas fa-history"></i> Tus envíos recientes</h4>
+                                        <div id="mercado-submissions-list" class="mercado-submissions-list">
+                                            <p class="mercado-empty">Aún no has enviado contenido.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Logros (desplegable) -->
+                <section class="nexus-accordion-panel profile-card achievements-section" data-panel="logros">
+                    <button type="button" class="nexus-accordion-header" onclick="toggleNexusPanel('logros')" aria-expanded="false" aria-controls="panel-logros">
+                        <div class="nexus-accordion-header-main">
+                            <span class="nexus-accordion-icon logros-icon"><i class="fas fa-trophy"></i></span>
+                            <div class="nexus-accordion-titles">
+                                <h2 class="cinzel-subtitle"><i class="fas fa-trophy"></i> LOGROS</h2>
+                                <p class="section-description">Completa misiones y metas para ganar XP extra</p>
+                            </div>
+                        </div>
+                        <div class="nexus-accordion-header-meta">
+                            <span class="workspace-tab-badge" id="achievements-total">0/9</span>
+                            <i class="fas fa-chevron-down nexus-accordion-chevron"></i>
+                        </div>
+                    </button>
+                    <div class="nexus-accordion-body" id="panel-logros">
+                        <div class="achievements-grid" id="achievements-container">
+                            <!-- Los logros se cargan dinámicamente -->
+                        </div>
+                        <div class="achievements-progress">
+                            <div class="progress-info">
+                                <span>Progreso General</span>
+                                <span id="achievements-progress-text">0%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="achievements-progress-bar" style="width: 0%"></div>
+                            </div>
+                            <div class="progress-rewards">
+                                <div class="reward"><i class="fas fa-gift"></i> 25%: +100 XP</div>
+                                <div class="reward"><i class="fas fa-gift"></i> 50%: +250 XP</div>
+                                <div class="reward"><i class="fas fa-gift"></i> 75%: +500 XP</div>
+                                <div class="reward"><i class="fas fa-gift"></i> 100%: Insignia Especial</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Columna Derecha -->
+            <div class="nexus-right-column">
+                
+                <!-- Contratos Reales (desplegable) -->
+                <section class="nexus-accordion-panel profile-card quest-board-section" data-panel="contratos">
+                    <button type="button" class="nexus-accordion-header" onclick="toggleNexusPanel('contratos')" aria-expanded="false" aria-controls="panel-contratos">
+                        <div class="nexus-accordion-header-main">
+                            <span class="nexus-accordion-icon contratos-icon"><i class="fas fa-tasks"></i></span>
+                            <div class="nexus-accordion-titles">
+                                <h2 class="cinzel-subtitle"><i class="fas fa-tasks"></i> CONTRATOS REALES</h2>
+                                <p class="section-description">Misiones verificables para ganar XP real</p>
+                            </div>
+                        </div>
+                        <div class="nexus-accordion-header-meta">
+                            <span class="quest-count" id="active-quest-count">5 activos</span>
+                            <i class="fas fa-chevron-down nexus-accordion-chevron"></i>
+                        </div>
+                    </button>
+                    <div class="nexus-accordion-body" id="panel-contratos">
+                    <div class="quest-filters">
+                        <button class="filter-btn active" data-filter="all" onclick="filterQuests('all')">
+                            <i class="fas fa-globe"></i> Todos
+                        </button>
+                        <button class="filter-btn" data-filter="active" onclick="filterQuests('active')">
+                            <i class="fas fa-play-circle"></i> Activos
+                        </button>
+                        <button class="filter-btn" data-filter="social" onclick="filterQuests('social')">
+                            <i class="fas fa-share-alt"></i> Social
+                        </button>
+                        <button class="filter-btn" data-filter="community" onclick="filterQuests('community')">
+                            <i class="fas fa-users"></i> Comunidad
+                        </button>
+                    </div>
+                    
+                    <!-- Misión del Día -->
+                    <div class="daily-quest-highlight" id="daily-quest">
+                        <div class="daily-badge">
+                            <i class="fas fa-crown"></i> MISIÓN DEL DÍA
+                            <span class="daily-timer" id="daily-timer">24:00:00</span>
+                        </div>
+                        <div class="daily-content">
+                            <h4 id="daily-quest-title">Comparte en Facebook</h4>
+                            <p id="daily-quest-desc">Comparte StudiosGamesRS en Facebook y gana XP</p>
+                            <div class="daily-reward">
+                                <span class="reward-xp">+500 XP</span>
+                                <span class="reward-bonus">+100 BONUS</span>
+                            </div>
+                            <button class="daily-btn" onclick="openDailyMissionPopup()">
+                                <i class="fas fa-play"></i> COMENZAR
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="quest-list-dynamic" class="quest-list-container">
+                        <div class="quest-loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Cargando misiones...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="quest-stats">
+                        <div class="quest-stat-card" onclick="showXpBreakdown()">
+                            <h4><i class="fas fa-bolt"></i> XP TOTAL</h4>
+                            <div class="stat-value" id="total-quest-xp">0</div>
+                            <div class="stat-trend" id="xp-trend">+0%</div>
+                        </div>
+                        <div class="quest-stat-card" onclick="showCompletionStats()">
+                            <h4><i class="fas fa-check-circle"></i> COMPLETADOS</h4>
+                            <div class="stat-value" id="completed-quests">0</div>
+                            <div class="stat-progress">
+                                <div class="progress-fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="quest-stat-card" onclick="showQuestHistory()">
+                            <h4><i class="fas fa-star"></i> EFICIENCIA</h4>
+                            <div class="stat-value" id="quest-score">0%</div>
+                            <div class="stat-medal" id="efficiency-medal">🥉</div>
+                        </div>
+                    </div>
+                    </div>
+                </section>
+
+                <!-- Sistema de Referidos -->
+                <section class="referral-section profile-card" data-streamer-blur>
+                    <div class="section-header-nexus">
+                        <h2 class="cinzel-subtitle">
+                            <i class="fas fa-users"></i> SISTEMA DE REFERIDOS
+                            <span class="premium-badge">COMUNIDAD</span>
+                            <span class="referral-rank" id="referral-tier">
+                                <i class="fas fa-chess-queen"></i> NOVATO
+                            </span>
+                        </h2>
+                        <p class="section-description">Invita amigos a StudiosGamesRS y gana recompensas</p>
+                    </div>
+                    
+                    <div class="referral-dashboard">
+                        <div class="referral-code-display">
+                            <h3>TU CÓDIGO ÚNICO</h3>
+                            <div class="code-container">
+                                <code id="referral-code-display">Cargando...</code>
+                                <button onclick="copyReferralLink()" class="copy-btn" title="Copiar link completo">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button onclick="generateQRCode()" class="qr-btn" title="QR">
+                                    <i class="fas fa-qrcode"></i>
+                                </button>
+                            </div>
+                            <p class="code-hint">
+                                <i class="fas fa-gift"></i> Cada referido que se registre con tu link = <strong>+500 XP</strong>. El link lleva al registro.
+                            </p>
+                        </div>
+                        
+                        <div class="referral-stats">
+                            <div class="referral-stat" onclick="showReferralDetails()">
+                                <div class="stat-icon">
+                                    <i class="fas fa-user-check"></i>
+                                    <span class="icon-pulse"></span>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-number" id="verified-referrals">0</div>
+                                    <div class="stat-label">Referidos Verificados</div>
+                                </div>
+                            </div>
+                            <div class="referral-stat" onclick="showXpDetails()">
+                                <div class="stat-icon">
+                                    <i class="fas fa-bolt"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-number" id="referral-xp-earned">0</div>
+                                    <div class="stat-label">XP Ganados</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="referral-links">
+                            <h4><i class="fas fa-share-alt"></i> COMPARTIR</h4>
+                            <div class="link-grid">
+                                <button class="link-btn facebook-btn" onclick="shareReferral('facebook')">
+                                    <i class="fab fa-facebook"></i>
+                                    <span>Facebook</span>
+                                </button>
+                                <button class="link-btn whatsapp-btn" onclick="shareReferral('whatsapp')">
+                                    <i class="fab fa-whatsapp"></i>
+                                    <span>WhatsApp</span>
+                                </button>
+                                <button class="link-btn discord-btn" onclick="shareReferral('discord')">
+                                    <i class="fab fa-discord"></i>
+                                    <span>Discord</span>
+                                </button>
+                                <button class="link-btn telegram-btn" onclick="shareReferral('telegram')">
+                                    <i class="fab fa-telegram"></i>
+                                    <span>Telegram</span>
+                                </button>
+                                <button class="link-btn email-btn" onclick="shareReferral('email')">
+                                    <i class="fas fa-envelope"></i>
+                                    <span>Email</span>
+                                </button>
+                                <button class="link-btn link-copy-btn" onclick="copyReferralLink()">
+                                    <i class="fas fa-link"></i>
+                                    <span>Copiar</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="referrals-table-container" id="referrals">
+                            <div class="table-header">
+                                <h4><i class="fas fa-list"></i> TUS REFERIDOS</h4>
+                                <div class="table-actions">
+                                    <button class="table-btn" onclick="refreshReferrals()" title="Actualizar">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="table-wrapper">
+                                <table class="referrals-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Usuario</th>
+                                            <th>Fecha</th>
+                                            <th>Estado</th>
+                                            <th>XP</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="referrals-table-body">
+                                        <tr class="empty-row">
+                                            <td colspan="4">
+                                                <i class="fas fa-user-friends"></i>
+                                                <p>Aún no tienes referidos</p>
+                                                <small>Comparte tu código para comenzar</small>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="table-footer">
+                                <div class="footer-stats">
+                                    <div class="stat">
+                                        <i class="fas fa-users"></i>
+                                        <span>Total: <strong id="total-referrals">0</strong></span>
+                                    </div>
+                                    <div class="stat">
+                                        <i class="fas fa-user-check"></i>
+                                        <span>Verificados: <strong id="total-verified">0</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Widget de Comunidad -->
+    <div class="community-widget" id="community-widget">
+        <div class="widget-header" onclick="toggleWidget()">
+            <i class="fas fa-users"></i>
+            <span>COMUNIDAD</span>
+            <span class="widget-badge" id="online-count">24</span>
+        </div>
+        <div class="widget-content" id="widget-content">
+            <div class="activity-feed" id="community-activity-feed">
+                <div class="activity-item activity-empty">
+                    <i class="fas fa-info-circle"></i> Últimas acciones en la página...
+                </div>
+            </div>
+            <div class="quick-actions">
+                <button class="quick-btn quick-btn-full" onclick="viewLiveLeaderboard()">
+                    <i class="fas fa-trophy"></i>
+                    <span>Ranking <strong id="widget-leaderboard-rank">#-</strong></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- XP Boost Indicator -->
+    <div class="xp-boost-indicator" id="xp-boost-indicator" style="display: none;">
+        <i class="fas fa-rocket"></i>
+        <span>XP x2</span>
+        <span class="boost-timer">59:59</span>
+    </div>
+
+    <!-- Popup Misión del Día -->
+    <div class="daily-mission-popup-overlay" id="daily-mission-popup-overlay" style="display: none;" onclick="closeDailyMissionPopup()"></div>
+    <div class="daily-mission-popup" id="daily-mission-popup" style="display: none;" onclick="event.stopPropagation()">
+        <div class="daily-mission-popup-header">
+            <h3 class="daily-mission-popup-title"><i class="fas fa-crown"></i> <span id="daily-mission-popup-title">Misión del día</span></h3>
+            <button type="button" class="daily-mission-popup-close" onclick="closeDailyMissionPopup()" aria-label="Cerrar">×</button>
+        </div>
+        <div class="daily-mission-popup-body">
+            <p class="daily-mission-popup-desc" id="daily-mission-popup-desc">Comparte StudiosGamesRS en Facebook y gana XP.</p>
+            <div class="daily-mission-popup-reward">
+                <span class="reward-xp">+500 XP</span>
+                <span class="reward-bonus">+100 BONUS</span>
+            </div>
+            <button type="button" class="daily-mission-popup-btn" id="daily-mission-popup-open-btn">
+                <i class="fab fa-facebook"></i> <span id="daily-mission-popup-btn-label">Abrir Facebook</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Ranking Global -->
+    <div class="leaderboard-modal-overlay" id="leaderboard-modal" style="display: none;" onclick="closeLeaderboardModal()">
+        <div class="leaderboard-modal" onclick="event.stopPropagation()">
+            <div class="leaderboard-modal-header">
+                <h3><i class="fas fa-trophy"></i> Ranking Global</h3>
+                <button type="button" class="leaderboard-modal-close" onclick="closeLeaderboardModal()" aria-label="Cerrar">×</button>
+            </div>
+            <p class="leaderboard-modal-desc">Top creadores por XP en Creator Nexus</p>
+            <div id="leaderboard-list" class="leaderboard-list"></div>
+        </div>
+    </div>
+
+    <!-- Overlay Nivel de Acceso Nexus -->
+    <div id="nexus-access-overlay" class="nexus-access-overlay" aria-hidden="true" role="dialog" aria-labelledby="nexusAccessOverlayTitle">
+        <div class="nexus-access-backdrop" onclick="closeNexusAccessOverlay()"></div>
+        <div class="nexus-access-box">
+            <button type="button" class="nexus-access-close" onclick="closeNexusAccessOverlay()" aria-label="Cerrar">×</button>
+            <header class="nexus-access-header">
+                <div class="nexus-access-seal"><i class="fas fa-layer-group"></i></div>
+                <h2 id="nexusAccessOverlayTitle" class="nexus-access-title">NIVEL DE ACCESO NEXUS</h2>
+                <p class="nexus-access-subtitle">Tu experiencia desbloquea beneficios, personalización de perfil y promoción SGRS.</p>
+            </header>
+            <div id="nexus-access-current" class="nexus-access-current-wrap"></div>
+            <div class="nexus-access-progress-wrap">
+                <div class="nexus-access-progress-bar">
+                    <div id="nexus-access-progress-fill" class="nexus-access-progress-fill"></div>
+                </div>
+                <p id="nexus-access-progress-text" class="nexus-access-progress-text">—</p>
+            </div>
+            <div class="nexus-access-tiers-head">
+                <h3><i class="fas fa-stairs"></i> Los 5 niveles de acceso</h3>
+                <p>El nivel más alto desbloquea todos los beneficios del Nexus, incluido marco de perfil único.</p>
+            </div>
+            <div id="nexus-access-tiers" class="nexus-access-tiers"></div>
+            <footer class="nexus-access-footer">
+                <button type="button" class="nexus-access-btn-close" onclick="closeNexusAccessOverlay()">
+                    <i class="fas fa-check"></i> Entendido
+                </button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="shared-unified-header.js?v=20260711d"></script>
+    <script src="shared-notifications.js?v=20260711d"></script>
+    <script src="shared-header.js?v=20260719c"></script>
+    <script src="creator-market-insights.js?v=20260719f"></script>
+    <script src="creator-market-map.js?v=20260719f"></script>
+    <script src="nexus-logic.js?v=20260724perf"></script>
+    <script src="site-engagement.js"></script>
+    <script>
+      (function waitSg() {
+        if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length && window.SGSiteEngagement) {
+          window.SGSiteEngagement.init({ page: 'nexus' });
+        } else {
+          setTimeout(waitSg, 100);
+        }
+      })();
+    </script>
+</body>
+</html>

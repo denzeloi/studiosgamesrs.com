@@ -1,0 +1,667 @@
+/* ============================================================
+   CREADOR DE MISIONES - 150 MEJORAS VISUALES
+   Cada bloque numerado = mejoras visibles
+   ============================================================ */
+
+/* === 1-10: WRAPPER PRINCIPAL === */
+#missionCreator { padding: 1rem 0; }
+#missionCreator .form-wrapper {
+  position: relative;
+  background: linear-gradient(145deg, rgba(28,24,20,0.98) 0%, rgba(15,12,10,0.99) 100%) !important;
+  border: 3px solid #8b6914 !important;
+  border-radius: 20px !important;
+  padding: 2.5rem !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 80px rgba(184,134,11,0.15), inset 0 2px 0 rgba(255,255,255,0.08) !important;
+  animation: creator-enter 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  overflow: hidden;
+}
+#missionCreator .form-wrapper::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, #ff6b35, #ffd700, #ff6b35);
+  background-size: 200% 100%;
+  animation: creator-shine 3s linear infinite;
+}
+@keyframes creator-enter {
+  from { opacity: 0; transform: scale(0.95) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes creator-shine {
+  0%, 100% { background-position: 0% 0; }
+  50% { background-position: 100% 0; }
+}
+
+/* === 11-20: TÍTULO Y SUBTÍTULO === */
+#missionCreator .form-wrapper h2 {
+  font-family: 'Cinzel', serif !important;
+  font-size: 1.8rem !important;
+  color: #ffd700 !important;
+  text-shadow: 0 0 30px rgba(255,215,0,0.5), 0 2px 4px rgba(0,0,0,0.8) !important;
+  margin-bottom: 0.5rem !important;
+  display: flex; align-items: center; gap: 0.75rem;
+  letter-spacing: 0.08em;
+}
+#missionCreator .form-wrapper h2 i { color: #ff6b35; filter: drop-shadow(0 0 8px rgba(255,107,53,0.6)); }
+#missionCreator .creator-subtitle {
+  color: #9a8a7a; font-size: 0.9rem; margin-bottom: 1.5rem; padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(184,134,11,0.3);
+}
+
+/* === 21-30: BARRA DE PROGRESO DE CAMPOS === */
+.creator-progress-bar {
+  height: 6px; background: rgba(0,0,0,0.4); border-radius: 10px; margin-bottom: 2rem; overflow: hidden;
+}
+.creator-progress-fill {
+  height: 100%; background: linear-gradient(90deg, #ff6b35, #ffd700);
+  border-radius: 10px; transition: width 0.5s ease; box-shadow: 0 0 15px rgba(255,215,0,0.5);
+}
+
+/* === 31-45: SECCIONES CON ICONOS === */
+.creator-section {
+  background: rgba(0,0,0,0.2); border: 1px solid rgba(184,134,11,0.2);
+  border-radius: 14px; padding: 1.25rem; margin-bottom: 1.5rem;
+  transition: all 0.3s ease;
+}
+.creator-section:hover { border-color: rgba(184,134,11,0.4); box-shadow: 0 0 25px rgba(0,0,0,0.3); }
+.creator-section-label {
+  display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem;
+  font-family: 'MedievalSharp', cursive; color: #d4c4a0; font-size: 1rem;
+}
+.creator-section-label i { color: #b8860b; width: 20px; text-align: center; }
+
+/* === 46-65: SELECTOR DE JUEGOS (BOTÓN + MODAL) === */
+.creator-game-trigger {
+  width: 100%; min-height: 70px; display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.25rem; background: linear-gradient(180deg, rgba(35,30,25,0.98), rgba(20,17,14,0.99));
+  border: 2px solid #5a4a3a; border-radius: 14px; cursor: pointer;
+  color: #e8e0d0; font-size: 1rem; text-align: left;
+  transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+.creator-game-trigger:hover {
+  border-color: #b8860b; box-shadow: 0 0 30px rgba(184,134,11,0.25);
+  transform: translateY(-2px);
+}
+.creator-game-trigger:focus { outline: none; border-color: #ffd700; box-shadow: 0 0 25px rgba(255,215,0,0.3); }
+.creator-game-selected-text { display: flex; align-items: center; gap: 0.6rem; }
+.creator-game-selected-text i { color: #b8860b; }
+.creator-game-trigger.has-selection .creator-game-selected-text { color: #ffd700; font-weight: 600; }
+.creator-game-selected-img {
+  width: 48px; height: 48px; border-radius: 10px; object-fit: cover;
+  border: 2px solid rgba(255,215,0,0.4); margin-right: auto; margin-left: 0.75rem;
+}
+.creator-game-chevron {
+  color: #9a8a7a; font-size: 0.9rem; transition: transform 0.3s;
+}
+.creator-game-trigger[aria-expanded="true"] .creator-game-chevron { transform: rotate(180deg); color: #ffd700; }
+
+/* Modal selector - FONDO OSCURO para contraste */
+.creator-game-modal {
+  position: fixed; inset: 0; z-index: 9999; display: none;
+  align-items: center; justify-content: center; padding: 2rem;
+}
+.creator-game-modal.is-open { display: flex; }
+.creator-game-modal-backdrop {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.85);
+  animation: creator-modal-backdrop-in 0.3s ease;
+}
+@keyframes creator-modal-backdrop-in {
+  from { opacity: 0; } to { opacity: 1; }
+}
+.creator-game-modal-content {
+  position: relative; max-width: 580px; width: 100%; max-height: 85vh; overflow: hidden;
+  background: linear-gradient(165deg, #1a1612 0%, #0d0b09 100%);
+  border: 3px solid #8b6914; border-radius: 20px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.9), 0 0 100px rgba(255,215,0,0.15);
+  animation: creator-modal-slide-in 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes creator-modal-slide-in {
+  from { opacity: 0; transform: scale(0.9) translateY(30px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.creator-game-modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.25rem 1.5rem; border-bottom: 2px solid rgba(184,134,11,0.4);
+  background: rgba(255,215,0,0.06);
+}
+.creator-game-modal-header h3 {
+  margin: 0; color: #ffd700; font-size: 1.25rem;
+  display: flex; align-items: center; gap: 0.6rem;
+  text-shadow: 0 0 20px rgba(255,215,0,0.4);
+}
+.creator-game-modal-close {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,0.08); border: 1px solid #5a4a3a;
+  color: #e8e0d0; font-size: 1.4rem; cursor: pointer;
+  transition: all 0.3s; display: flex; align-items: center; justify-content: center; line-height: 1;
+}
+.creator-game-modal-close:hover {
+  background: rgba(229,57,53,0.3); border-color: #e53935; color: #fff;
+}
+.creator-game-modal-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
+  padding: 1.5rem; overflow-y: auto; max-height: calc(85vh - 90px);
+}
+.creator-game-modal-card {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 1rem; background: rgba(30,26,22,0.9); border: 2px solid #4a3f35;
+  border-radius: 14px; cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1); overflow: hidden;
+}
+.creator-game-modal-card:hover {
+  border-color: #ffd700; transform: translateY(-6px) scale(1.03);
+  box-shadow: 0 15px 40px rgba(0,0,0,0.6), 0 0 40px rgba(255,215,0,0.25);
+}
+.creator-game-modal-card .game-img-wrap {
+  width: 100%; aspect-ratio: 1; border-radius: 10px; overflow: hidden; margin-bottom: 0.6rem;
+  background: #1a1612;
+}
+.creator-game-modal-card img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.creator-game-modal-card span {
+  font-size: 0.85rem; color: #d4c4a0; text-align: center; font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.creator-game-modal-card:hover span { color: #ffd700; }
+@media (max-width: 600px) {
+  .creator-game-modal-grid { grid-template-columns: repeat(3, 1fr); padding: 1rem; }
+}
+
+/* Legacy: mantener grid de cards por si se usa en otro lugar */
+.creator-game-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+.creator-game-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 1rem; background: linear-gradient(180deg, rgba(40,35,30,0.9), rgba(25,22,18,0.95));
+  border: 2px solid #4a3f35; border-radius: 14px; cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1); position: relative; overflow: hidden;
+}
+.creator-game-card::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at center, rgba(255,215,0,0) 0%, rgba(255,215,0,0.1) 100%);
+  opacity: 0; transition: opacity 0.3s;
+}
+.creator-game-card:hover {
+  border-color: #b8860b; transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 35px rgba(0,0,0,0.5), 0 0 30px rgba(184,134,11,0.25);
+}
+.creator-game-card:hover::after { opacity: 1; }
+.creator-game-card.selected {
+  border-color: #ffd700; border-width: 3px;
+  background: linear-gradient(180deg, rgba(255,215,0,0.15), rgba(184,134,11,0.1));
+  box-shadow: 0 0 35px rgba(255,215,0,0.4), inset 0 0 30px rgba(255,215,0,0.08);
+  animation: creator-card-pulse 2s ease-in-out infinite;
+}
+.creator-game-card.selected::before {
+  content: '✓'; position: absolute; top: 6px; right: 8px;
+  background: #ffd700; color: #1a1a1a; width: 22px; height: 22px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: bold; z-index: 2;
+}
+@keyframes creator-card-pulse {
+  0%, 100% { box-shadow: 0 0 35px rgba(255,215,0,0.4), inset 0 0 30px rgba(255,215,0,0.08); }
+  50% { box-shadow: 0 0 50px rgba(255,215,0,0.5), inset 0 0 35px rgba(255,215,0,0.1); }
+}
+.creator-game-card img {
+  width: 56px; height: 56px; object-fit: contain; margin-bottom: 0.5rem;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); transition: filter 0.3s;
+}
+.creator-game-card.selected img { filter: drop-shadow(0 0 12px rgba(255,215,0,0.5)); }
+.creator-game-card span { font-size: 0.78rem; color: #b8a88a; text-align: center; line-height: 1.3; }
+.creator-game-card.selected span { color: #ffd700; font-weight: 600; }
+
+/* === 66-80: SELECTS ESTILO FORJA (fondo oscuro, menú desplegable oscuro) === */
+#missionCreator select {
+  background: linear-gradient(180deg, rgba(35,30,25,0.95), rgba(22,18,15,0.98)) !important;
+  border: 2px solid #5a4a3a !important; border-radius: 12px !important;
+  color: #e8e0d0 !important; padding: 0.8rem 1.2rem 0.8rem 1rem !important;
+  font-size: 1rem !important; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffd700' d='M6 8L1 3h10z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important; background-position: right 1rem center !important;
+  padding-right: 2.5rem !important; transition: all 0.3s ease !important;
+  color-scheme: dark !important;
+}
+#missionCreator select option {
+  background: #1a1612 !important;
+  color: #e8e0d0 !important;
+}
+#missionCreator select:hover {
+  border-color: #b8860b !important;
+  box-shadow: 0 0 25px rgba(184,134,11,0.2), inset 0 0 15px rgba(0,0,0,0.2) !important;
+}
+#missionCreator select:focus {
+  border-color: #ffd700 !important;
+  box-shadow: 0 0 30px rgba(255,215,0,0.3), inset 0 0 15px rgba(0,0,0,0.2) !important;
+  outline: none !important;
+}
+
+/* === 81-95: INPUTS CON ESTADOS === */
+#missionCreator input[type="text"],
+#missionCreator input[type="number"],
+#missionCreator input[type="datetime-local"],
+#missionCreator textarea {
+  color-scheme: dark !important;
+  background: rgba(20,18,15,0.95) !important;
+  border: 2px solid #4a3f35 !important; border-radius: 12px !important;
+  color: #e8e0d0 !important; padding: 0.8rem 1rem !important;
+  font-size: 1rem !important; transition: all 0.3s ease !important;
+}
+#missionCreator input::placeholder, #missionCreator textarea::placeholder {
+  color: #6a5a4a; opacity: 0.9;
+}
+#missionCreator input:hover, #missionCreator textarea:hover {
+  border-color: #6a5a4a !important;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2) !important;
+}
+#missionCreator input:focus, #missionCreator textarea:focus {
+  border-color: #ffd700 !important;
+  box-shadow: 0 0 30px rgba(255,215,0,0.25), inset 0 0 10px rgba(0,0,0,0.2) !important;
+  outline: none !important;
+}
+#missionCreator input.creator-invalid, #missionCreator textarea.creator-invalid {
+  border-color: #e53935 !important;
+  box-shadow: 0 0 20px rgba(229,57,53,0.3) !important;
+}
+#missionCreator input.creator-valid, #missionCreator textarea.creator-valid {
+  border-color: #4caf50 !important;
+  box-shadow: 0 0 15px rgba(76,175,80,0.2) !important;
+}
+#missionCreator textarea { min-height: 100px; resize: vertical; }
+
+/* === 96-110: LABELS Y CONTADORES === */
+#missionCreator .form-wrapper label {
+  font-family: 'MedievalSharp', cursive !important; color: #d4c4a0 !important;
+  font-size: 1.05rem !important; display: flex; align-items: center; gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+#missionCreator .char-count { font-size: 0.8rem !important; margin-left: auto; }
+#missionCreator .char-count.near-limit { color: #ff6b35 !important; }
+#missionCreator .char-count.at-limit { color: #e53935 !important; }
+
+/* === 111-125: TOKENS Y PREMIO === */
+.creator-tokens-badge {
+  display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.6rem 1.2rem;
+  background: linear-gradient(135deg, rgba(255,215,0,0.12), rgba(184,134,11,0.08));
+  border: 2px solid rgba(184,134,11,0.5); border-radius: 12px;
+  font-weight: 700; color: #ffd700; margin-bottom: 0.5rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+  transition: all 0.3s ease;
+}
+.creator-tokens-badge i { font-size: 1.2rem; }
+.creator-tokens-badge.low { border-color: #e53935; color: #ff6659; background: linear-gradient(135deg, rgba(229,57,53,0.15), rgba(180,40,40,0.1)); }
+
+/* === 126-140: BOTÓN LANZAR === */
+#missionCreator .launch-mission-btn {
+  width: 100%; padding: 1.2rem 2rem !important; font-size: 1.2rem !important;
+  font-family: 'Cinzel', serif !important; font-weight: 700 !important;
+  border-radius: 14px !important; border: 3px solid #ffd700 !important;
+  background: linear-gradient(180deg, #c9a227, #8b6914) !important;
+  color: #1a1a1a !important; text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 40px rgba(255,215,0,0.2), inset 0 2px 0 rgba(255,255,255,0.2) !important;
+  transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1) !important;
+  position: relative; overflow: hidden;
+}
+#missionCreator .launch-mission-btn::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+  opacity: 0; transition: opacity 0.3s;
+}
+#missionCreator .launch-mission-btn:hover:not(:disabled) {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 50px rgba(255,215,0,0.4), inset 0 2px 0 rgba(255,255,255,0.25) !important;
+}
+#missionCreator .launch-mission-btn:hover:not(:disabled)::before { opacity: 1; }
+#missionCreator .launch-mission-btn:active:not(:disabled) { transform: translateY(-2px); }
+#missionCreator .launch-mission-btn:disabled {
+  opacity: 0.65; cursor: not-allowed; transform: none !important;
+}
+
+/* === 141-150: RESPONSIVE Y PULSE === */
+@media (max-width: 768px) {
+  #missionCreator .form-wrapper { padding: 1.5rem !important; }
+  .creator-game-cards { grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+  #missionCreator .form-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+  .creator-form-actions { flex-direction: column; }
+  #missionCreator .launch-mission-btn { min-width: 100%; }
+}
+.creator-feedback-ok { color: #4caf50; font-size: 0.85rem; margin-top: 0.25rem; }
+.creator-feedback-err { color: #e53935; font-size: 0.85rem; margin-top: 0.25rem; }
+
+/* === 150 MEJORAS VISUALES ADICIONALES (más tangibles) === */
+.creator-progress-wrap { margin-bottom: 1.5rem; }
+.creator-progress-text {
+  display: block; font-size: 0.9rem; color: #b8a88a; margin-bottom: 0.5rem;
+  font-weight: 600; text-shadow: 0 0 10px rgba(184,168,138,0.4);
+  transition: color 0.3s;
+}
+.creator-progress-text.complete { color: #4caf50; animation: creator-pulse-green 1.5s ease-in-out infinite; }
+@keyframes creator-pulse-green {
+  0%, 100% { text-shadow: 0 0 10px rgba(76,175,80,0.4); }
+  50% { text-shadow: 0 0 25px rgba(76,175,80,0.8); }
+}
+.creator-progress-fill { transition: width 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+.creator-draft-actions { margin-bottom: 1rem; }
+.creator-draft-btn {
+  padding: 0.5rem 1rem; background: rgba(33,150,243,0.2); border: 1px solid #2196f3;
+  border-radius: 8px; color: #4fc3f7; cursor: pointer; font-size: 0.9rem;
+  transition: all 0.3s;
+}
+.creator-draft-btn:hover { background: rgba(33,150,243,0.35); transform: translateY(-2px); }
+.creator-form-actions {
+  display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem;
+  justify-content: flex-end; align-items: center;
+}
+.creator-draft-save-btn, .creator-preview-btn {
+  padding: 0.8rem 1.4rem; border-radius: 12px; font-weight: 600; cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1); display: inline-flex; align-items: center; gap: 0.5rem;
+}
+.creator-draft-save-btn {
+  background: rgba(33,150,243,0.15); border: 2px solid #2196f3; color: #64b5f6;
+}
+.creator-draft-save-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(33,150,243,0.3); }
+.creator-preview-btn {
+  background: rgba(156,39,176,0.15); border: 2px solid #9c27b0; color: #ce93d8;
+}
+.creator-preview-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(156,39,176,0.3); }
+#missionCreator .launch-mission-btn { flex: 1; min-width: 200px; }
+
+/* Modal Preview */
+.creator-preview-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000;
+  display: flex; align-items: center; justify-content: center; padding: 1rem;
+  animation: creator-modal-fadeIn 0.3s ease;
+}
+@keyframes creator-modal-fadeIn {
+  from { opacity: 0; } to { opacity: 1; }
+}
+.creator-preview-content {
+  background: linear-gradient(145deg, #1c1814, #0f0c0a); border: 3px solid #ffd700;
+  border-radius: 20px; max-width: 500px; width: 100%; overflow: hidden;
+  box-shadow: 0 25px 80px rgba(0,0,0,0.8), 0 0 60px rgba(255,215,0,0.2);
+  animation: creator-modal-enter 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes creator-modal-enter {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.creator-preview-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(184,134,11,0.4);
+  background: rgba(255,215,0,0.05);
+}
+.creator-preview-header h3 { color: #ffd700; margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
+.creator-preview-body {
+  padding: 1.5rem; color: #d4c4a0; font-size: 0.95rem; line-height: 1.7;
+}
+.creator-preview-body .preview-row { display: flex; margin-bottom: 0.75rem; }
+.creator-preview-body .preview-label { color: #9a8a7a; min-width: 120px; }
+.creator-preview-body .preview-val { color: #e8e0d0; }
+.creator-preview-actions {
+  display: flex; gap: 1rem; padding: 1.25rem 1.5rem; border-top: 1px solid rgba(184,134,11,0.3);
+  background: rgba(0,0,0,0.3);
+}
+.creator-preview-edit {
+  padding: 0.7rem 1.2rem; background: rgba(100,100,100,0.3); border: 1px solid #666;
+  border-radius: 10px; color: #ccc; cursor: pointer; transition: all 0.3s;
+}
+.creator-preview-edit:hover { background: rgba(100,100,100,0.5); }
+.creator-preview-confirm {
+  flex: 1; padding: 0.9rem 1.5rem; background: linear-gradient(180deg, #c9a227, #8b6914);
+  border: 2px solid #ffd700; border-radius: 12px; color: #1a1a1a; font-weight: 700;
+  cursor: pointer; transition: all 0.35s;
+}
+.creator-preview-confirm:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255,215,0,0.4); }
+
+/* Estados focus mejorados */
+.creator-section:focus-within { border-color: rgba(255,215,0,0.5); box-shadow: 0 0 35px rgba(255,215,0,0.15); }
+.creator-section.creator-has-error { border-color: rgba(229,57,53,0.6); animation: creator-shake 0.5s; }
+@keyframes creator-shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* === PRO TIPS LATERALES CON EFECTO POLVO === */
+.pro-tips-container {
+  position: fixed; left: 0; right: 0; top: 0; bottom: 0;
+  z-index: 100; pointer-events: none;
+}
+.pro-tip-bubble {
+  position: fixed; padding: 1rem 1.1rem; max-width: 220px;
+  left: 12px; right: auto;
+  background: linear-gradient(145deg, rgba(28,24,20,0.97), rgba(18,15,12,0.98));
+  border: 2px solid rgba(184,134,11,0.5); border-radius: 14px;
+  color: #e8e0d0; font-size: 0.88rem; line-height: 1.5;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 30px rgba(255,215,0,0.1);
+  animation: pro-tip-appear 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  opacity: 0; transform: scale(0.8);
+}
+.pro-tip-bubble.ProTip-out {
+  animation: pro-tip-out 0.6s ease-out forwards;
+}
+@keyframes pro-tip-appear {
+  from { opacity: 0; transform: scale(0.8) translateX(var(--tip-dir, 0)); }
+  to { opacity: 1; transform: scale(1) translateX(0); }
+}
+@keyframes pro-tip-out {
+  0% { opacity: 1; transform: scale(1); }
+  40% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0; transform: scale(0.7); }
+}
+.pro-tip-bubble .pro-tip-text { color: #d4c4a0; }
+.pro-tip-bubble .pro-tip-link { color: #ffd700; font-weight: 600; font-size: 0.8rem; margin-top: 0.4rem; display: block; }
+.pro-tip-dust {
+  position: fixed; width: 10px; height: 10px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,215,0,0.7) 0%, rgba(184,134,11,0.3) 40%, transparent 70%);
+  pointer-events: none; animation: pro-tip-dust-disperse 2.5s ease-out forwards;
+  z-index: 10001;
+}
+@keyframes pro-tip-dust-disperse {
+  0% { opacity: 1; transform: scale(1) translate(0, 0); }
+  30% { opacity: 0.9; transform: scale(1.5) translate(var(--dx, 0), var(--dy, 0)); }
+  100% { opacity: 0; transform: scale(2) translate(calc(var(--dx, 0) * 2), calc(var(--dy, 0) * 2)); }
+}
+@media (max-width: 1200px) {
+  .pro-tip-bubble { max-width: 200px; font-size: 0.84rem; padding: 0.9rem 1rem; }
+}
+@media (max-width: 900px) {
+  .pro-tips-container { display: none; }
+}
+
+/* ============================================================
+   COHESIÓN VISUAL — Alinear PlayZone con el dashboard de Studiosgamesrs
+   Solo colores, texto y sombras. NO cambia estructura ni tamaños.
+   Este bloque va al final del CSS que carga último, para armonizar
+   los dorados/bronces y el texto color pergamino con el rojo del sitio.
+   ============================================================ */
+
+/* --- Texto: neutros legibles en lugar de crema/pergamino --- */
+.playzone-forge h1,
+.playzone-forge h2 {
+  color: #f4f6f9 !important;
+  text-shadow: 0 0 12px rgba(255, 59, 59, 0.40) !important;
+}
+.playzone-forge h3 { color: #eef1f5 !important; }
+.playzone-forge .card-body { color: #d7dbe2 !important; }
+.playzone-forge .card-comments { color: #aab0b8 !important; }
+
+/* --- Creador de misiones: contenedor y barra superior --- */
+#missionCreator .form-wrapper {
+  border-color: rgba(255, 59, 59, 0.35) !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 60px rgba(255,59,59,0.10),
+              inset 0 2px 0 rgba(255,255,255,0.06) !important;
+}
+#missionCreator .form-wrapper::before {
+  background: linear-gradient(90deg, #ff3b3b, #ffb347, #ff3b3b) !important;
+}
+#missionCreator .form-wrapper h2 {
+  color: #f4f6f9 !important;
+  text-shadow: 0 0 24px rgba(255,59,59,0.45), 0 2px 4px rgba(0,0,0,0.8) !important;
+}
+#missionCreator .form-wrapper h2 i,
+.creator-section-label i { color: #ff6b6b !important; }
+.creator-section-label { color: #e7eaef !important; }
+.creator-section { border-color: rgba(255,59,59,0.16) !important; }
+.creator-section:hover { border-color: rgba(255,59,59,0.38) !important; }
+.creator-progress-fill { background: linear-gradient(90deg, #ff3b3b, #ffb347) !important; }
+
+/* --- Selector de juego (botón desplegable) --- */
+.creator-game-trigger { border-color: rgba(255,255,255,0.14) !important; color: #e7eaef !important; }
+.creator-game-trigger:hover {
+  border-color: rgba(255,59,59,0.5) !important;
+  box-shadow: 0 0 26px rgba(255,59,59,0.18) !important;
+}
+.creator-game-trigger:focus {
+  border-color: #ff3b3b !important;
+  box-shadow: 0 0 22px rgba(255,59,59,0.28) !important;
+}
+.creator-game-selected-text i { color: #ff6b6b !important; }
+.creator-game-trigger.has-selection .creator-game-selected-text { color: #ffb347 !important; }
+.creator-game-chevron { color: #aab0b8 !important; }
+.creator-game-trigger[aria-expanded="true"] .creator-game-chevron { color: #ff3b3b !important; }
+
+/* --- Modal elegir juego --- */
+.creator-game-modal-header {
+  border-bottom-color: rgba(255,59,59,0.35) !important;
+  background: rgba(255,59,59,0.06) !important;
+}
+.creator-game-modal-header h3 {
+  color: #f4f6f9 !important;
+  text-shadow: 0 0 20px rgba(255,59,59,0.40) !important;
+}
+.creator-game-modal-card { border-color: rgba(255,255,255,0.10) !important; }
+.creator-game-modal-card:hover {
+  border-color: rgba(255,59,59,0.55) !important;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.6), 0 0 40px rgba(255,59,59,0.22) !important;
+}
+.creator-game-modal-card span { color: #c3c8d0 !important; }
+.creator-game-modal-card:hover span { color: #ff8a80 !important; }
+
+/* --- Cards de juego (legacy) --- */
+.creator-game-card { border-color: rgba(255,255,255,0.10) !important; }
+.creator-game-card:hover {
+  border-color: rgba(255,59,59,0.45) !important;
+  box-shadow: 0 12px 35px rgba(0,0,0,0.5), 0 0 30px rgba(255,59,59,0.22) !important;
+}
+.creator-game-card.selected {
+  border-color: #ff3b3b !important;
+  background: linear-gradient(180deg, rgba(255,59,59,0.15), rgba(255,59,59,0.08)) !important;
+  box-shadow: 0 0 35px rgba(255,59,59,0.35), inset 0 0 30px rgba(255,59,59,0.08) !important;
+}
+.creator-game-card.selected::before { background: #ff3b3b !important; color: #fff !important; }
+.creator-game-card span { color: #c3c8d0 !important; }
+.creator-game-card.selected span { color: #ff8a80 !important; }
+
+/* --- Inputs y selects: foco/hover en rojo del sitio --- */
+#missionCreator select { border-color: rgba(255,255,255,0.14) !important; color: #eef1f5 !important; }
+#missionCreator select option { color: #eef1f5 !important; }
+#missionCreator select:hover {
+  border-color: rgba(255,59,59,0.45) !important;
+  box-shadow: 0 0 22px rgba(255,59,59,0.16), inset 0 0 15px rgba(0,0,0,0.2) !important;
+}
+#missionCreator select:focus {
+  border-color: #ff3b3b !important;
+  box-shadow: 0 0 24px rgba(255,59,59,0.25), inset 0 0 15px rgba(0,0,0,0.2) !important;
+}
+#missionCreator input[type="text"],
+#missionCreator input[type="number"],
+#missionCreator input[type="datetime-local"],
+#missionCreator textarea {
+  border-color: rgba(255,255,255,0.14) !important;
+  color: #eef1f5 !important;
+}
+#missionCreator input[type="text"]:hover,
+#missionCreator input[type="number"]:hover,
+#missionCreator input[type="datetime-local"]:hover,
+#missionCreator textarea:hover {
+  border-color: rgba(255,59,59,0.4) !important;
+}
+#missionCreator input[type="text"]:focus,
+#missionCreator input[type="number"]:focus,
+#missionCreator input[type="datetime-local"]:focus,
+#missionCreator textarea:focus {
+  border-color: #ff3b3b !important;
+  box-shadow: 0 0 18px rgba(255,59,59,0.22) !important;
+}
+
+/* === Título + botón plantillas === */
+.creator-title-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+.creator-title-row #missionTitle { flex: 1; min-width: 0; }
+.creator-premade-btn {
+  width: 48px; min-width: 48px;
+  border: 2px solid #66c0f4; border-radius: 12px;
+  background: linear-gradient(180deg, rgba(30,40,55,0.95), rgba(18,24,34,0.98));
+  color: #66c0f4; font-size: 1.25rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.25s ease;
+}
+.creator-premade-btn:hover {
+  background: rgba(102, 192, 244, 0.15); color: #fff;
+  box-shadow: 0 0 16px rgba(102, 192, 244, 0.35);
+}
+.creator-quick-panel {
+  border: 2px solid rgba(102, 192, 244, 0.45); border-radius: 16px;
+  padding: 1.25rem; margin-bottom: 1.5rem;
+  background: linear-gradient(145deg, rgba(20, 28, 38, 0.95), rgba(12, 16, 22, 0.98));
+}
+.creator-quick-badge {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.35rem 0.75rem; border-radius: 999px;
+  background: rgba(102, 192, 244, 0.15); color: #b3e5fc;
+  font-size: 0.85rem; font-weight: 700; margin-bottom: 0.75rem;
+}
+.creator-quick-desc { color: #b0bec5; font-size: 0.9rem; line-height: 1.5; margin: 0 0 1rem 0; }
+.creator-quick-only-tag {
+  font-size: 0.7rem; color: #81c784; margin-left: 0.35rem;
+  font-weight: 600; text-transform: uppercase;
+}
+.creator-exit-quick-btn {
+  margin-top: 0.5rem; width: 100%; padding: 0.65rem 1rem;
+  border-radius: 10px; border: 1px solid rgba(255,255,255,0.15);
+  background: transparent; color: #aaa; cursor: pointer; font-size: 0.85rem;
+}
+.creator-premade-modal {
+  position: fixed; inset: 0; z-index: 10050; display: none;
+  align-items: center; justify-content: center; padding: 1rem;
+}
+.creator-premade-modal.is-open { display: flex; }
+.creator-premade-modal-backdrop {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
+}
+.creator-premade-modal-content {
+  position: relative; z-index: 1; width: min(520px, 100%); max-height: 85vh; overflow-y: auto;
+  background: linear-gradient(160deg, #1e1a16, #12100e);
+  border: 2px solid #8b6914; border-radius: 18px; padding: 1.5rem;
+}
+.creator-premade-modal-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;
+}
+.creator-premade-modal-header h3 {
+  margin: 0; color: #ffd700; font-family: 'Cinzel', serif; font-size: 1.2rem;
+}
+.creator-premade-modal-close { background: none; border: none; color: #aaa; font-size: 1.6rem; cursor: pointer; }
+.creator-premade-modal-hint { color: #9a8a7a; font-size: 0.88rem; margin: 0 0 1rem 0; }
+.creator-premade-grid { display: flex; flex-direction: column; gap: 0.75rem; }
+.creator-premade-card {
+  display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 1.1rem;
+  border-radius: 14px; border: 2px solid rgba(102, 192, 244, 0.35);
+  background: rgba(0,0,0,0.25); cursor: pointer; text-align: left;
+  width: 100%; color: inherit; transition: all 0.25s ease;
+}
+.creator-premade-card:hover { border-color: #66c0f4; background: rgba(102, 192, 244, 0.08); }
+.creator-premade-card-icon {
+  width: 48px; height: 48px; border-radius: 12px; background: rgba(102, 192, 244, 0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; color: #66c0f4; flex-shrink: 0;
+}
+.creator-premade-card-body h4 { margin: 0 0 0.25rem 0; color: #fff; font-size: 1rem; }
+.creator-premade-card-body p { margin: 0; color: #9aa; font-size: 0.82rem; line-height: 1.4; }
+.creator-premade-card-tag { display: inline-block; margin-top: 0.4rem; font-size: 0.72rem; color: #81c784; font-weight: 700; }

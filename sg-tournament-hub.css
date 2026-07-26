@@ -1,0 +1,404 @@
+/* Centro de torneos — Competition Hub + Commander Panel */
+.sg-tour-modal .modal-content.sg-tour-command-center {
+  max-width: 920px;
+  width: 96vw;
+  max-height: 92vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 1px solid rgba(255, 202, 58, 0.25);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.sg-tour-cc-header {
+  padding: 1.25rem 1.5rem 1rem;
+  background: linear-gradient(135deg, rgba(255, 202, 58, 0.12), rgba(33, 150, 243, 0.08));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+}
+
+.sg-tour-cc-header .modal-close {
+  top: 1rem;
+  right: 1rem;
+}
+
+.sg-tour-cc-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.45rem;
+  color: #fff;
+  font-weight: 800;
+}
+
+.sg-tour-cc-sub {
+  margin: 0;
+  color: #ffca3a;
+  font-size: 0.9rem;
+}
+
+.sg-tour-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 720px) {
+  .sg-tour-stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+.sg-tour-stat {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sg-tour-stat-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #999;
+  margin-bottom: 0.2rem;
+}
+
+.sg-tour-stat-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f5f5f5;
+}
+
+.sg-tour-tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.65rem 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-wrap: wrap;
+}
+
+.sg-tour-tab {
+  border: none;
+  background: transparent;
+  color: #aaa;
+  padding: 0.55rem 0.95rem;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.88rem;
+  transition: color 0.15s, background 0.15s;
+}
+
+.sg-tour-tab:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
+.sg-tour-tab.active {
+  color: #ffca3a;
+  background: rgba(255, 202, 58, 0.1);
+  box-shadow: inset 0 -2px 0 #ffca3a;
+}
+
+.sg-tour-body {
+  padding: 1.15rem 1.5rem 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 280px;
+}
+
+.sg-tour-panel { display: none; }
+.sg-tour-panel.active { display: block; }
+
+.sg-tour-search-wrap {
+  position: relative;
+  margin-bottom: 0.85rem;
+}
+
+.sg-tour-search-wrap i {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+}
+
+.sg-tour-search-wrap input {
+  width: 100%;
+  padding: 0.75rem 0.85rem 0.75rem 2.5rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.sg-tour-search-wrap input:focus {
+  outline: none;
+  border-color: rgba(255, 202, 58, 0.45);
+}
+
+.sg-tour-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.sg-tour-filter-chip {
+  font-size: 0.78rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+  color: #ccc;
+  cursor: pointer;
+}
+
+.sg-tour-filter-chip.active {
+  border-color: rgba(255, 202, 58, 0.5);
+  color: #ffca3a;
+  background: rgba(255, 202, 58, 0.12);
+}
+
+.sg-tour-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.sg-tour-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sg-tour-row-main { flex: 1; min-width: 0; }
+.sg-tour-row-title {
+  font-weight: 700;
+  color: #fff;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sg-tour-row-meta {
+  font-size: 0.78rem;
+  color: #999;
+  margin-top: 0.15rem;
+}
+
+.sg-tour-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sg-tour-btn-primary {
+  background: linear-gradient(135deg, #ffca3a, #e6a800);
+  color: #111;
+}
+
+.sg-tour-btn-primary:hover:not(:disabled) { filter: brightness(1.05); }
+.sg-tour-btn-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ddd;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.sg-tour-btn-danger {
+  background: rgba(229, 57, 53, 0.2);
+  color: #ff8a80;
+  border: 1px solid rgba(229, 57, 53, 0.35);
+}
+
+.sg-tour-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.sg-tour-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.sg-tour-empty i {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 0.65rem;
+  color: #555;
+}
+
+.sg-tour-create-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.sg-tour-create-actions {
+  display: flex;
+  gap: 0.65rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.sg-tour-inline-hint {
+  font-size: 0.82rem;
+  color: #888;
+  margin: 0 0 0.75rem;
+  line-height: 1.45;
+}
+
+/* Capitán — invitaciones recibidas */
+.sg-tour-captain-card {
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background: linear-gradient(135deg, rgba(255, 202, 58, 0.08), rgba(0, 0, 0, 0.2));
+  border: 1px solid rgba(255, 202, 58, 0.22);
+}
+
+.sg-tour-captain-card h4 {
+  margin: 0 0 0.35rem;
+  color: #ffca3a;
+  font-size: 1.05rem;
+}
+
+.sg-tour-captain-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* Commander inline panel */
+.sg-tour-commander-shell {
+  margin-top: 0.5rem;
+}
+
+.sg-tour-commander-shell .sg-tour-cc-header {
+  border-radius: 12px 12px 0 0;
+}
+
+.sg-tour-commander-shell .sg-tour-body {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 0 0 12px 12px;
+  border: 1px solid rgba(255, 202, 58, 0.15);
+  border-top: none;
+}
+
+.sg-tour-schedule-line {
+  display: block;
+  margin-top: 0.65rem;
+}
+
+.sg-tour-capacity-wrap {
+  margin-top: 0.85rem;
+}
+
+.sg-tour-capacity-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.sg-tour-capacity-pct {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ffca3a;
+}
+
+.sg-tour-capacity-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.sg-tour-capacity-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #4caf50, #ffca3a);
+  transition: width 0.35s ease;
+}
+
+.sg-tour-capacity-fill.sg-tour-capacity-full {
+  background: linear-gradient(90deg, #e53935, #ff7043);
+}
+
+.sg-tour-search-wrap input {
+  padding-right: 2.5rem;
+}
+
+.sg-tour-search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #aaa;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.sg-tour-search-clear:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.sg-tour-badge-pending {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #90caf9;
+  white-space: nowrap;
+}
+
+.sg-tour-badge-pending i {
+  margin-right: 0.25rem;
+}
+
+body.sg-tour-modal-open {
+  overflow: hidden;
+}
+
+.sg-tour-modal.modal-container {
+  animation: sgTourFadeIn 0.2s ease;
+}
+
+@keyframes sgTourFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.sg-tour-modal .modal-content.sg-tour-command-center {
+  animation: sgTourSlideUp 0.25s ease;
+}
+
+@keyframes sgTourSlideUp {
+  from { transform: translateY(12px); opacity: 0.6; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.sg-tour-captain-card .sg-tour-btn-ghost {
+  color: #ccc;
+}
+
+.sg-tour-captain-card .sg-tour-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+}

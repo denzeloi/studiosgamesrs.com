@@ -1,0 +1,763 @@
+{
+  "rules": {
+    "nexus": {
+      "creatorApplications": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+        "$uid": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+          ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+        }
+      },
+      "users": {
+        ".read": false,
+        "$uid": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
+          ".write": "auth != null && auth.uid === $uid",
+          "badges": {
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": false
+          },
+          "claimedRewards": {
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": false
+          },
+          "settings": {
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": "auth != null && auth.uid === $uid && (!newData.child('profileCustomizationUnlocked').exists() || newData.child('profileCustomizationUnlocked').val() === data.child('profileCustomizationUnlocked').val())"
+          },
+          "achievements": {
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": false
+          },
+          "dailyStreak": {
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": false
+          },
+          "stats": {
+            ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
+            ".write": false
+          },
+          "xpAwards": {
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": false
+          },
+          "xpLedger": {
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": false
+          },
+          "commanderGrants": {
+            ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+            ".write": false
+          },
+          "quests": {
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": false
+          },
+          "overlayActivity": {
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": false
+          },
+          "xpBoost": {
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": false
+          },
+          "creatorMarket": {
+            ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+            ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+            "walletLedger": {
+              ".read": "auth != null && auth.uid === $uid",
+              ".write": false,
+              ".indexOn": ["referralUid", "createdAt"]
+            }
+          },
+          "mercadoSubmissions": {
+            ".read": "auth != null && auth.uid === $uid",
+            "$submissionId": {
+              ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+            }
+          }
+        }
+      },
+      "referralLocks": {
+        ".read": false,
+        ".write": false
+      },
+      "referrals": {
+        ".read": "auth != null",
+        ".write": false
+      }
+    },
+    "creatorMarket": {
+      "publications": {
+        ".read": "auth != null",
+        ".indexOn": ["authorUid", "status"],
+        "$pubId": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+        }
+      },
+      "config": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+      },
+      "submissionQueue": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+        "$uid": {
+          "$submissionId": {
+            ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+          }
+        }
+      },
+      "trendsCache": {
+        ".read": "auth != null",
+        ".write": false
+      }
+    },
+    "refCodes": {
+      ".read": "auth != null",
+      "$code": {
+        ".write": false
+      }
+    },
+    "steamIndex": {
+      ".read": false,
+      ".write": false
+    },
+    "users": {
+      ".indexOn": ["nick", "nick_lowercase", "playZoneOnboardingComplete", "rango", "steamID", "communityHonor", "blocked", "registro"],
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State') && (!data.exists() || !newData.exists() || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || !data.child('tokens').exists() || newData.child('tokens').val() === data.child('tokens').val())",
+        "blocked": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+        },
+        "shadowbanned": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+        },
+        "internalTag": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+        },
+        "teamId": {
+          ".write": "auth != null && auth.uid == $uid"
+        },
+        "tokens": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || ((root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander') && (root.child('users').child($uid).child('rango').val() !== 'commander' && root.child('users').child($uid).child('rango').val() !== 'Commander' && root.child('users').child($uid).child('rango').val() !== 'divisional_commander' && root.child('users').child($uid).child('rango').val() !== 'Divisional_Commander' && root.child('users').child($uid).child('rango').val() !== 'boss_of_the_state' && root.child('users').child($uid).child('rango').val() !== 'Boss_of_the_State')))"
+        },
+        "tokenLedger": {
+          ".read": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
+          ".write": false,
+          ".indexOn": ["at", "type"]
+        },
+        "rango": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || (auth.uid == $uid && (!newData.exists() || newData.val() === data.val())))"
+        },
+        "referralCode": {
+          ".read": "auth != null",
+          ".write": false
+        },
+        "stats": {
+          ".read": "auth != null",
+          ".write": false
+        },
+        "achievements": { ".write": "auth != null && auth.uid == $uid" },
+        "inventory": {
+          ".read": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
+          ".write": false
+        },
+        "prestige": {
+          ".read": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
+          ".write": false
+        },
+        "referrals": {
+          "$childId": {
+            ".write": "auth != null && auth.uid == $childId"
+          }
+        },
+        "notifications": {
+          "$notificationId": {
+            ".write": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || (newData.exists() && newData.hasChildren(['text', 'icon', 'timestamp']) && newData.child('text').isString() && newData.child('icon').isString() && newData.child('timestamp').isNumber() && newData.child('text').val().matches(/.*visited your profile.*/)))"
+          }
+        },
+        "profileVisitors": {
+          "$visitorUid": {
+            ".write": "auth != null && (auth.uid == $visitorUid || auth.uid == $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+          }
+        },
+        "profileVisitNoticeGate": {
+          "$visitorUid": {
+            ".write": "auth != null && (auth.uid == $visitorUid || auth.uid == $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+          }
+        },
+        "extraVerifiedMatches": {
+          "$entryId": {
+            ".write": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+            ".validate": "newData.hasChildren(['at', 'title', 'type']) && newData.child('at').isNumber()"
+          }
+        },
+        "profileCustomization": {
+          ".read": "auth != null",
+          "equippedBackground": {
+            ".write": "auth != null && auth.uid == $uid"
+          },
+          "equippedFrame": {
+            ".write": "auth != null && auth.uid == $uid"
+          },
+          "dashboardTheme": {
+            ".write": "auth != null && auth.uid == $uid"
+          },
+          "defaultProfilePanel": {
+            ".write": "auth != null && auth.uid == $uid && (!newData.exists() || newData.val() === 'moments' || newData.val() === 'stats')"
+          },
+          "unlocked": {
+            "$itemId": {
+              ".write": false
+            }
+          }
+        }
+      }
+    },
+    "tokenAwardsDaily": {
+      ".read": false,
+      ".write": false
+    },
+    "playzoneRewardBudget": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+      ".write": false
+    },
+    "security": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
+      "auditLog": {
+        ".indexOn": ["at"]
+      },
+      "tokenAuditLog": {
+        ".indexOn": ["at", "action", "targetUid"]
+      },
+      "tokenStats": {
+        "global": {
+          ".validate": "newData.hasChildren(['circulation', 'updatedAt'])"
+        }
+      },
+      "bossOfTheState": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
+        ".write": false
+      },
+      "rewardGrants": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+      },
+      "bossRewardAlerts": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+      },
+      "nexusXpGrantDaily": {
+        ".read": false,
+        ".write": false
+      },
+      "bugs": {
+        ".indexOn": ["severity", "status", "createdAt"]
+      },
+      "auditCatalog": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+        "$findingId": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+        }
+      }
+    },
+    "profile_comments": {
+      ".read": "auth != null",
+      "$profileOwnerUid": {
+        ".write": "auth != null",
+        "$commentId": {
+          ".validate": "newData.hasChildren(['author_uid', 'text', 'timestamp']) && newData.child('author_uid').val() === auth.uid",
+          ".write": "!data.exists() || data.child('author_uid').val() === auth.uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State'"
+        }
+      }
+    },
+    "commanderNotifications": {
+      ".read": false,
+      "lastReport": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
+        ".write": false
+      }
+    },
+    "recommendations": {
+      ".read": "auth != null",
+      "$targetUid": {
+        ".write": false,
+        "$recommenderUid": {
+          ".write": "auth != null && auth.uid === $recommenderUid && auth.uid !== $targetUid",
+          ".validate": "newData.hasChildren(['timestamp']) && newData.child('timestamp').isNumber() && newData.child('timestamp').val() <= now + 300000 && (!newData.hasChild('recommenderNick') || (newData.child('recommenderNick').isString() && newData.child('recommenderNick').val().length <= 80))"
+        }
+      }
+    },
+    "nicknameChanges": {
+      ".read": "auth != null",
+      "$uid": { ".write": "auth != null && auth.uid == $uid" }
+    },
+    "news_events": {
+      ".read": true,
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+    },
+    "tournaments": {
+      ".indexOn": ["organizer/uid", "status", "createdAt"],
+      ".read": "auth != null",
+      "$tournamentId": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+        "registeredTeams": {
+          "$teamId": {
+            ".write": "auth != null && root.child('teams').child($teamId).child('captain').val() === auth.uid"
+          }
+        },
+        "outboundInvites": {
+          "$teamId": {
+            ".read": "auth != null && (root.child('tournaments').child($tournamentId).child('organizer').child('uid').val() === auth.uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+            ".write": false
+          }
+        }
+      }
+    },
+    "tournamentInvites": {
+      "$teamId": {
+        ".read": "auth != null && root.child('teams').child($teamId).child('captain').val() === auth.uid",
+        "$tournamentId": {
+          ".write": "auth != null && data.exists() && !newData.exists() && (root.child('teams').child($teamId).child('captain').val() === auth.uid || root.child('tournaments').child($tournamentId).child('organizer').child('uid').val() === auth.uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+        }
+      }
+    },
+    "missions": {
+      ".indexOn": ["createdAt", "creatorUid", "game", "type", "skill"],
+      ".read": "auth != null",
+      "$missionId": {
+        ".write": "auth != null && ( (!data.exists() && newData.exists()) || (data.exists() && !newData.exists() && (data.child('creatorUid').val() === auth.uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')) )",
+        ".validate": "newData.hasChildren(['game', 'title', 'creatorUid'])",
+        "participants": {
+          "$participantUid": {
+            ".write": "auth != null && (auth.uid === $participantUid || root.child('missions').child($missionId).child('creatorUid').val() === auth.uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+          }
+        },
+        "status": {
+          ".write": "auth != null && (root.child('missions').child($missionId).child('creatorUid').val() === auth.uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+          ".validate": "newData.isString() && (newData.val() === 'pending' || newData.val() === 'active' || newData.val() === 'finished')"
+        },
+        "startedAt": {
+          ".write": "auth != null && (root.child('missions').child($missionId).child('creatorUid').val() === auth.uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+          ".validate": "newData.isNumber() && newData.val() <= (now + 60000) && newData.val() >= (now - 60000)"
+        },
+        "chat": {
+          "$messageId": {
+            ".write": "auth != null && root.child('missions').child($missionId).child('participants').child(auth.uid).exists()"
+          }
+        },
+        "dm": {
+          "$roomId": {
+            ".read": "auth != null && root.child('missions').child($missionId).child('participants').child(auth.uid).exists()",
+            "messages": {
+              "$messageId": {
+                ".write": "auth != null && root.child('missions').child($missionId).child('participants').child(auth.uid).exists()"
+              }
+            }
+          }
+        },
+        "completionConfirmations": {
+          "$confirmUid": {
+            ".write": "auth != null && auth.uid === $confirmUid && root.child('missions').child($missionId).child('participants').child($confirmUid).exists()",
+            ".validate": "newData.isBoolean() && newData.val() === true"
+          }
+        },
+        "nexusVerifiedComplete": {
+          ".write": "auth != null && root.child('missions').child($missionId).child('participants').child(auth.uid).exists()"
+        },
+        "cs2Ready": {
+          "$readyUid": {
+            ".write": "auth != null && auth.uid === $readyUid && root.child('missions').child($missionId).child('participants').child(auth.uid).exists()",
+            ".validate": "newData.isBoolean() && newData.val() === true"
+          }
+        },
+        "rewardPerPlayer": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+          ".validate": "newData.isNumber() && newData.val() >= 5 && newData.val() <= 50 && (newData.val() === 5 || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+        },
+        "sponsoredReward": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+          ".validate": "newData.isBoolean()"
+        },
+        "commanderRewardBoost": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+          ".validate": "newData.isBoolean()"
+        },
+        "commanderRewardBoostAt": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+          ".validate": "newData.isNumber()"
+        },
+        "commanderRewardBoostBy": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+          ".validate": "newData.isString()"
+        }
+      }
+    },
+    "teams": {
+      ".indexOn": ["stats/wins", "name_lowercase"],
+      ".read": "auth != null",
+      "$teamId": {
+        ".write": "auth != null && (!data.exists() || data.child('captain').val() === auth.uid)",
+        "roster": {
+          "$userId": {
+            ".read": "auth != null",
+            ".write": "auth != null && !data.exists() && !root.child('teams').child($teamId).exists() && auth.uid === $userId && newData.child('role').val() === 'Captain'",
+            ".validate": "newData.hasChildren(['role']) && newData.child('role').val() === 'Captain'"
+          }
+        }
+      }
+    },
+    "teamInvites": {
+      "$userId": {
+        ".read": "auth != null && auth.uid === $userId",
+        "$teamId": {
+          ".write": "auth != null && auth.uid === $userId && !newData.exists()"
+        }
+      }
+    },
+    "globalChat": {
+      "main": {
+        ".read": "auth != null",
+        "messages": {
+          ".read": "auth != null",
+          ".write": "auth != null",
+          ".indexOn": ["timestamp"]
+        },
+        "channels": {
+          "$channelId": {
+            "messages": {
+              ".read": "auth != null",
+              ".write": "auth != null",
+              ".indexOn": ["timestamp"]
+            }
+          }
+        },
+        "typing": {
+          ".read": "auth != null",
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "!newData.exists() || newData.hasChildren(['n', 'at'])"
+          }
+        },
+        "pins": {
+          ".read": "auth != null",
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+        },
+        "meta": {
+          ".read": "auth != null",
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+        },
+        "polls": {
+          ".read": "auth != null",
+          "$msgId": {
+            "votes": {
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid",
+                ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && newData.val() < 10)"
+              }
+            }
+          }
+        },
+        "lfg": {
+          ".read": "auth != null",
+          "$msgId": {
+            "members": {
+              "$uid": {
+                ".write": "auth != null && auth.uid === $uid",
+                ".validate": "!newData.exists() || newData.hasChild('n')"
+              }
+            }
+          }
+        },
+        "stats": {
+          ".read": "auth != null",
+          "$weekKey": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid",
+              ".validate": "!newData.exists() || (newData.hasChild('c') && newData.child('c').isNumber())"
+            }
+          }
+        }
+      }
+    },
+    "chatModeration": {
+      "reports": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+        "$reportId": {
+          ".write": "auth != null && (!data.exists() || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+          ".validate": "newData.hasChildren(['msgId', 'byUid', 'at']) && newData.child('byUid').val() === auth.uid"
+        }
+      },
+      "mutes": {
+        ".read": "auth != null",
+        "$uid": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+        }
+      }
+    },
+    "teamMatches": {
+      ".read": "auth != null",
+      "$teamId": { ".write": "auth != null" }
+    },
+    "teamJoinRequests": {
+      ".read": false,
+      ".write": "auth != null",
+      "$teamId": {
+        ".read": "auth != null && root.child('teams').child($teamId).child('captain').val() === auth.uid",
+        "$userId": { ".write": "auth != null" }
+      }
+    },
+    "userJoinRequests": {
+      ".read": false,
+      ".write": "auth != null",
+      "$userId": {
+        ".read": "auth != null && $userId === auth.uid",
+        ".write": "auth != null"
+      }
+    },
+    "privateChatRequests": {
+      "$targetUid": {
+        ".read": "auth != null && auth.uid === $targetUid",
+        "$senderUid": {
+          ".write": "auth != null"
+        }
+      }
+    },
+    "friendRequests": {
+      "$targetUid": {
+        ".read": "auth != null && auth.uid === $targetUid",
+        "$senderUid": {
+          ".write": "auth != null && (auth.uid === $senderUid || auth.uid === $targetUid)",
+          ".validate": "!newData.exists() || (newData.hasChildren(['senderNick', 'timestamp']) && newData.child('senderUid').val() === $senderUid)"
+        }
+      }
+    },
+    "sgFriends": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$friendUid": {
+          ".write": "auth != null && (auth.uid === $uid || auth.uid === $friendUid)",
+          ".validate": "!newData.exists() || newData.hasChildren(['nick', 'since'])"
+        }
+      }
+    },
+    "sgChatLinks": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$partnerUid": {
+          ".write": "auth != null && (auth.uid === $uid || auth.uid === $partnerUid)",
+          ".validate": "newData.val() === true"
+        }
+      }
+    },
+    "missionInvites": {
+      "$targetUid": {
+        ".read": "auth != null && auth.uid === $targetUid",
+        "$missionId": {
+          ".write": "auth != null",
+          ".validate": "newData.hasChildren(['fromUid', 'missionId', 'timestamp'])"
+        }
+      }
+    },
+    "privateChats": {
+      "$chatRoomID": {
+        ".read": "auth != null && $chatRoomID.contains(auth.uid)",
+        ".write": "auth != null && $chatRoomID.contains(auth.uid)"
+      }
+    },
+    "teamChats": {
+      "$teamId": {
+        ".read": "auth != null && root.child('teams').child($teamId).child('roster').child(auth.uid).exists()",
+        "messages": {
+          ".write": "auth != null && root.child('teams').child($teamId).child('roster').child(auth.uid).exists()"
+        }
+      }
+    },
+    "missionChats": {
+      "$missionId": {
+        ".read": "auth != null && root.child('missions').child($missionId).child('participants').child(auth.uid).exists()",
+        "messages": {
+          ".write": "auth != null && root.child('missions').child($missionId).child('participants').child(auth.uid).exists()"
+        }
+      }
+    },
+    "overlays": {
+      "$uid": {
+        ".read": "true",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+    "feedback": {
+      "$pushId": {
+        ".write": "auth != null"
+      }
+    },
+    "tokenTransferRequests": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
+      ".write": "auth != null",
+      "$pushId": {
+        ".write": "!data.exists() && newData.exists()",
+        ".validate": "newData.child('fromUserId').val() === auth.uid"
+      }
+    },
+    "partida_en_vivo": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "presence": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "visits": {
+      ".read": "auth != null",
+      "daily": {
+        "$date": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid"
+          }
+        }
+      },
+      "pages": {
+        "$date": {
+          "$pageKey": {
+            ".write": "auth != null",
+            ".validate": "newData.isNumber()"
+          }
+        }
+      }
+    },
+    "siteActivity": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      ".indexOn": ["timestamp"]
+    },
+    "communityImages": {
+      ".read": "auth != null",
+      "$imageId": {
+        ".write": "auth != null",
+        "tokenRewardGranted": {
+          ".write": false
+        }
+      },
+      ".indexOn": ["timestamp"]
+    },
+    "dailyUploads": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid",
+        "days": {
+          "$day": {
+            ".read": "auth != null && auth.uid == $uid",
+            ".write": "auth != null && auth.uid == $uid"
+          }
+        }
+      }
+    },
+    "forumThreads": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      ".indexOn": ["lastReplyAt"]
+    },
+    "communityActivity": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      ".indexOn": ["timestamp"]
+    },
+    "communityReports": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
+      ".write": false
+    },
+    "weeklyFameBonuses": {
+      ".read": "auth != null",
+      "$weekStart": {
+        ".write": "auth != null && !data.exists() && newData.exists()"
+      }
+    },
+    "battleCalls": {
+      ".read": "auth != null",
+      "latest": {
+        ".write": "auth != null"
+      }
+    },
+    "globalChatBot": {
+      "main": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "mentors": {
+      "list": {
+        ".read": "auth != null",
+        "$uid": {
+          ".write": "auth != null && auth.uid == $uid"
+        }
+      }
+    },
+    "forgerSealThisWeek": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "tribunalAppeals": {
+      "$targetUid": {
+        ".read": "auth != null && (auth.uid === $targetUid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+        "banUntil": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+        },
+        "banAppliedAt": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+        },
+        "active": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+        },
+        "lastOpenedByCommander": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+        },
+        "messages": {
+          "$messageId": {
+            ".write": "auth != null && ((!data.exists() && auth.uid === $targetUid && newData.child('from').val() === 'user') || (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State'))",
+            ".validate": "newData.hasChildren(['from', 'text', 'ts']) && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 500 && newData.child('ts').isNumber() && (newData.child('from').val() === 'user' || newData.child('from').val() === 'commander')"
+          }
+        }
+      }
+    },
+    "profileCustomizationAssets": {
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+    },
+    "siteEngagement": {
+      "activePoll": {
+        ".read": "auth != null",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+      },
+      "pollArchive": {
+        ".read": "auth != null",
+        "$pollId": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+        }
+      },
+      "pollVotes": {
+        "$pollId": {
+          "$uid": {
+            ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+            ".write": "(auth != null && auth.uid === $uid && !data.exists()) || (auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State'))",
+            ".validate": "!newData.exists() || (newData.hasChildren(['optionIndex', 'votedAt']) && newData.child('optionIndex').isNumber() && newData.child('votedAt').isNumber() && newData.child('optionIndex').val() >= 0 && newData.child('optionIndex').val() <= 24)"
+          }
+        }
+      },
+      "adSlots": {
+        ".read": "auth != null",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+      },
+      "brandKit": {
+        ".read": "auth != null",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
+      }
+    }
+  }
+}

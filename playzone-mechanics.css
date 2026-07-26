@@ -1,0 +1,207 @@
+/* ============================================================
+   PLAYZONE MECHANICS - Estilos para 30 mecánicas
+   ============================================================ */
+
+/* Racha diaria (compacto para header) */
+.mechanics-streak-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: linear-gradient(135deg, rgba(255,107,53,0.3), rgba(229,57,53,0.2));
+  border: 1px solid rgba(255,107,53,0.5);
+  border-radius: 14px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--pz-primary);
+  box-shadow: 0 2px 12px rgba(255,107,53,0.3);
+  animation: mechanics-pulse 2s ease-in-out infinite;
+}
+.mechanics-streak-gold {
+  background: linear-gradient(135deg, rgba(229,57,53,0.25), rgba(198,40,40,0.2));
+  border-color: rgba(229,57,53,0.6);
+  box-shadow: 0 0 20px rgba(229,57,53,0.4);
+}
+
+@keyframes mechanics-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.95; }
+}
+
+/* Contador misiones */
+.mechanics-missions-count {
+  padding: 4px 8px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(198,40,40,0.4);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: #b8a88a;
+}
+
+/* Tip del día */
+.mechanics-tip-box {
+  padding: 14px 18px;
+  background: linear-gradient(90deg, rgba(198,40,40,0.15), rgba(255,107,53,0.08));
+  border: 1px solid rgba(198,40,40,0.4);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  color: #e8e0d0;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+@keyframes mechanics-fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Barra ordenar */
+.mechanics-sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.mechanics-sort-label { color: #b8a88a; font-size: 0.9rem; }
+.mechanics-sort-btn {
+  padding: 6px 14px;
+  background: rgba(30,25,20,0.8);
+  border: 1px solid #5a4a3a;
+  border-radius: 6px;
+  color: #c4b896;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.mechanics-sort-btn:hover {
+  border-color: #c62828;
+  color: var(--pz-primary);
+}
+.mechanics-sort-btn.active {
+  background: rgba(198,40,40,0.2);
+  border-color: #c62828;
+  color: var(--pz-primary);
+}
+
+/* Toast */
+.mechanics-toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 14px 24px;
+  background: rgba(20,18,15,0.98);
+  border: 2px solid rgba(198,40,40,0.5);
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 600;
+  z-index: 100001;
+  opacity: 0;
+  transition: transform 0.4s ease, opacity 0.4s ease;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 30px rgba(198,40,40,0.2);
+}
+.mechanics-toast-show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.mechanics-toast-success { border-color: rgba(76,175,80,0.7); box-shadow: 0 0 25px rgba(76,175,80,0.3); }
+.mechanics-toast-error { border-color: rgba(229,57,53,0.7); }
+
+/* Confetti */
+@keyframes mechanics-confetti-fly {
+  0% { opacity: 1; transform: translate(0,0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--tx, 80px), var(--ty, -300px)) scale(0.2); }
+}
+
+/* Badge 1 plaza */
+.mechanics-one-slot {
+  animation: mechanics-urgency 1.2s ease-in-out infinite;
+  position: relative;
+}
+.mechanics-one-slot::after {
+  content: '¡1 PLAZA!';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #ff6b35;
+  background: rgba(0,0,0,0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #ff6b35;
+}
+@keyframes mechanics-urgency {
+  0%, 100% { box-shadow: 0 6px 25px rgba(0,0,0,0.6), 0 0 20px rgba(255,107,53,0.2); }
+  50% { box-shadow: 0 6px 25px rgba(0,0,0,0.6), 0 0 35px rgba(255,107,53,0.5); }
+}
+
+/* Misión del día */
+.mechanics-mission-of-day .card-header::before {
+  content: '👑';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 1.4rem;
+  z-index: 2;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+}
+
+/* Recomendada (tu juego) */
+.mechanics-recommended {
+  border-color: rgba(76,175,80,0.5) !important;
+  box-shadow: 0 0 20px rgba(76,175,80,0.15) !important;
+}
+.mechanics-recommended .card-game-tag::after {
+  content: ' ✓';
+  color: #4caf50;
+}
+
+/* Animación escalonada */
+.mechanics-card-stagger {
+  animation: mechanics-staggerIn 0.5s ease-out forwards;
+}
+@keyframes mechanics-staggerIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Skeleton loading */
+.mechanics-skeleton {
+  height: 280px;
+  background: linear-gradient(90deg, rgba(60,50,40,0.5) 25%, rgba(80,70,55,0.5) 50%, rgba(60,50,40,0.5) 75%);
+  background-size: 200% 100%;
+  animation: mechanics-shimmer 1.5s infinite;
+  border-radius: 10px;
+}
+@keyframes mechanics-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* CTA Crear misión */
+.mechanics-cta-create {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2.5rem;
+  background: linear-gradient(135deg, rgba(198,40,40,0.1), rgba(255,107,53,0.05));
+  border: 2px dashed rgba(198,40,40,0.4);
+  border-radius: 12px;
+  color: #b8a88a;
+}
+.mechanics-cta-create strong { color: var(--pz-primary); }
+.mechanics-cta-create button {
+  margin-top: 1rem;
+  padding: 12px 24px;
+  background: linear-gradient(180deg, #c62828, #6d1010);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.mechanics-cta-create button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 25px rgba(198,40,40,0.5);
+}
