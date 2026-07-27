@@ -2606,3 +2606,51 @@ body.commander-panel-page .header-search .search-results.open {
   flex-shrink: 0;
   white-space: nowrap;
 }
+
+/* ============================================================
+   Broadcast / Notificación Épica 3D — Solo Boss of the State
+   (usa .sg-welcome-stage / .sg-welcome-canvas de welcome-overlay.css)
+   ============================================================ */
+.sg-boss-only-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(255, 179, 71, 0.18);
+  color: #ffb347;
+  border: 1px solid rgba(255, 179, 71, 0.35);
+  border-radius: 4px;
+  vertical-align: middle;
+}
+.sg-broadcast-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.sg-broadcast-preview-col,
+.sg-broadcast-form-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sg-broadcast-preview-stage {
+  width: 100%;
+  height: 220px;
+  min-height: 220px;
+  margin: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 179, 71, 0.25);
+  background: radial-gradient(ellipse 80% 70% at 50% 65%, rgba(255, 179, 71, 0.08) 0%, rgba(0, 0, 0, 0.25) 70%);
+  overflow: hidden;
+}
+#broadcastActiveStatus.sg-broadcast-live {
+  color: #ffb347;
+  font-weight: 600;
+}
+@media (max-width: 720px) {
+  .sg-broadcast-layout { grid-template-columns: 1fr; }
+}

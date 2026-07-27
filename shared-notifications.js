@@ -517,11 +517,24 @@
     panel._sgPortaled = true;
   }
 
+  // Animación con Motion (motion.dev, cargado vía CDN en cada página): si no
+  // está disponible, el panel sigue abriendo/cerrando igual, solo sin el
+  // fade+escala.
+  function notifMotionFx(el, keyframes, opts) {
+    if (!el || typeof window.Motion === 'undefined' || !window.Motion.animate) return null;
+    try { return window.Motion.animate(el, keyframes, opts); } catch (e) { return null; }
+  }
+
   function closePanel(toggle, panel) {
     if (!panel) panel = document.getElementById('headerNotificationsPanel');
-    if (!panel) return;
-    panel.classList.remove('is-open');
+    if (!panel || !panel.classList.contains('is-open')) return;
     if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    var anim = notifMotionFx(panel, { opacity: [1, 0], scale: [1, 0.95], y: [0, -6] }, { duration: 0.15, ease: 'easeIn' });
+    if (anim && anim.finished) {
+      anim.finished.then(function () { panel.classList.remove('is-open'); }).catch(function () { panel.classList.remove('is-open'); });
+    } else {
+      panel.classList.remove('is-open');
+    }
   }
 
   function openPanel(toggle, panel) {
@@ -532,6 +545,7 @@
     positionPanel(toggle, panel);
     panel.classList.add('is-open');
     toggle.setAttribute('aria-expanded', 'true');
+    notifMotionFx(panel, { opacity: [0, 1], scale: [0.95, 1], y: [-6, 0] }, { duration: 0.18, ease: 'easeOut' });
     refreshDynamic().then(function() {
       return markAsReviewed();
     });

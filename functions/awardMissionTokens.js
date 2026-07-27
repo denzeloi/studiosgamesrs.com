@@ -263,6 +263,145 @@ exports.escrowMissionPrize = functions.database
   });
 
 // ============================================================================
+// PZ-010: UNIRSE A UNA MISIÓN -> cupo verificado con una transacción de servidor
+// ============================================================================
+// Las reglas de RTDB no pueden contar hijos (no existe un numChildren() en su
+// lenguaje), así que el cupo de la misión no se puede hacer cumplir solo con
+// .validate. El cliente ya no escribe participants/{uid} directamente para
+// unirse: database.rules.json solo le permite borrar su propia entrada (salir)
+// o la de otro si es anfitrión/Commander (expulsar). Toda alta pasa por aquí,
+// con una transacción atómica sobre el nodo participants que aborta si ya no
+// hay cupo, sin ventana de carrera entre lecturas y escrituras concurrentes.
+const MAX_MISSION_PARTICIPANTS = 50; // Tope absoluto de cordura, además del maxParticipants de cada misión.
+
+exports.joinMission = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Debes iniciar sesión.');
+  }
+  const uid = context.auth.uid;
+  const missionId = String((data && data.missionId) || '').trim();
+  if (!missionId) {
+    throw new functions.https.HttpsError('invalid-argument', 'Falta el id de la misión.');
+  }
+
+  const missionRef = admin.database().ref('missions/' + missionId);
+  const missionSnap = await missionRef.once('value');
+  const mission = missionSnap.val();
+  if (!mission) {
+    throw new functions.https.HttpsError('not-found', 'La misión ya no existe.');
+  }
+  if (String(mission.status || 'pending').toLowerCase() === 'finished') {
+    throw new functions.https.HttpsError('failed-precondition', 'Esta misión ya terminó.');
+  }
+
+  if (isCs2FriendsMission(mission)) {
+    const userForSteam = (await admin.database().ref('users/' + uid).once('value')).val() || {};
+    const hasSteam = !!(userForSteam.steamID || (userForSteam.steam && userForSteam.steam.steamid));
+    if (!hasSteam) {
+      throw new functions.https.HttpsError('failed-precondition', 'Vincula Steam en el dashboard para unirte a misiones CS2 con amigos.');
+    }
+  }
+
+  const maxParticipants = clamp(parseInt(mission.maxParticipants, 10) || 5, 1, MAX_MISSION_PARTICIPANTS);
+
+  const userSnap = await admin.database().ref('users/' + uid).once('value');
+  const userData = userSnap.val() || {};
+  const participantData = {
+    nick: userData.nick || 'Usuario',
+    photoURL: userData.photoURL || 'dragon_profile_studiosgamesrs.png',
+    joinedAt: Date.now(), // ServerValue.TIMESTAMP no se resuelve de forma fiable dentro de una transaction().
+    rank: userData.rango || 'Operativo'
+  };
+
+  const result = await missionRef.child('participants').transaction((current) => {
+    if (current && Object.prototype.hasOwnProperty.call(current, uid)) {
+      return current; // Ya es participante: no consume un cupo nuevo, no hace nada.
+    }
+    const count = current ? Object.keys(current).length : 0;
+    if (count >= maxParticipants) {
+      return; // undefined aborta la transacción sin escribir nada.
+    }
+    const next = current || {};
+    next[uid] = participantData;
+    return next;
+  });
+
+  if (!result.committed) {
+    throw new functions.https.HttpsError('resource-exhausted', 'Esta misión ya está llena.');
+  }
+
+  return { ok: true };
+});
+
+// ============================================================================
+// PZ-012: ENVIAR INVITACIÓN DE MISIÓN -> remitente fijado por el servidor,
+// nunca por el cliente, y con un enfriamiento real entre envíos.
+// ============================================================================
+// database.rules.json solo dejaba newData.hasChildren([...]) en missionInvites,
+// sin comprobar que fromUid fuera quien realmente escribe: cualquier autenticado
+// podía enviar una invitación firmada con el UID de otro jugador (phishing) y sin
+// límite de frecuencia (spam). Ahora fromUid/fromNick/fromAvatar salen siempre de
+// context.auth.uid + el perfil real en users/, y un throttle por transacción evita
+// ráfagas; database.rules.json además bloquea que el cliente cree esta ruta directo.
+const MISSION_INVITE_COOLDOWN_MS = 4000; // Mínimo entre invitaciones enviadas por la misma persona.
+
+exports.sendMissionInvite = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Debes iniciar sesión.');
+  }
+  const fromUid = context.auth.uid;
+  const targetUid = String((data && data.targetUid) || '').trim();
+  const missionId = String((data && data.missionId) || '').trim();
+  if (!targetUid || !missionId) {
+    throw new functions.https.HttpsError('invalid-argument', 'Faltan datos de la invitación.');
+  }
+  if (targetUid === fromUid) {
+    throw new functions.https.HttpsError('invalid-argument', 'No puedes invitarte a ti mismo.');
+  }
+
+  // Enfriamiento atómico: aborta si el mismo emisor invitó hace menos de MISSION_INVITE_COOLDOWN_MS.
+  const throttleResult = await admin.database().ref('missionInviteThrottle/' + fromUid).transaction((cur) => {
+    const now = Date.now();
+    if (typeof cur === 'number' && (now - cur) < MISSION_INVITE_COOLDOWN_MS) {
+      return; // undefined aborta la transacción, no se envía nada.
+    }
+    return now;
+  });
+  if (!throttleResult.committed) {
+    throw new functions.https.HttpsError('resource-exhausted', 'Espera unos segundos antes de invitar de nuevo.');
+  }
+
+  const [missionSnap, fromUserSnap, targetUserSnap] = await Promise.all([
+    admin.database().ref('missions/' + missionId).once('value'),
+    admin.database().ref('users/' + fromUid).once('value'),
+    admin.database().ref('users/' + targetUid).once('value')
+  ]);
+  const mission = missionSnap.val();
+  if (!mission) {
+    throw new functions.https.HttpsError('not-found', 'La misión ya no existe.');
+  }
+  if (!targetUserSnap.exists()) {
+    throw new functions.https.HttpsError('not-found', 'Ese jugador no existe.');
+  }
+  if (mission.participants && mission.participants[targetUid]) {
+    throw new functions.https.HttpsError('failed-precondition', 'Ese jugador ya está en la misión.');
+  }
+  const fromUser = fromUserSnap.val() || {};
+
+  await admin.database().ref('missionInvites/' + targetUid + '/' + missionId).set({
+    fromUid: fromUid,
+    fromNick: fromUser.nick || 'Usuario',
+    fromAvatar: fromUser.photoURL || 'dragon_profile_studiosgamesrs.png',
+    missionId: missionId,
+    missionTitle: mission.displayTitle || mission.title || 'Misión',
+    game: mission.game || '',
+    timestamp: Date.now()
+  });
+
+  return { ok: true };
+});
+
+// ============================================================================
 // 2) COMPLETAR MISIÓN -> PAGAR A LOS JUGADORES + GUARDAR HISTORIAL
 // ============================================================================
 exports.awardMissionTokens = functions.database
@@ -288,8 +427,11 @@ exports.awardMissionTokens = functions.database
     const allConfirmed = pIds.length > 0 && pIds.every((id) => conf[id] === true);
     if (!allConfirmed) return null;
 
-    // --- mínimo de participantes ---
-    if (pIds.length < MIN_PARTICIPANTS_FOR_REWARD) return null;
+    // PZ-013: el sellado de nexusVerifiedComplete es EXCLUSIVO de esta función
+    // (database.rules.json ya no deja escribirlo desde el cliente). Una misión
+    // en solitario (menos de MIN_PARTICIPANTS_FOR_REWARD) sigue quedando
+    // sellada para el historial una vez todos confirman, solo que sin premio.
+    const eligibleForReward = pIds.length >= MIN_PARTICIPANTS_FOR_REWARD;
 
     // --- tiempo mínimo transcurrido ---
     const est = estimate(after);
@@ -312,41 +454,48 @@ exports.awardMissionTokens = functions.database
     if (!claim.committed) return null;
 
     // --- Reparto: cupo diario del jugador + bolsa patrocinada global (PZ-002) ---
+    // Misiones en solitario (menos de MIN_PARTICIPANTS_FOR_REWARD) no cobran,
+    // pero igual se sellan más abajo para que cuenten en el historial.
     const payouts = {};
-    const perPlayer = await resolveRewardPerPlayer(after);
-    const recipients = pIds.slice();
     let prize = 0;
     let capped = false;
 
-    for (const uid of recipients) {
-      // 1) ¿Le queda cupo diario a este jugador?
-      const allowance = await consumeDailyAllowance(uid, perPlayer);
-      if (allowance <= 0) {
-        payouts[uid] = 0;
-        capped = true;
-        console.warn(`[award] ${missionId}: ${uid} agotó su cupo diario. Sin pago.`);
-        continue;
-      }
+    if (eligibleForReward) {
+      const perPlayer = await resolveRewardPerPlayer(after);
+      const recipients = pIds.slice();
 
-      // 2) ¿Hay saldo en la bolsa patrocinada?
-      const funded = await consumeBudget(allowance);
-      if (funded < allowance) {
-        await releaseDailyAllowance(uid, allowance - funded);
-        capped = true;
-      }
-      if (funded <= 0) {
-        payouts[uid] = 0;
-        console.warn(`[award] ${missionId}: bolsa patrocinada agotada. ${uid} sin pago.`);
-        continue;
-      }
+      for (const uid of recipients) {
+        // 1) ¿Le queda cupo diario a este jugador?
+        const allowance = await consumeDailyAllowance(uid, perPlayer);
+        if (allowance <= 0) {
+          payouts[uid] = 0;
+          capped = true;
+          console.warn(`[award] ${missionId}: ${uid} agotó su cupo diario. Sin pago.`);
+          continue;
+        }
 
-      await creditTokens(uid, funded, {
-        type: 'mission_reward',
-        reason: 'Premio misión: ' + (after.title || missionId),
-        missionId
-      });
-      payouts[uid] = funded;
-      prize += funded;
+        // 2) ¿Hay saldo en la bolsa patrocinada?
+        const funded = await consumeBudget(allowance);
+        if (funded < allowance) {
+          await releaseDailyAllowance(uid, allowance - funded);
+          capped = true;
+        }
+        if (funded <= 0) {
+          payouts[uid] = 0;
+          console.warn(`[award] ${missionId}: bolsa patrocinada agotada. ${uid} sin pago.`);
+          continue;
+        }
+
+        await creditTokens(uid, funded, {
+          type: 'mission_reward',
+          reason: 'Premio misión: ' + (after.title || missionId),
+          missionId
+        });
+        payouts[uid] = funded;
+        prize += funded;
+      }
+    } else {
+      console.warn(`[award] ${missionId}: ${pIds.length} participante(s) (mínimo ${MIN_PARTICIPANTS_FOR_REWARD} para pagar); se sella sin premio.`);
     }
 
     // --- Historial PERMANENTE para TODOS los participantes ---

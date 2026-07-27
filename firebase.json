@@ -11,6 +11,8 @@
   "hosting": {
     "site": "studiosgamesrs",
     "public": ".",
+    "cleanUrls": true,
+    "trailingSlash": false,
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -19,7 +21,8 @@
       "*.md",
       "steam_login.php",
       "steam-config.php",
-      "serviceAccountKey.json"
+      "serviceAccountKey.json",
+      "animations/**"
     ],
     "headers": [
       {
@@ -28,6 +31,24 @@
           {
             "key": "Cache-Control",
             "value": "no-cache, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/models/**",
+        "headers": [
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(css|png)",
+        "headers": [
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
           }
         ]
       }

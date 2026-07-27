@@ -34,3 +34,10 @@ $RECYCLE.BIN/
 *.tmp
 *.bak
 *~
+
+# Fuentes 3D de Blender/Substance (~2 GB). Al sitio solo suben los .glb
+# exportados y optimizados que viven en models/.
+Animations/
+
+# Archivo vacío que quedó suelto en la raíz
+/studiosgamesrs

@@ -1,0 +1,258 @@
+/* ============================================================
+   STUDIOSGAMESRS — Welcome / Epic Notification Overlay
+   Visual: volcánico / forja de lava (rojo, negro y gris), acorde a la
+   paleta del sitio. El dashboard queda visible detrás, difuminado, para
+   dar sensación de "otro mundo" sin sacar al jugador de su página.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Orbitron:wght@600;700;800&family=Rajdhani:wght@500;600;700&display=swap');
+
+.sg-welcome-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+.sg-welcome-overlay.sg-welcome-overlay-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Capa base: oscurece y difumina el dashboard sin taparlo por completo. */
+.sg-welcome-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 85% 55% at 50% 100%, rgba(190, 45, 15, 0.30) 0%, transparent 62%),
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(60, 18, 12, 0.50) 0%, transparent 60%),
+    rgba(6, 5, 6, 0.56);
+  backdrop-filter: blur(10px) saturate(0.85);
+  -webkit-backdrop-filter: blur(10px) saturate(0.85);
+  animation: sgWelcomeBackdropIn 0.7s ease forwards;
+}
+@keyframes sgWelcomeBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Escenario volcánico: se ve, pero deja adivinar el dashboard detrás.
+   La máscara radial disuelve los bordes de la imagen. */
+.sg-welcome-overlay-photo {
+  position: absolute;
+  inset: 0;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  /* El zoom desde un origen alto encuadra el trono y deja fuera de pantalla
+     el letrero que la imagen trae impreso en su borde inferior. */
+  transform: scale(1.45);
+  transform-origin: 50% 30%;
+  opacity: 0.4;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(ellipse 78% 74% at 50% 42%, #000 32%, rgba(0, 0, 0, 0.35) 66%, transparent 88%);
+  mask-image: radial-gradient(ellipse 78% 74% at 50% 42%, #000 32%, rgba(0, 0, 0, 0.35) 66%, transparent 88%);
+}
+
+/* Brasas que suben (mismo lenguaje visual que el chat de comunidad). */
+.sg-welcome-overlay-embers {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* Resplandor de lava desde abajo, respirando lentamente. */
+.sg-welcome-overlay-ember {
+  position: absolute;
+  left: 50%;
+  bottom: -18%;
+  width: 130%;
+  height: 60%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse 50% 60% at 50% 100%, rgba(255, 84, 26, 0.30) 0%, rgba(150, 30, 10, 0.12) 45%, transparent 72%);
+  filter: blur(8px);
+  pointer-events: none;
+  animation: sgWelcomeEmberPulse 4.5s ease-in-out infinite;
+}
+@keyframes sgWelcomeEmberPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.sg-welcome-overlay-box {
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+  max-height: 94vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(180deg, rgba(26, 14, 12, 0.52) 0%, rgba(12, 8, 8, 0.72) 45%, rgba(6, 4, 4, 0.86) 100%);
+  border: 1px solid rgba(255, 88, 40, 0.32);
+  border-radius: 18px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 20px 90px rgba(0, 0, 0, 0.7),
+    0 0 140px rgba(214, 52, 20, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  padding: 26px 28px 30px;
+  transform: scale(0.9) translateY(24px);
+  opacity: 0;
+  z-index: 1;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.sg-welcome-overlay.sg-welcome-overlay-visible .sg-welcome-overlay-box {
+  animation: sgWelcomeBoxIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes sgWelcomeBoxIn {
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.sg-welcome-close-x {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.4);
+  color: rgba(225, 215, 210, 0.85);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+  z-index: 3;
+}
+.sg-welcome-close-x:hover {
+  background: rgba(224, 56, 26, 0.32);
+  color: #fff;
+  transform: scale(1.06);
+}
+
+.sg-welcome-logo {
+  width: auto;
+  height: 84px;
+  max-width: 78%;
+  object-fit: contain;
+  margin-bottom: 14px;
+  filter: drop-shadow(0 0 20px rgba(230, 60, 25, 0.55));
+  animation: sgWelcomeLogoPulse 3.2s ease-in-out infinite;
+}
+@keyframes sgWelcomeLogoPulse {
+  0%, 100% { filter: drop-shadow(0 0 16px rgba(230, 60, 25, 0.45)); }
+  50% { filter: drop-shadow(0 0 30px rgba(255, 90, 40, 0.8)); }
+}
+
+.sg-welcome-stage {
+  position: relative;
+  width: 100%;
+  height: min(46vh, 340px);
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.sg-welcome-stage-glow {
+  position: absolute;
+  inset: -10%;
+  background: radial-gradient(ellipse 60% 55% at 50% 68%, rgba(255, 78, 24, 0.30) 0%, rgba(120, 24, 10, 0.10) 45%, transparent 72%);
+  filter: blur(4px);
+  pointer-events: none;
+  animation: sgWelcomeGlowPulse 2.8s ease-in-out infinite;
+}
+@keyframes sgWelcomeGlowPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.9; }
+}
+.sg-welcome-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: block;
+  transition: opacity 0.18s ease;
+}
+.sg-welcome-stage-loading {
+  position: absolute;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  color: rgba(215, 200, 195, 0.75);
+  text-transform: uppercase;
+}
+
+.sg-welcome-title {
+  font-family: 'Cinzel Decorative', 'Orbitron', serif;
+  font-weight: 700;
+  font-size: clamp(1.3rem, 4.4vw, 1.9rem);
+  text-align: center;
+  margin: 4px 0 10px 0;
+  background: linear-gradient(180deg, #fff1ea 0%, #ff6a35 52%, #c9260f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(224, 56, 26, 0.35);
+  letter-spacing: 0.02em;
+}
+
+.sg-welcome-text {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: rgba(220, 214, 212, 0.92);
+  text-align: center;
+  max-width: 480px;
+  margin: 0 0 22px 0;
+}
+.sg-welcome-text strong {
+  color: #ff9068;
+  font-weight: 700;
+}
+
+.sg-welcome-btn {
+  padding: 13px 30px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #ff5a22 0%, #c02310 100%);
+  color: #fff4ef;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: 0.88rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(224, 56, 26, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
+}
+.sg-welcome-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 32px rgba(224, 56, 26, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  filter: brightness(1.08);
+}
+.sg-welcome-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 480px) {
+  .sg-welcome-overlay-box { padding: 20px 16px 24px; border-radius: 14px; }
+  .sg-welcome-stage { height: 38vh; min-height: 180px; }
+  .sg-welcome-logo { height: 62px; }
+}

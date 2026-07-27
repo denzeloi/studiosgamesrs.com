@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/shared-header.css">
   <link rel="stylesheet" href="/shared-notifications.css?v=20260711d">
   <link rel="stylesheet" href="/tribunal-user-overlay.css?v=20260719c">
+  <link rel="stylesheet" href="/welcome-overlay.css?v=20260727clips">
   <link rel="stylesheet" href="/site-engagement.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
 
@@ -24,6 +25,15 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-check-compat.js"></script>
   <script src="/sg-firebase-init.js?v=20260724nocaptcha"></script>
   <script>sgInitFirebaseApp();</script>
+  <script src="https://cdn.jsdelivr.net/npm/motion@12.42.2/dist/motion.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
 </head>
 
 <body>
@@ -528,9 +538,10 @@
   <script src="/profile-customization-config.js?v=20260724stage"></script>
   <script src="/profile-customization.js?v=20260724stage"></script>
   <script src="/shared-unified-header.js?v=20260711d"></script>
-  <script src="/shared-notifications.js?v=20260711d"></script>
+  <script src="/shared-notifications.js?v=20260726motion1"></script>
   <script src="/shared-header.js?v=20260719c"></script>
-  <script src="/dashboard-logic.js?v=20260725nobot1"></script>
+  <script src="/dashboard-logic.js?v=20260726motion1"></script>
+  <script src="/welcome-overlay.js?v=20260727clips"></script>
   <script src="/sg-visit-tracker.js?v=20260724a"></script>
   <script src="/site-engagement.js"></script>
   <script>

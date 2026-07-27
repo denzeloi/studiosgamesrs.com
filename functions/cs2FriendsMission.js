@@ -21,6 +21,12 @@ const STEAM_API_KEY = defineSecret('STEAM_API_KEY');
 const CS2_APPID = 730;
 const REWARD_PER_PLAYER = 5;
 const MIN_ACTIVE_MINUTES = 20;
+// PZ-020: la Steam Web API pública no expone lobby/match ID ni Premier rating,
+// así que no hay forma 100% verificable de probar que jugaron LA MISMA partida.
+// Como mejor proxy disponible se exige que la última partida de cada uno tenga
+// el mismo número de rondas (huella de una partida real compartida) y que esa
+// partida no sea un calentamiento/abandono demasiado corto.
+const MIN_MATCH_ROUNDS = 4;
 
 function norm(s) { return String(s == null ? '' : s).trim().toLowerCase(); }
 
@@ -85,6 +91,8 @@ async function captureBaselinesForMission(db, missionId, mission) {
     baselines[uid] = {
       steamId: steamId,
       matchesPlayed: stats.matchesPlayed,
+      lastMatchRounds: stats.lastMatchRounds,
+      lastMatchKills: stats.lastMatchKills,
       capturedAt: admin.database.ServerValue.TIMESTAMP
     };
   }
@@ -190,15 +198,50 @@ exports.verifyCs2FriendsMission = functions.runWith({ secrets: [STEAM_API_KEY] }
       continue;
     }
     const delta = stats.matchesPlayed - base.matchesPlayed;
-    const passed = delta >= 1;
+    // PZ-020 fix follow-up: el contador agregado "total_matches_played" de Steam
+    // se replica con retraso respecto a los stats de "última partida". Si ese
+    // agregado todavía no subió pero last_match_rounds/last_match_kills ya
+    // cambiaron respecto al baseline, es evidencia igualmente válida (y más
+    // rápida) de que se completó una partida nueva. Evita falsos negativos.
+    const snapshotChanged =
+      (typeof base.lastMatchRounds === 'number' && stats.lastMatchRounds !== base.lastMatchRounds) ||
+      (typeof base.lastMatchKills === 'number' && stats.lastMatchKills !== base.lastMatchKills);
+    let passed = true;
+    let reason = null;
+    if (delta < 1 && !snapshotChanged) {
+      passed = false;
+      reason = 'no_new_match';
+    } else if (!(stats.lastMatchRounds >= MIN_MATCH_ROUNDS)) {
+      passed = false;
+      reason = 'match_too_short';
+    }
     results[uid] = {
       passed: passed,
+      reason: reason,
       before: base.matchesPlayed,
       after: stats.matchesPlayed,
       delta: delta,
       lastMatchRounds: stats.lastMatchRounds
     };
     if (!passed) allPassed = false;
+  }
+
+  // PZ-020: correlación de "misma partida" — si de verdad la jugaron juntos,
+  // la partida que registra Steam como "última" debe tener el MISMO número de
+  // rondas para todos (es un agregado por partida, no varía por jugador).
+  // Si alguien jugó una partida distinta en la ventana de tiempo, este número
+  // no va a coincidir salvo coincidencia (mismo riesgo residual que ya
+  // advertía el comentario original del archivo).
+  if (allPassed) {
+    const roundsSeen = pIds.map(function (uid) { return results[uid].lastMatchRounds; });
+    const sameMatch = roundsSeen.every(function (r) { return r === roundsSeen[0]; });
+    if (!sameMatch) {
+      allPassed = false;
+      pIds.forEach(function (uid) {
+        results[uid].passed = false;
+        results[uid].reason = results[uid].reason || 'not_same_match';
+      });
+    }
   }
 
   if (!allPassed) {

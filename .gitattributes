@@ -1,0 +1,4 @@
+# Los archivos del proyecto usan LF. Se desactiva la conversion automatica de
+# fin de linea de Windows para que Git no marque como modificados archivos
+# que en realidad no cambiaron.
+* -text

@@ -49,11 +49,46 @@ function showFloatingMessage(type, text) {
 }
 
 // Escapa texto para insertarlo de forma segura dentro de innerHTML (evita XSS).
+// PZ-008/PZ-009: el truco de textContent/innerHTML no codifica comillas, así
+// que no bastaba para valores usados dentro de atributos (src="...", title="...");
+// aquí se codifican & < > " ' de forma explícita, válido tanto en texto como en atributos.
 function pzEsc(s) {
   if (s == null) return '';
-  var d = document.createElement('div');
-  d.textContent = String(s);
-  return d.innerHTML;
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Solo se admite un avatar local del proyecto o una URL https; cualquier otro
+// esquema (javascript:, data:, http:, etc.) cae al avatar por defecto.
+function pzSanitizeAvatarUrl(url) {
+  var safe = 'dragon_profile_studiosgamesrs.png';
+  if (typeof url !== 'string' || !url) return safe;
+  var trimmed = url.trim();
+  if (/^https:\/\//i.test(trimmed)) return trimmed;
+  if (/^[a-z0-9_\-.]+\.(png|jpg|jpeg|gif|webp)$/i.test(trimmed)) return trimmed;
+  return safe;
+}
+
+// PZ-016: las imágenes del chat privado deben salir siempre de Firebase Storage
+// (ver handlePrivateChatImageUpload), nunca de un valor libre. Solo se acepta
+// una URL https cuyo host sea el de Storage; cualquier otra cosa (javascript:,
+// data:, un https de otro dominio, etc.) se descarta devolviendo null, y el
+// llamador simplemente no dibuja la imagen.
+function pzSanitizeChatImageUrl(url) {
+  if (typeof url !== 'string' || !url) return null;
+  var trimmed = url.trim();
+  if (!/^https:\/\//i.test(trimmed)) return null;
+  try {
+    var host = new URL(trimmed).hostname.toLowerCase();
+    if (host === 'firebasestorage.googleapis.com' || host.endsWith('.firebasestorage.app')) {
+      return trimmed;
+    }
+  } catch (e) { /* URL inválida */ }
+  return null;
 }
 
 // Alterna tema rojo (normal) / dorado. Usa la clase CSS ya existente (dashboard-styles.css).
@@ -1540,12 +1575,15 @@ function renderMissionCard(mission) {
   const participantUIDs = Object.keys(participants);
   const participantCount = participantUIDs.length;
 
+  // PZ-008: escape seguro (texto y atributos) vía el helper compartido pzEsc/pzSanitizeAvatarUrl.
+  const escHtml = pzEsc;
+
   let participantsHTML = participantUIDs.map(uid => {
       const participant = participants[uid];
       if (!participant) return ''; 
       const isLeader = (uid === mission.creatorUid);
-      const nick = (participant.nick || 'Jugador').replace(/"/g, '&quot;');
-      const avatar = participant.photoURL || 'dragon_profile_studiosgamesrs.png';
+      const nick = escHtml(participant.nick || 'Jugador');
+      const avatar = escHtml(pzSanitizeAvatarUrl(participant.photoURL));
       return `
           <div class="participant-avatar" title="${nick}" onclick="viewProfile('${uid}')">
               <img src="${avatar}" alt="${nick}">
@@ -1554,17 +1592,19 @@ function renderMissionCard(mission) {
       `;
   }).join('');
 
-  function escHtml(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
   var DESC_LIMIT = 80;
   var fullDesc = (mission.description || '').trim() || null;
   var shortDesc = fullDesc ? escHtml(fullDesc.length > DESC_LIMIT ? fullDesc.slice(0, DESC_LIMIT) + '…' : fullDesc) : '<i>Sin descripción.</i>';
   var showSaberMas = fullDesc && fullDesc.length > DESC_LIMIT;
   
-  var cardTitle = isCs2FriendsMission(mission) ? (mission.displayTitle || CS2_FRIENDS_DISPLAY_TITLE) : mission.title;
-  
+  var cardTitle = escHtml(isCs2FriendsMission(mission) ? (mission.displayTitle || CS2_FRIENDS_DISPLAY_TITLE) : mission.title);
+  var safeGame = escHtml(mission.game);
+  var safeSkill = escHtml(mission.skill);
+  var safeType = escHtml(mission.type);
+
   card.innerHTML = `
     <div class="card-header" style="background-image: url('${gameImage}');">
-      <span class="card-game-tag">${mission.game}</span>
+      <span class="card-game-tag">${safeGame}</span>
     </div>
     <div class="card-body">
       <h3 class="card-title">${cardTitle}</h3>
@@ -1579,8 +1619,8 @@ function renderMissionCard(mission) {
         </div>
         <div class="card-meta">
           <span><i class="fas fa-clock"></i> ${scheduleDate}</span>
-          <span><i class="fas fa-signal"></i> ${mission.skill}</span>
-          <span><i class="fas fa-crosshairs"></i> ${mission.type}</span>
+          <span><i class="fas fa-signal"></i> ${safeSkill}</span>
+          <span><i class="fas fa-crosshairs"></i> ${safeType}</span>
           ${window.PlayzoneSmart ? `<span><i class="fas fa-stopwatch"></i> ${PlayzoneSmart.formatDuration((typeof mission.estMinutes === 'number') ? mission.estMinutes : PlayzoneSmart.estimate(mission).estMinutes)}</span>` : ''}
         </div>
       </div>
@@ -1720,15 +1760,26 @@ window.joinMission = async (missionId) => {
       }
     }
 
-    // 1. CÓDIGO DE UNIÓN A FIREBASE (Tu código original)
-    const missionParticipantsRef = db.ref(`missions/${missionId}/participants/${currentUser.uid}`);
-    const participantData = {
-        nick: currentUserData.nick || 'Usuario',
-        photoURL: currentUserData.photoURL || 'dragon_profile_studiosgamesrs.png',
-        joinedAt: firebase.database.ServerValue.TIMESTAMP,
-        rank: currentUserData.rango || 'Operativo'
-    };
-    await missionParticipantsRef.set(participantData);
+    // PZ-010: comprobación amable en el cliente antes de llamar al servidor;
+    // solo evita una llamada innecesaria, el cupo real lo hace cumplir la
+    // Cloud Function joinMission con una transacción atómica sobre participants
+    // (las reglas RTDB no pueden contar hijos, así que ya no basta con .validate
+    // y el cliente ya no puede escribir participants/{uid} directamente).
+    const existingCount = Object.keys(missionMeta.participants || {}).length;
+    const maxSlots = missionMeta.maxParticipants || 5;
+    if (existingCount >= maxSlots) {
+      showFloatingMessage('error', 'Esta misión ya está llena.');
+      if (joinBtn) { joinBtn.disabled = false; joinBtn.textContent = 'Unirse'; }
+      return;
+    }
+
+    if (typeof firebase === 'undefined' || !firebase.functions) {
+      showFloatingMessage('error', 'Servicio no disponible, intenta de nuevo.');
+      if (joinBtn) { joinBtn.disabled = false; joinBtn.textContent = 'Unirse'; }
+      return;
+    }
+    const joinFn = firebase.functions().httpsCallable('joinMission');
+    await joinFn({ missionId: missionId });
 
     var isFirst = window.PlayzoneMechanics && typeof PlayzoneMechanics.isFirstJoinEver === 'function' && PlayzoneMechanics.isFirstJoinEver();
     if (window.PlayzoneMechanics && typeof PlayzoneMechanics.onJoinSuccess === 'function') PlayzoneMechanics.onJoinSuccess(isFirst);
@@ -1745,7 +1796,10 @@ window.joinMission = async (missionId) => {
     document.getElementById('tabActiveMission').click();
 
   } catch (error) {
-    showFloatingMessage('error', 'Error al unirse.');
+    // PZ-010: joinMission (Cloud Function) devuelve un mensaje ya pensado para
+    // mostrarse al usuario ("Esta misión ya está llena.", etc.) vía error.message.
+    var msg = (error && error.message) ? error.message : 'Error al unirse.';
+    showFloatingMessage('error', msg);
     console.error(error);
     // 4. RESTABLECER BOTÓN en caso de fallo
     if(joinBtn) { 
@@ -1756,8 +1810,11 @@ window.joinMission = async (missionId) => {
 }
 
 // === 9. CARGAR Y FILTRAR JUGADORES ===
+// PZ-017: users tiene .read restringido a Commander/Boss para evitar que
+// cualquiera vuelque el padrón completo; esta lista de "Jugadores" ahora lee
+// publicProfiles/{uid}, el espejo con solo los campos que ya se mostraban.
 function loadPlayers() {
-  const usersRef = db.ref('users').orderByChild('playZoneOnboardingComplete').equalTo(true);
+  const usersRef = db.ref('publicProfiles').orderByChild('playZoneOnboardingComplete').equalTo(true);
 
   usersRef.on('value', (snapshot) => {
     allPlayersData = []; 
@@ -1811,35 +1868,55 @@ function renderPlayerCard(uid, user) {
   card.className = 'player-card';
   const mainGames = user.mainGame ? [user.mainGame] : (user.mainGames || ['N/A']);
   const gameImageUrl = getFeaturedGameImage(mainGames[0]);
-  const userNickForInvite = (user.nick || 'Usuario').replace(/'/g, "\\'");
   const inviteDisabled = !userHasActiveMission;
   const inviteTitle = inviteDisabled ? 'Debes estar en una misión activa' : 'Invitar a misión';
 
+  // PZ-009: valores reales (sin escapar) para usarlos como argumentos de función;
+  // ya no se interpolan en atributos onclick="...", así que no hace falta escaparlos
+  // para eso. Solo se escapan las versiones que se muestran como HTML/atributos.
+  const rawNick = user.nick || 'Usuario';
+  const rawAvatar = pzSanitizeAvatarUrl(user.photoURL);
+
+  const safeNick = pzEsc(rawNick);
+  const safeAvatar = pzEsc(rawAvatar);
+  const safeMainGame = pzEsc(mainGames[0]);
+  const safeRango = pzEsc(user.rango ? user.rango.replace('_', ' ') : 'Tribal Warrior');
+  const safePlayStyle = pzEsc(user.playStyle || 'N/A');
+  const safeTimezone = pzEsc(user.timezone || 'N/A');
+
   card.innerHTML = `
     <div class="player-card-header">
-      <img src="${user.photoURL || 'dragon_profile_studiosgamesrs.png'}" class="player-avatar" onclick="viewProfile('${uid}')">
+      <img src="${safeAvatar}" class="player-avatar">
       <div class="player-info">
-        <h3 class="player-nick" onclick="viewProfile('${uid}')">${user.nick || 'Usuario'}</h3>
-        <span class="player-rank">${user.rango ? user.rango.replace('_', ' ') : 'Tribal Warrior'}</span>
+        <h3 class="player-nick">${safeNick}</h3>
+        <span class="player-rank">${safeRango}</span>
       </div>
     </div>
     <div class="player-card-body">
-      <span class="player-meta-tag"><i class="fas fa-gamepad"></i> ${user.playStyle || 'N/A'}</span>
-      <span class="player-meta-tag"><i class="fas fa-clock"></i> ${user.timezone || 'N/A'}</span>
+      <span class="player-meta-tag"><i class="fas fa-gamepad"></i> ${safePlayStyle}</span>
+      <span class="player-meta-tag"><i class="fas fa-clock"></i> ${safeTimezone}</span>
     </div>
     <div class="player-card-clip">
-      <strong>Featured: ${mainGames[0]}</strong>
-      <div class="game-image-placeholder"><img src="${gameImageUrl}" alt="${mainGames[0]}" /></div>
+      <strong>Featured: ${safeMainGame}</strong>
+      <div class="game-image-placeholder"><img src="${gameImageUrl}" alt="${safeMainGame}" /></div>
     </div>
     <div class="player-card-actions">
-      <button class="player-action-btn invite" onclick="inviteToMission('${uid}', '${userNickForInvite}')" ${inviteDisabled ? 'disabled' : ''} title="${inviteTitle}">
+      <button type="button" class="player-action-btn invite" ${inviteDisabled ? 'disabled' : ''} title="${pzEsc(inviteTitle)}">
         <i class="fas fa-envelope"></i> Invite
       </button>
-      <button class="player-action-btn chat" onclick="handleChatAction('${uid}', '${userNickForInvite}', '${user.photoURL || 'dragon_profile_studiosgamesrs.png'}')">
+      <button type="button" class="player-action-btn chat">
         <i class="fas fa-comment-dots"></i> Chat
       </button>
     </div>
   `;
+
+  // PZ-009: sin onclick inline. Los handlers reciben los valores reales por
+  // closure, así un nick con comillas o etiquetas ya no puede romper el HTML.
+  card.querySelector('.player-avatar').addEventListener('click', () => viewProfile(uid));
+  card.querySelector('.player-nick').addEventListener('click', () => viewProfile(uid));
+  card.querySelector('.player-action-btn.invite').addEventListener('click', () => inviteToMission(uid, rawNick));
+  card.querySelector('.player-action-btn.chat').addEventListener('click', () => handleChatAction(uid, rawNick, rawAvatar));
+
   return card;
 }
 
@@ -1891,18 +1968,19 @@ window.inviteToMission = async (userId, userNick) => {
       showFloatingMessage('info', userNick + ' ya está en la misión.');
       return;
     }
-    await db.ref('missionInvites/' + userId + '/' + currentMissionId).set({
-      fromUid: currentUser.uid,
-      fromNick: currentUserData.nick || 'Usuario',
-      fromAvatar: currentUserData.photoURL || 'dragon_profile_studiosgamesrs.png',
-      missionId: currentMissionId,
-      missionTitle: mission.displayTitle || mission.title || 'Misión',
-      game: mission.game || '',
-      timestamp: firebase.database.ServerValue.TIMESTAMP
-    });
+    if (typeof firebase === 'undefined' || !firebase.functions) {
+      showFloatingMessage('error', 'Servicio no disponible, intenta de nuevo.');
+      return;
+    }
+    // PZ-012: el remitente y el límite de envíos se resuelven en el servidor
+    // (Cloud Function sendMissionInvite), el cliente ya no puede firmar la
+    // invitación con datos propios ni escribir directo en missionInvites.
+    const sendInviteFn = firebase.functions().httpsCallable('sendMissionInvite');
+    await sendInviteFn({ targetUid: userId, missionId: currentMissionId });
     showFloatingMessage('success', 'Invitación a la misión enviada a ' + userNick + '.');
   } catch (e) {
-    showFloatingMessage('error', 'No se pudo enviar la invitación.');
+    var inviteMsg = (e && e.message) ? e.message : 'No se pudo enviar la invitación.';
+    showFloatingMessage('error', inviteMsg);
   }
 };
 
@@ -2543,7 +2621,9 @@ async function searchHubUsersForInvite(query) {
     results.innerHTML = '<div class="hub-slot-invite-result"><i class="fas fa-spinner fa-spin"></i> Buscando...</div>';
     try {
         var participants = (hubSlotInviteMissionCache && hubSlotInviteMissionCache.participants) || {};
-        var snap = await db.ref('users').once('value');
+        // PZ-017: solo se necesitan nick/avatar para el buscador de invitación,
+        // así que se lee publicProfiles en vez de descargar users entero.
+        var snap = await db.ref('publicProfiles').once('value');
         var html = '';
         var count = 0;
         snap.forEach(function(child) {
@@ -2755,7 +2835,20 @@ async function verifyCs2FriendsMatch(mission) {
             showFloatingMessage('success', '¡Partida verificada! El equipo recibirá 5 tokens cada uno.');
         } else if (data.results) {
             var pending = Object.keys(data.results).filter(function(uid) { return !data.results[uid].passed; }).length;
-            showFloatingMessage('info', 'Aún faltan jugadores por completar una partida nueva (' + pending + ' pendiente(s)). Perfil Steam debe ser público.');
+            var reasons = Object.keys(data.results).map(function(uid) { return data.results[uid].reason; });
+            var msg;
+            if (reasons.indexOf('not_same_match') !== -1) {
+                msg = 'Las últimas partidas registradas no coinciden entre todo el equipo (parece que no jugaron la misma partida). Jueguen una partida CS2 juntos y vuelvan a verificar.';
+            } else if (reasons.indexOf('match_too_short') !== -1) {
+                msg = 'La última partida registrada fue muy corta (calentamiento o abandono). Jueguen una partida CS2 completa y vuelvan a verificar.';
+            } else if (reasons.indexOf('no_new_match') !== -1) {
+                msg = 'Steam aún no registra una partida nueva desde que empezó la misión. Si ya jugaron, esperen un par de minutos (Steam tarda en actualizar) y vuelvan a intentar.';
+            } else if (reasons.indexOf('no_stats') !== -1 || reasons.indexOf('no_steam') !== -1 || reasons.indexOf('no_baseline') !== -1) {
+                msg = 'No se pudieron leer las estadísticas de CS2 de algún jugador (' + pending + ' pendiente(s)). Verifica que el perfil de Steam y el detalle del juego sean públicos.';
+            } else {
+                msg = 'Aún faltan jugadores por completar una partida nueva (' + pending + ' pendiente(s)).';
+            }
+            showFloatingMessage('info', msg);
         } else {
             showFloatingMessage('info', data.message || 'Verificación en proceso.');
         }
@@ -2881,31 +2974,17 @@ window.confirmNexusMissionComplete = async function(missionId) {
             }
         }
         await db.ref('missions/' + missionId + '/completionConfirmations/' + currentUser.uid).set(true);
-        await maybeFinalizeNexusVerifiedMission(missionId);
-        showFloatingMessage('success', 'Gracias. Cuando todos confirmen, quedará en tu historial del dashboard.');
+        // PZ-013: nexusVerifiedComplete ya no lo puede escribir el cliente
+        // (database.rules.json lo puso en .write:false). El sellado real lo
+        // hace en servidor la Cloud Function awardMissionTokens en cuanto ve
+        // que TODOS los participantes confirmaron, así nadie puede fabricar
+        // una "misión verificada" a mano sin que el resto haya confirmado.
+        showFloatingMessage('success', 'Gracias. Cuando todos confirmen, el servidor la sellará y quedará en tu historial del dashboard.');
     } catch (e) {
         console.error(e);
         showFloatingMessage('error', 'No se pudo guardar la confirmación. Revisa conexión o reglas de Firebase.');
     }
 };
-
-async function maybeFinalizeNexusVerifiedMission(missionId) {
-    var snap = await db.ref('missions/' + missionId).once('value');
-    var m = snap.val();
-    if (!m || !m.participants) return;
-    var pIds = Object.keys(m.participants);
-    var conf = m.completionConfirmations || {};
-    var allYes = pIds.every(function(id) { return conf[id] === true; });
-    if (!allYes || m.nexusVerifiedComplete) return;
-    try {
-        await db.ref('missions/' + missionId).update({
-            nexusVerifiedComplete: firebase.database.ServerValue.TIMESTAMP
-        });
-        showFloatingMessage('success', '¡Misión verificada por Nexus! Aparece en el dashboard de todo el equipo.');
-    } catch (e) {
-        console.error(e);
-    }
-}
 
 function setupHubControls(mission, missionId) {
     const isLeader = (currentUser.uid === mission.creatorUid);
@@ -3256,9 +3335,18 @@ function renderHubChatMessage(msg, container) {
     const div = document.createElement('div');
     div.className = `message-item ${isMine ? 'mine' : 'theirs'}`;
     div.style.marginBottom = "8px";
-    
+
+    // PZ-015: msg.photoURL viene del perfil del remitente (users/{uid}/photoURL,
+    // controlado por él mismo) y se insertaba crudo dentro de src="...". Un valor
+    // como `x" onerror="alert(1)` rompía el atributo y ejecutaba script en el
+    // navegador de TODO el equipo al abrir el chat del hub. Ahora se exige el
+    // mismo esquema permitido para avatares (sprite local o https) y encima se
+    // escapa antes de interpolar, como defensa adicional por si el esquema fuera
+    // válido pero la URL trajera comillas.
+    const safeAvatar = pzEsc(pzSanitizeAvatarUrl(msg.photoURL));
+
     div.innerHTML = `
-        ${!isMine ? `<img src="${msg.photoURL}" class="message-avatar" style="width:25px;height:25px;">` : ''}
+        ${!isMine ? `<img src="${safeAvatar}" class="message-avatar" style="width:25px;height:25px;">` : ''}
         <div class="message-bubble" style="padding: 6px 10px; font-size: 0.9rem;">
             ${!isMine ? `<span class="message-author" style="font-size:0.75rem;color:#4bdfff;">${pzEsc(msg.nick)}</span>` : ''}
             ${pzEsc(msg.text)}
@@ -3484,13 +3572,24 @@ function renderPrivateChatMessage(msgData, container) {
   item.className = `message-item ${isMine ? 'mine' : 'theirs'} ${msgData.type || 'text'}`;
   if (msgData.imageUrl && !msgData.text) item.classList.add('image-only');
 
+  // PZ-016: photoURL e imageUrl viajaban crudos dentro de src="...". photoURL
+  // sale del perfil del remitente (igual que PZ-015) e imageUrl, aunque hoy solo
+  // lo escribe handlePrivateChatImageUpload con una URL de Storage, es un campo
+  // sin ningún esquema en las reglas (ver PZ-021/PZ-018): cualquiera puede
+  // empujar un mensaje directo a privateChats con un valor arbitrario. Ahora el
+  // avatar exige el mismo esquema que en el resto de Play Zone (sprite local o
+  // https) y la imagen del chat exige además que el host sea el de Firebase
+  // Storage; si no cumple, sencillamente no se dibuja ninguna imagen rota.
+  const safeAvatar = pzEsc(pzSanitizeAvatarUrl(msgData.photoURL));
+  const safeImageUrl = pzSanitizeChatImageUrl(msgData.imageUrl);
+
   item.innerHTML = `
-    ${!isMine ? `<img src="${msgData.photoURL}" class="message-avatar">` : ''}
+    ${!isMine ? `<img src="${safeAvatar}" class="message-avatar">` : ''}
     <div class="message-bubble">
       ${!isMine ? `<span class="message-author">${pzEsc(msgData.nick)}</span>` : ''}
       <div class="message-content">
         ${msgData.text ? `<div>${pzEsc(msgData.text)}</div>` : ''}
-        ${msgData.imageUrl ? `<img src="${msgData.imageUrl}" class="message-image">` : ''}
+        ${safeImageUrl ? `<img src="${pzEsc(safeImageUrl)}" class="message-image">` : ''}
       </div>
     </div>
   `;

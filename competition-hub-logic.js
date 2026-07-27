@@ -728,7 +728,9 @@ async function searchUsersForInvite(query, teamId, resultsContainer) {
         const teamRoster = rosterSnapshot.val() || {};
         
         // 2. Buscar en todos los usuarios
-        const usersRef = firebase.database().ref('users');
+        // PZ-017: users solo lo lee Commander/Boss; este buscador de invitación
+        // de equipo solo necesita nick/photoURL/teamId, así que usa publicProfiles.
+        const usersRef = firebase.database().ref('publicProfiles');
         const allUsersSnapshot = await usersRef.once('value');
         
         if (!allUsersSnapshot.exists()) {
@@ -1002,7 +1004,8 @@ function initializeModal(user, userRank) {
             searchTimeout = setTimeout(async () => {
                 try {
                     console.log("🔎 Buscando:", query);
-                    const usersRef = firebase.database().ref('users');
+                    // PZ-017: búsqueda por prefijo de nick sobre publicProfiles (no users).
+                    const usersRef = firebase.database().ref('publicProfiles');
                     
                     // 1. Consulta optimizada
                     const snapshot = await usersRef
@@ -2308,7 +2311,8 @@ async function searchPlayersAndTeams(query) {
     searchResults.innerHTML = '<div class="search-result-item">Searching...</div>';
 
     try {
-        const usersRef = firebase.database().ref('users');
+        // PZ-017: solo se necesitan nick/photoURL para esta búsqueda combinada, usa publicProfiles.
+        const usersRef = firebase.database().ref('publicProfiles');
         const teamsRef = firebase.database().ref('teams');
 
         // 1. Buscar Jugadores

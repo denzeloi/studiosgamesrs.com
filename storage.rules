@@ -54,5 +54,20 @@ service firebase.storage {
                    && request.resource.size < 4 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
+    // PZ-022: el chatRoomID viene de [uidA, uidB].sort().join('_') (igual que en
+    // database.rules.json -> privateChats, ver PZ-021). No hay split() confiable
+    // porque un UID de Steam ya trae "_" adentro (steam_<steamid>), asi que se
+    // ancla con la misma tecnica que en RTDB: el propio uid debe ser exactamente
+    // el primer o el segundo componente del par, no una subcadena cualquiera.
+    match /private_chat_images/{chatRoomID}/{fileName} {
+      allow read: if request.auth != null
+                   && (chatRoomID.matches('^' + request.auth.uid + '_.*')
+                       || chatRoomID.matches('.*_' + request.auth.uid + '$'));
+      allow write: if request.auth != null
+                   && (chatRoomID.matches('^' + request.auth.uid + '_.*')
+                       || chatRoomID.matches('.*_' + request.auth.uid + '$'))
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
   }
 }

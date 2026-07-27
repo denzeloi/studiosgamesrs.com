@@ -156,6 +156,7 @@
     cooldownUntil: 0,
     typingSentAt: 0,
     typingUsers: {},
+    typingVisible: false,
     pins: {},
     meta: {},
     pollVotes: {},
@@ -200,6 +201,13 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+  // Envoltorio defensivo para Motion (motion.dev, cargado vía CDN en community.html):
+  // si la librería no cargó (red lenta, bloqueador, etc.) el chat sigue funcionando
+  // igual, simplemente sin la animación de turno.
+  function motionFx(el, keyframes, opts) {
+    if (!el || typeof window.Motion === 'undefined' || !window.Motion.animate) return null;
+    try { return window.Motion.animate(el, keyframes, opts); } catch (e) { return null; }
   }
   function lsGet(key, fallback) {
     try {
@@ -744,6 +752,8 @@
       }
       if (wasBottom) scrollToBottom();
     }
+    // Nota: la entrada de cada mensaje ya se anima vía CSS (@keyframes cfMsgIn
+    // en campfire-chat.css), así que no se duplica aquí con Motion.
     scheduleRelayout();
     trimDom();
   }
@@ -1323,12 +1333,8 @@
       if (D.cfFileInput.files && D.cfFileInput.files[0]) setAttach(D.cfFileInput.files[0]);
     });
     D.cfEmojiBtn.addEventListener('click', function () {
-      var open = D.cfEmojiPop.hidden;
-      if (open) {
-        D.cfEmojiPop.hidden = false;
-        D.cfEmojiBtn.classList.add('active');
-        var s = D.cfEmojiPop.querySelector('.cf-emoji-search');
-        if (s) s.focus();
+      if (D.cfEmojiPop.hidden) {
+        openEmojiPicker();
       } else {
         closeEmojiPicker();
       }
@@ -1489,13 +1495,23 @@
       return t && k !== uid && (t.ch || 'general') === S.channel && (now - Number(t.at || 0)) < TYPING_TTL;
     }).map(function (k) { return S.typingUsers[k].n || 'Alguien'; });
 
-    if (!names.length) { D.cfTyping.innerHTML = ''; return; }
+    var wasVisible = S.typingVisible;
+    if (!names.length) {
+      D.cfTyping.innerHTML = '';
+      if (wasVisible) motionFx(D.cfTyping, { opacity: [1, 0], y: [0, 4] }, { duration: 0.15, ease: 'easeIn' });
+      S.typingVisible = false;
+      return;
+    }
     var label = names.length === 1
       ? esc(names[0]) + ' está escribiendo'
       : (names.length === 2
         ? esc(names[0]) + ' y ' + esc(names[1]) + ' están escribiendo'
         : names.length + ' personas están escribiendo');
     D.cfTyping.innerHTML = '<span class="cf-typing-dots"><i></i><i></i><i></i></span> ' + label;
+    // Solo se anima la aparición (cuando pasa de vacío a mostrando algo), no
+    // cada refresco de 2.5s mientras ya está visible.
+    if (!wasVisible) motionFx(D.cfTyping, { opacity: [0, 1], y: [4, 0] }, { duration: 0.18, ease: 'easeOut' });
+    S.typingVisible = true;
   }
 
   // ============================================================
@@ -1551,6 +1567,7 @@
   function submit() {
     var raw = String(D.cfInput.value || '').trim();
     if (!raw && !S.attach) return;
+    motionFx(D.cfSend, { scale: [1, 0.82, 1] }, { duration: 0.24, ease: 'easeOut' });
 
     if (S.editing) {
       var id = S.editing;
@@ -1943,17 +1960,29 @@
       if (Number(S.meta.slowSec || 0) > 0) {
         banner('Modo lento activo: 1 mensaje cada ' + S.meta.slowSec + 's', 'warn');
       } else if (D.cfConnBanner && D.cfConnBanner.getAttribute('data-cf-src') === 'slow') {
-        D.cfConnBanner.hidden = true;
+        hideBanner(D.cfConnBanner);
       }
     });
   }
 
   function banner(text, tone, src) {
     if (!D.cfConnBanner) return;
+    var wasHidden = D.cfConnBanner.hidden;
     D.cfConnBanner.hidden = false;
     D.cfConnBanner.setAttribute('data-cf-tone', tone || 'warn');
     D.cfConnBanner.setAttribute('data-cf-src', src || 'slow');
     D.cfConnBanner.innerHTML = '<i class="fas fa-info-circle"></i> ' + esc(text);
+    if (wasHidden) motionFx(D.cfConnBanner, { opacity: [0, 1], y: [-8, 0] }, { duration: 0.22, ease: 'easeOut' });
+  }
+
+  function hideBanner(el) {
+    if (!el || el.hidden) return;
+    var anim = motionFx(el, { opacity: [1, 0], y: [0, -8] }, { duration: 0.16, ease: 'easeIn' });
+    if (anim && anim.finished) {
+      anim.finished.then(function () { el.hidden = true; }).catch(function () { el.hidden = true; });
+    } else {
+      el.hidden = true;
+    }
   }
 
   function watchConnection() {
@@ -1962,7 +1991,7 @@
       if (!online) {
         banner('Sin conexión con el chat. Reintentando…', 'error', 'conn');
       } else if (D.cfConnBanner && D.cfConnBanner.getAttribute('data-cf-src') === 'conn') {
-        D.cfConnBanner.hidden = true;
+        hideBanner(D.cfConnBanner);
       }
       if (D.cfInput) D.cfInput.setAttribute('aria-busy', online ? 'false' : 'true');
     });
@@ -2167,7 +2196,7 @@
         if (D.cfInput) D.cfInput.disabled = true;
       } else if (D.cfInput) {
         D.cfInput.disabled = false;
-        if (D.cfConnBanner && D.cfConnBanner.getAttribute('data-cf-src') === 'mute') D.cfConnBanner.hidden = true;
+        if (D.cfConnBanner && D.cfConnBanner.getAttribute('data-cf-src') === 'mute') hideBanner(D.cfConnBanner);
       }
     });
   }
@@ -2483,10 +2512,24 @@
   // ============================================================
   // 20. Emoji picker y barra rápida
   // ============================================================
+  function openEmojiPicker() {
+    if (!D.cfEmojiPop || !D.cfEmojiPop.hidden) return;
+    D.cfEmojiPop.hidden = false;
+    if (D.cfEmojiBtn) D.cfEmojiBtn.classList.add('active');
+    motionFx(D.cfEmojiPop, { opacity: [0, 1], scale: [0.92, 1] }, { duration: 0.18, ease: 'easeOut' });
+    var s = D.cfEmojiPop.querySelector('.cf-emoji-search');
+    if (s) s.focus();
+  }
+
   function closeEmojiPicker() {
-    if (!D.cfEmojiPop) return;
-    D.cfEmojiPop.hidden = true;
+    if (!D.cfEmojiPop || D.cfEmojiPop.hidden) return;
     if (D.cfEmojiBtn) D.cfEmojiBtn.classList.remove('active');
+    var anim = motionFx(D.cfEmojiPop, { opacity: [1, 0], scale: [1, 0.92] }, { duration: 0.14, ease: 'easeIn' });
+    if (anim && anim.finished) {
+      anim.finished.then(function () { D.cfEmojiPop.hidden = true; }).catch(function () { D.cfEmojiPop.hidden = true; });
+    } else {
+      D.cfEmojiPop.hidden = true;
+    }
   }
 
   function buildEmojiPicker() {

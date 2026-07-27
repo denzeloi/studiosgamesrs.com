@@ -2160,7 +2160,9 @@ async function loadFeaturedMembers() {
     const listDiv = document.getElementById('featuredMembersList');
     if (!listDiv) return;
     try {
-        const snap = await rtdb.ref('users').orderByChild('communityHonor').limitToLast(5).once('value');
+        // PZ-017: users solo lo puede leer Commander/Boss; el ranking de honor
+        // lee publicProfiles, que ya trae nick/photoURL/communityHonor.
+        const snap = await rtdb.ref('publicProfiles').orderByChild('communityHonor').limitToLast(5).once('value');
         listDiv.innerHTML = '';
         if (!snap.exists() || !snap.hasChildren()) {
             listDiv.innerHTML = '<p class="featured-empty-state">Aún no hay miembros con honor. ¡Sé el primero!</p>';
@@ -2218,7 +2220,8 @@ document.getElementById('reportPlayerSearch').addEventListener('input', debounce
     if (q.length < 2) { results.innerHTML = ''; results.classList.remove('open'); return; }
     results.innerHTML = '<div class="search-loading">Buscando…</div>';
     results.classList.add('open');
-    rtdb.ref('users').once('value').then((snap) => {
+    // PZ-017: el buscador de "reportar jugador" solo necesita el nick, lee publicProfiles.
+    rtdb.ref('publicProfiles').once('value').then((snap) => {
         const ql = q.toLowerCase();
         let html = '';
         const val = snap.val();
@@ -2307,7 +2310,8 @@ document.getElementById('communitySearchInput').addEventListener('input', deboun
         byUid[uid] = nick || 'Usuario';
     }
     Promise.all([
-        rtdb.ref('users').once('value'),
+        // PZ-017: búsqueda global de usuarios sobre publicProfiles (solo nick/avatar), no sobre users.
+        rtdb.ref('publicProfiles').once('value'),
         rtdb.ref('forumThreads').orderByChild('lastReplyAt').limitToLast(50).once('value'),
         rtdb.ref('communityImages').orderByChild('timestamp').limitToLast(50).once('value')
     ]).then(([usersSnap, threadsSnap, imagesSnap]) => {

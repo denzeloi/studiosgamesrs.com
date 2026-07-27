@@ -62,9 +62,40 @@ function registerUserReferralCode(uid) {
 }
 
 // Helper function to remove skeleton loading effect
+// Envoltorio defensivo para Motion (motion.dev, cargado vía CDN en dashboard.html):
+// si la librería no cargó, el dashboard sigue funcionando igual, simplemente sin
+// esa animación puntual.
+function motionFx(el, keyframes, opts) {
+  if (!el || typeof window.Motion === 'undefined' || !window.Motion.animate) return null;
+  try { return window.Motion.animate(el, keyframes, opts); } catch (e) { return null; }
+}
+
+// Anima un número desde 0 hasta targetValue (conteo ascendente), usando
+// Motion cuando está disponible. Si no, simplemente escribe el valor final.
+function motionCountUp(el, targetValue, duration) {
+  if (!el) return;
+  var target = Number(targetValue) || 0;
+  if (typeof window.Motion !== 'undefined' && window.Motion.animate) {
+    try {
+      window.Motion.animate(0, target, {
+        duration: duration || 0.9,
+        ease: 'easeOut',
+        onUpdate: function (latest) { el.textContent = Math.round(latest).toLocaleString(); }
+      });
+      return;
+    } catch (e) { /* cae al valor estático */ }
+  }
+  el.textContent = target.toLocaleString();
+}
+
 function removeSkeleton(element) {
   if (element) {
+    var wasLoading = element.classList.contains('skeleton');
     element.classList.remove('skeleton', 'skeleton-circle', 'skeleton-text', 'skeleton-short', 'skeleton-medium', 'skeleton-long');
+    // El contenido real reemplaza al shimmer gris: un fade-in corto evita que
+    // "aparezca de golpe" en las decenas de campos del dashboard que usan
+    // este mismo punto de salida del estado de carga.
+    if (wasLoading) motionFx(element, { opacity: [0, 1] }, { duration: 0.35, ease: 'easeOut' });
   }
 }
 
@@ -77,6 +108,32 @@ function setQueryTextIfExists(selector, text) {
   const el = document.querySelector(selector);
   if (el) el.textContent = text;
 }
+
+// Pequeño "pulso" (Motion) al hacer clic en los botones sociales/acción clave
+// del perfil. Delegado a nivel document para no tener que tocar cada handler
+// individual, y en fase de captura para que funcione sin importar qué haga
+// después el propio listener del botón (incluido stopPropagation).
+(function setupDashboardButtonPulse() {
+  var PULSE_SELECTOR = '#profileRecommendBtn, #profileAddFriendBtn, #profileDmChatBtn, ' +
+    '#nicknameSaveBtn, #photoUploadBtn, #photoDeleteBtn';
+  document.addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest ? e.target.closest(PULSE_SELECTOR) : null;
+    if (!btn) return;
+    motionFx(btn, { scale: [1, 0.86, 1] }, { duration: 0.22, ease: 'easeOut' });
+  }, true);
+})();
+
+// Fade-in de la foto de perfil cada vez que cambia (subida nueva, borrado a
+// default, cambio de perfil visitado, etc.). Un solo listener 'load' cubre
+// todas las asignaciones de profilePic.src del archivo sin tener que tocarlas
+// una por una.
+(function setupProfilePicRevealAnim() {
+  var pic = document.getElementById('profilePic');
+  if (!pic) return;
+  pic.addEventListener('load', function () {
+    motionFx(pic, { opacity: [0, 1], scale: [0.92, 1] }, { duration: 0.35, ease: 'easeOut' });
+  });
+})();
 
 let dashboardWidgetsCollapseInit = false;
 function initDashboardWidgetCollapsibles() {
@@ -1276,15 +1333,24 @@ function getTranslations(lang) {
   };
 }
 
+let floatingMessageHideTimer = null;
 function showFloatingMessage(type, text) {
-  // ... (Se mantiene igual)
   const msg = document.getElementById("floatingMessage");
   if (!msg) return;
+  if (floatingMessageHideTimer) { clearTimeout(floatingMessageHideTimer); floatingMessageHideTimer = null; }
+
   msg.textContent = text;
   msg.className = "floating-message" + (type === "error" ? " error" : "");
   msg.style.display = "block";
-  setTimeout(() => {
-    msg.style.display = "none";
+  motionFx(msg, { opacity: [0, 1], y: [-14, 0], scale: [0.96, 1] }, { duration: 0.28, ease: 'easeOut' });
+
+  floatingMessageHideTimer = setTimeout(() => {
+    const anim = motionFx(msg, { opacity: [1, 0], y: [0, -14] }, { duration: 0.22, ease: 'easeIn' });
+    if (anim && anim.finished) {
+      anim.finished.then(() => { msg.style.display = "none"; }).catch(() => { msg.style.display = "none"; });
+    } else {
+      msg.style.display = "none";
+    }
   }, 3000);
 }
 
@@ -1617,7 +1683,10 @@ function cargarPensamientosPublicosRealtime(userActual) {
 
   // Obtener referencia a la base de datos Realtime
   const database = firebase.database();
-  const usersRef = database.ref('users');
+  // PZ-017: users solo lo lee Commander/Boss; el muro de pensamientos públicos
+  // (que ya se muestra a todo el mundo) lee publicProfiles, que replica
+  // nick/photoURL/rango/thought/steam-avatar para cada usuario.
+  const usersRef = database.ref('publicProfiles');
 
   let todosPensamientos = [];
 
@@ -3771,13 +3840,14 @@ document.addEventListener("DOMContentLoaded", function () {
       const honorText = document.getElementById('communityHonorText');
       if (honorText) {
           const honorValue = Number(profileUserData?.communityHonor || 0);
-          honorText.textContent = honorValue.toLocaleString();
+          motionCountUp(honorText, honorValue);
       }
 
       const globalRankPositionText = document.getElementById('globalRankPositionText');
       if (globalRankPositionText && typeof firebase !== 'undefined' && firebase.database) {
           globalRankPositionText.textContent = '#...';
-          firebase.database().ref('users').orderByChild('communityHonor').once('value').then(function(allSnap) {
+          // PZ-017: el ranking de honor se calcula sobre publicProfiles, no sobre users.
+          firebase.database().ref('publicProfiles').orderByChild('communityHonor').once('value').then(function(allSnap) {
               var list = [];
               allSnap.forEach(function(child) {
                   var v = child.val() || {};
@@ -4134,7 +4204,8 @@ function initializeUserSearch() {
         searchResults.style.display = 'block';
         return;
       }
-      const usersRef = firebase.database().ref('users');
+      // PZ-017: el buscador global del dashboard lee publicProfiles (nick/photoURL/rango), no users.
+      const usersRef = firebase.database().ref('publicProfiles');
       const snapshot = await usersRef.once('value');
       const users = snapshot.val();
       if (!users) {

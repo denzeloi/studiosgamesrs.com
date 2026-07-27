@@ -10,8 +10,9 @@
   <link rel="stylesheet" href="shared-header.css">
   <link rel="stylesheet" href="dashboard-styles.css">
   <link rel="stylesheet" href="shared-notifications.css?v=20260711d">
-  <link rel="stylesheet" href="commander-panel.css?v=20260725pzaudit">
+  <link rel="stylesheet" href="commander-panel.css?v=20260727broadcast1">
   <link rel="stylesheet" href="sg-tournament-hub.css?v=20260724perf">
+  <link rel="stylesheet" href="/welcome-overlay.css?v=20260727clips">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
@@ -22,6 +23,15 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-functions-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-check-compat.js"></script>
   <script src="/sg-firebase-init.js?v=20260724nocaptcha"></script>
+  <script src="https://cdn.jsdelivr.net/npm/motion@12.42.2/dist/motion.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
   <script>sgInitFirebaseApp();</script>
 </head>
 <body class="commander-panel-page">
@@ -397,6 +407,60 @@
         <p class="commander-comms-intro">Centro único para <strong>Studiosgamesrs</strong>: encuestas emergentes, slots promo (Dashboard/Nexus) y kit de marca para compartir. Datos en <code>siteEngagement/</code> (Realtime Database).</p>
 
         <div class="commander-comms-grid">
+          <div class="commander-block nexus-dashboard-widget comms-card comms-card-wide sg-broadcast-block" id="secBossBroadcastBlock" style="display:none;">
+            <div class="nexus-widget-header">
+              <div class="nexus-widget-icon"><i class="fas fa-broadcast-tower"></i></div>
+              <div class="nexus-widget-title">
+                <h3>Notificación Épica 3D <span class="sg-boss-only-tag">Solo Boss of the State</span></h3>
+                <p>Overlay legendario en vivo: aparece de inmediato para todos los usuarios en el Dashboard.</p>
+              </div>
+              <span class="nexus-widget-badge comms-badge-critical" id="broadcastLiveBadge" style="display:none;">En vivo</span>
+            </div>
+
+            <div class="sg-broadcast-layout">
+              <div class="sg-broadcast-preview-col">
+                <div class="sg-welcome-stage sg-broadcast-preview-stage">
+                  <div class="sg-welcome-stage-glow"></div>
+                  <canvas id="broadcastPreviewCanvas" class="sg-welcome-canvas"></canvas>
+                  <div class="sg-welcome-stage-loading" id="broadcastPreviewLoading">Cargando…</div>
+                </div>
+                <div class="comms-field">
+                  <label class="comms-label" for="broadcastCharacterSelect">Personaje</label>
+                  <select id="broadcastCharacterSelect" class="comms-input comms-select">
+                    <option value="golem-tortoise">Golem Tortuga</option>
+                  </select>
+                </div>
+                <div class="comms-field">
+                  <label class="comms-label" for="broadcastAnimSelect">Animación</label>
+                  <select id="broadcastAnimSelect" class="comms-input comms-select">
+                    <option value="awake">Despertar (awake)</option>
+                    <option value="roar">Rugido (roar)</option>
+                    <option value="walk">Caminar (walk)</option>
+                    <option value="hurt">Herido (hurt)</option>
+                    <option value="faint">Desmayo (faint)</option>
+                    <option value="idle">Reposo (idle)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="sg-broadcast-form-col">
+                <div class="comms-field">
+                  <label class="comms-label" for="broadcastTitleInput">Título</label>
+                  <input type="text" id="broadcastTitleInput" class="comms-input" maxlength="80" placeholder="Ej.: ¡Nuevo evento especial!">
+                </div>
+                <div class="comms-field">
+                  <label class="comms-label" for="broadcastMessageInput">Mensaje corto</label>
+                  <textarea id="broadcastMessageInput" class="comms-input comms-textarea" rows="3" maxlength="400" placeholder="Máximo unas pocas líneas…"></textarea>
+                </div>
+                <div id="broadcastActiveStatus" class="sg-hint">Sin transmisión activa.</div>
+                <div class="comms-actions">
+                  <button type="button" id="broadcastActivateBtn" class="comms-btn comms-btn-primary"><i class="fas fa-satellite-dish"></i> Activar transmisión</button>
+                  <button type="button" id="broadcastDeactivateBtn" class="comms-btn comms-btn-ghost" style="border-color:rgba(229,57,53,0.5);display:none;"><i class="fas fa-stop-circle"></i> Desactivar</button>
+                </div>
+                <p class="sg-hint">La vista previa de la izquierda usa exactamente el mismo render que verán los usuarios. Reglas: <code>siteBroadcast</code> en Firebase.</p>
+              </div>
+            </div>
+          </div>
+
           <div class="commander-block nexus-dashboard-widget comms-card comms-card-wide">
             <div class="nexus-widget-header">
               <div class="nexus-widget-icon"><i class="fas fa-palette"></i></div>
@@ -1273,10 +1337,11 @@
   </div>
 
   <script src="shared-unified-header.js?v=20260711d"></script>
-  <script src="shared-notifications.js?v=20260711d"></script>
+  <script src="shared-notifications.js?v=20260726motion1"></script>
   <script src="shared-header.js?v=20260711d"></script>
   <script src="/tournament-organizer-ui.js?v=20260724perf"></script>
-  <script src="/commander-panel.js?v=20260725pz004"></script>
+  <script src="/welcome-overlay.js?v=20260727clips"></script>
+  <script src="/commander-panel.js?v=20260727clips"></script>
   <script>
     (function () {
       var s = document.createElement('script');

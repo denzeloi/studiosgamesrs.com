@@ -18,6 +18,8 @@ exports.awardMissionTokens = missionTokens.awardMissionTokens;
 exports.refundMissionEscrow = missionTokens.refundMissionEscrow;
 exports.getPlayzoneRewardBudget = missionTokens.getPlayzoneRewardBudget;
 exports.refillPlayzoneRewardBudget = missionTokens.refillPlayzoneRewardBudget;
+exports.joinMission = missionTokens.joinMission;
+exports.sendMissionInvite = missionTokens.sendMissionInvite;
 
 const teamVerification = require('./teamVerification');
 exports.payTeamVerification = teamVerification.payTeamVerification;
@@ -35,6 +37,10 @@ exports.backfillSteamIndexes = steamLink.backfillSteamIndexes;
 const cs2Friends = require('./cs2FriendsMission');
 exports.captureCs2Baselines = cs2Friends.captureCs2Baselines;
 exports.verifyCs2FriendsMission = cs2Friends.verifyCs2FriendsMission;
+
+const publicProfiles = require('./publicProfiles');
+exports.syncPublicProfile = publicProfiles.syncPublicProfile;
+exports.backfillPublicProfiles = publicProfiles.backfillPublicProfiles;
 
 const creatorMarket = require('./creatorMarket');
 exports.publishCreatorContent = creatorMarket.publishCreatorContent;
