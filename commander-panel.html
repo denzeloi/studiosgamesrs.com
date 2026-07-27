@@ -10,9 +10,9 @@
   <link rel="stylesheet" href="shared-header.css">
   <link rel="stylesheet" href="dashboard-styles.css">
   <link rel="stylesheet" href="shared-notifications.css?v=20260711d">
-  <link rel="stylesheet" href="commander-panel.css?v=20260727broadcast1">
+  <link rel="stylesheet" href="commander-panel.css?v=20260727welcome">
   <link rel="stylesheet" href="sg-tournament-hub.css?v=20260724perf">
-  <link rel="stylesheet" href="/welcome-overlay.css?v=20260727clips">
+  <link rel="stylesheet" href="/welcome-overlay.css?v=20260727welcome">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
@@ -457,6 +457,37 @@
                   <button type="button" id="broadcastDeactivateBtn" class="comms-btn comms-btn-ghost" style="border-color:rgba(229,57,53,0.5);display:none;"><i class="fas fa-stop-circle"></i> Desactivar</button>
                 </div>
                 <p class="sg-hint">La vista previa de la izquierda usa exactamente el mismo render que verán los usuarios. Reglas: <code>siteBroadcast</code> en Firebase.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="commander-block nexus-dashboard-widget comms-card comms-card-wide sg-broadcast-block" id="secBossWelcomeCampaignBlock" style="display:none;">
+            <div class="nexus-widget-header">
+              <div class="nexus-widget-icon"><i class="fas fa-medal"></i></div>
+              <div class="nexus-widget-title">
+                <h3>Campaña de bienvenida <span class="sg-boss-only-tag">Solo Boss of the State</span></h3>
+                <p>Mientras esté abierta, cada usuario recibe una sola vez: 30 tokens, +15% de XP de Nexus por 30 días y la insignia <strong>Lealtad</strong>.</p>
+              </div>
+              <span class="nexus-widget-badge comms-badge-critical" id="welcomeCampaignBadge" style="display:none;">Abierta</span>
+            </div>
+
+            <div class="sg-welcome-campaign-layout">
+              <div class="sg-welcome-campaign-badge">
+                <img src="/badges/lealtad-320.png" alt="Insignia Lealtad" onerror="this.onerror=null;this.src='https://studiosgamesrs.web.app/badges/lealtad-320.png';">
+                <span>Lealtad</span>
+              </div>
+              <div class="sg-welcome-campaign-form">
+                <div id="welcomeCampaignStatus" class="sg-hint">Cargando estado…</div>
+                <div class="comms-field">
+                  <label class="comms-label" for="welcomeCampaignEndsAt">Fecha límite (opcional)</label>
+                  <input type="datetime-local" id="welcomeCampaignEndsAt" class="comms-input">
+                </div>
+                <div class="comms-actions">
+                  <button type="button" id="welcomeCampaignOpenBtn" class="comms-btn comms-btn-primary"><i class="fas fa-play-circle"></i> Abrir campaña</button>
+                  <button type="button" id="welcomeCampaignCloseBtn" class="comms-btn comms-btn-ghost" style="border-color:rgba(229,57,53,0.5);"><i class="fas fa-stop-circle"></i> Cerrar campaña</button>
+                  <button type="button" id="welcomeCampaignBackfillBtn" class="comms-btn comms-btn-ghost"><i class="fas fa-users"></i> Dar insignia a cuentas existentes</button>
+                </div>
+                <p class="sg-hint">Al cerrarla nadie más la recibe, pero quien ya la tenga la conserva. El botón de cuentas existentes solo reparte la insignia (sin tokens ni boost). Reglas: <code>siteCampaigns/welcome</code>.</p>
               </div>
             </div>
           </div>
@@ -1340,8 +1371,8 @@
   <script src="shared-notifications.js?v=20260726motion1"></script>
   <script src="shared-header.js?v=20260711d"></script>
   <script src="/tournament-organizer-ui.js?v=20260724perf"></script>
-  <script src="/welcome-overlay.js?v=20260727clips"></script>
-  <script src="/commander-panel.js?v=20260727clips"></script>
+  <script src="/welcome-overlay.js?v=20260727welcome"></script>
+  <script src="/commander-panel.js?v=20260727welcome"></script>
   <script>
     (function () {
       var s = document.createElement('script');

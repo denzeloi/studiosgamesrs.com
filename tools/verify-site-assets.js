@@ -33,6 +33,8 @@ const REQUIRED_FILES = [
   { file: 'welcome-overlay.css', minKB: 4 },
   { file: 'overlay-volcano.jpg', minKB: 60 },
   { file: 'logo-studiosgamesrs.png', minKB: 100 },
+  { file: 'badges/lealtad-320.png', minKB: 60 },
+  { file: 'badges/lealtad-512.png', minKB: 150 },
   { file: 'dashboard.html', minKB: 20 },
   { file: 'commander-panel.html', minKB: 40 },
   { file: 'commander-panel.js', minKB: 150 },

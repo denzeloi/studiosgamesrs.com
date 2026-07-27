@@ -4156,7 +4156,7 @@ body.dashboard-theme-gold .dashboard-widget-count {
   align-items: flex-start;
   gap: 8px;
   width: 100%;
-  max-width: 220px;
+  max-width: 280px;
 }
 
 .profile-nexus-badge-chip {
@@ -4254,6 +4254,96 @@ body.dashboard-theme-gold .dashboard-widget-count {
 
 .profile-nexus-badge-chip.is-unlocked .profile-nexus-badge-chip-core i {
   color: #ffd54f;
+}
+
+/* Insignias con arte propio (Lealtad): la imagen ocupa el disco completo y el
+   anillo giratorio se vuelve un halo de brasas alrededor. */
+.profile-nexus-badge-chip.has-image {
+  width: 60px;
+}
+
+.profile-nexus-badge-chip.has-image .profile-nexus-badge-chip-ring {
+  width: 50px;
+  height: 50px;
+  margin-left: -25px;
+  background:
+    linear-gradient(145deg, rgba(10, 12, 16, 0.95), rgba(18, 20, 26, 0.9)) padding-box,
+    conic-gradient(from 0deg, rgba(229, 57, 53, 0.25), rgba(255, 138, 71, 0.95), rgba(255, 214, 170, 0.55), rgba(229, 57, 53, 0.25)) border-box;
+  box-shadow: 0 0 18px rgba(255, 120, 60, 0.35);
+}
+
+.profile-nexus-badge-chip.has-image .profile-nexus-badge-chip-core {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  overflow: hidden;
+  background: none;
+  border-color: rgba(255, 140, 90, 0.35);
+  box-shadow: 0 0 14px rgba(226, 74, 24, 0.35);
+}
+
+.profile-nexus-badge-chip-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.profile-nexus-badge-chip.has-image .profile-nexus-badge-chip-label {
+  max-width: 60px;
+  color: #ffbf95;
+}
+
+/* Mini descripción al pasar el cursor (o con foco de teclado). */
+.profile-nexus-badge-tip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translate(-50%, -4px);
+  width: 178px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(12, 12, 15, 0.97);
+  border: 1px solid rgba(255, 122, 66, 0.38);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.6);
+  font-size: 0.62rem;
+  line-height: 1.4;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  white-space: normal;
+  color: rgba(226, 222, 220, 0.92);
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  z-index: 60;
+}
+
+.profile-nexus-badge-tip strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffb070;
+}
+
+.profile-nexus-badge-chip:hover .profile-nexus-badge-tip,
+.profile-nexus-badge-chip:focus .profile-nexus-badge-tip,
+.profile-nexus-badge-chip:focus-visible .profile-nexus-badge-tip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.profile-nexus-badge-chip:focus {
+  outline: none;
+}
+
+.profile-nexus-badge-chip.has-image:hover .profile-nexus-badge-chip-core {
+  box-shadow: 0 0 22px rgba(255, 120, 60, 0.65);
 }
 
 .profile-identity-cards-block {

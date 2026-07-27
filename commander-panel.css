@@ -2654,3 +2654,58 @@ body.commander-panel-page .header-search .search-results.open {
 @media (max-width: 720px) {
   .sg-broadcast-layout { grid-template-columns: 1fr; }
 }
+
+/* -------------------------------------------------
+   Campaña de bienvenida (insignia Lealtad)
+   ------------------------------------------------- */
+.sg-welcome-campaign-layout {
+  display: grid;
+  grid-template-columns: minmax(140px, 180px) 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.sg-welcome-campaign-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 10px;
+  border-radius: 12px;
+  background: linear-gradient(165deg, rgba(38, 16, 12, 0.7) 0%, rgba(14, 12, 14, 0.85) 100%);
+  border: 1px solid rgba(255, 122, 66, 0.28);
+}
+
+.sg-welcome-campaign-badge img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 16px rgba(255, 110, 50, 0.55));
+  animation: sgCampaignBadgeFloat 4s ease-in-out infinite;
+}
+
+.sg-welcome-campaign-badge span {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ffb070;
+}
+
+.sg-welcome-campaign-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@keyframes sgCampaignBadgeFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@media (max-width: 720px) {
+  .sg-welcome-campaign-layout {
+    grid-template-columns: 1fr;
+  }
+}

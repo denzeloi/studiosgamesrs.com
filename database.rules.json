@@ -149,6 +149,12 @@
           ".write": "auth != null && auth.uid == $uid",
           ".validate": "newData.isBoolean()"
         },
+        "welcomeReward": {
+          ".write": false
+        },
+        "badges": {
+          ".write": false
+        },
         "tokens": {
           ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || ((root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander') && (root.child('users').child($uid).child('rango').val() !== 'commander' && root.child('users').child($uid).child('rango').val() !== 'Commander' && root.child('users').child($uid).child('rango').val() !== 'divisional_commander' && root.child('users').child($uid).child('rango').val() !== 'Divisional_Commander' && root.child('users').child($uid).child('rango').val() !== 'boss_of_the_state' && root.child('users').child($uid).child('rango').val() !== 'Boss_of_the_State')))"
         },
@@ -799,6 +805,17 @@
         "message": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 400)" },
         "triggeredBy": { ".validate": "newData.isString() && newData.val() === auth.uid" },
         "triggeredAt": { ".validate": "newData.isNumber() && newData.val() <= (now + 60000)" }
+      }
+    },
+    "siteCampaigns": {
+      "welcome": {
+        ".read": "auth != null",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+        "active": { ".validate": "newData.isBoolean()" },
+        "endsAt": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)" },
+        "updatedBy": { ".validate": "!newData.exists() || (newData.isString() && newData.val() === auth.uid)" },
+        "updatedAt": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() <= (now + 60000))" },
+        "$other": { ".validate": false }
       }
     }
   }

@@ -375,7 +375,17 @@
   if (!isDashboardPage()) return;
 
   var LOGO_SRC = '/logo-studiosgamesrs.png';
-  var ASSET_VERSION = '20260727clips';
+  var BADGE_SRC = '/badges/lealtad-320.png';
+  var BADGE_CDN = (SG_CDN || 'https://studiosgamesrs.web.app') + BADGE_SRC;
+  var ASSET_VERSION = '20260727welcome';
+
+  // Insignia de la campaña de bienvenida. El texto del tooltip se reutiliza en
+  // el perfil del dashboard (dashboard-logic.js) para que digan lo mismo.
+  var WELCOME_BADGE = {
+    id: 'loyalty_trial',
+    name: 'Lealtad',
+    description: 'Reconoce el honor de haberte registrado entre los primeros de StudiosGamesRS.'
+  };
 
   /**
    * Si welcome-overlay.css no llegó a cargar (p.ej. no está subido al
@@ -424,7 +434,7 @@
   }
 
   var overlayEl = null, canvasEl = null, titleEl = null, textEl = null, btnEl = null,
-    loadingEl = null, backdropEl = null;
+    loadingEl = null, backdropEl = null, rewardsEl = null;
   var isOpen = false;
   var queue = [];
   var viewer = null;
@@ -532,6 +542,7 @@
         '</div>' +
         '<h2 class="sg-welcome-title" id="sgWelcomeTitle"></h2>' +
         '<p class="sg-welcome-text" id="sgWelcomeText"></p>' +
+        '<div class="sg-welcome-rewards" id="sgWelcomeRewards" hidden></div>' +
         '<button type="button" class="sg-welcome-btn" id="sgWelcomeBtn">Continuar</button>' +
       '</div>';
     (document.body || document.documentElement).appendChild(overlayEl);
@@ -546,6 +557,7 @@
     titleEl = overlayEl.querySelector('#sgWelcomeTitle');
     textEl = overlayEl.querySelector('#sgWelcomeText');
     btnEl = overlayEl.querySelector('#sgWelcomeBtn');
+    rewardsEl = overlayEl.querySelector('#sgWelcomeRewards');
     loadingEl = overlayEl.querySelector('#sgWelcomeLoading');
     embers = createEmbers(overlayEl.querySelector('#sgWelcomeEmbers'));
     // Si el visor 3D no está disponible, el overlay igual debe mostrarse
@@ -579,17 +591,75 @@
     return div.innerHTML;
   }
 
+  /** Tarjetas de recompensa bajo el texto. Vacío = se oculta el bloque. */
+  function fillRewards(rewards) {
+    if (!rewardsEl) return;
+    if (!rewards || !rewards.length) {
+      rewardsEl.hidden = true;
+      rewardsEl.innerHTML = '';
+      return;
+    }
+    rewardsEl.innerHTML = rewards.map(function (r, i) {
+      var visual = r.image
+        ? '<img class="sg-welcome-reward-badge" src="' + r.image + '" alt="' + escapeHtml(r.label) + '" ' +
+            'onerror="this.onerror=null;this.src=\'' + BADGE_CDN + '\';" />'
+        : '<i class="fas ' + escapeHtml(r.icon) + '"></i>';
+      return '<div class="sg-welcome-reward' + (r.image ? ' is-badge' : '') + '" style="--sg-reward-delay:' + (i * 90) + 'ms"' +
+          (r.description ? ' data-sg-tip="' + escapeHtml(r.description) + '"' : '') + '>' +
+          '<span class="sg-welcome-reward-icon">' + visual + '</span>' +
+          '<span class="sg-welcome-reward-value">' + escapeHtml(r.value) + '</span>' +
+          '<span class="sg-welcome-reward-label">' + escapeHtml(r.label) + '</span>' +
+          (r.description ? '<span class="sg-welcome-reward-tip">' + escapeHtml(r.description) + '</span>' : '') +
+        '</div>';
+    }).join('');
+    rewardsEl.hidden = false;
+  }
+
   // ---------- Contenido por modo ----------
   function fillContent(mode, payload) {
     if (mode === 'welcome') {
-      titleEl.textContent = '¡Bienvenido a StudiosGamesRS!';
-      textEl.innerHTML = 'Has llegado al mundo de <strong>StudiosGamesRS.com</strong>. ' +
-        'En <strong>Play Zone</strong> encuentra amigos, coordina misiones y gana tokens jugando en equipo. ' +
-        'En <strong>Nexus</strong> sube de rango, gana XP real y desbloquea recompensas de creador.';
-      btnEl.textContent = 'Comenzar la aventura';
+      var nick = (payload && payload.nick) ? String(payload.nick).slice(0, 24) : '';
+      titleEl.textContent = nick ? '¡Hola ' + nick + ', bienvenido!' : '¡Bienvenido a StudiosGamesRS!';
+
+      if (payload && payload.rewarded) {
+        var pct = payload.boostPercent || 15;
+        var tokens = payload.tokens || 30;
+        textEl.innerHTML = 'Has llegado al mundo de <strong>StudiosGamesRS.com</strong>. ' +
+          'Como <strong>recompensa de bienvenida</strong> te hemos otorgado un <strong>' + pct + '% de boost</strong> ' +
+          'en experiencia de Nexus, <strong>' + tokens + ' tokens</strong> y una insignia distintiva.';
+        fillRewards([
+          {
+            icon: 'fa-bolt',
+            value: '+' + pct + '%',
+            label: 'XP de Nexus',
+            description: 'Boost del ' + pct + '% sobre toda la experiencia que ganes en Nexus durante ' +
+              (payload.boostDays || 30) + ' días.'
+          },
+          {
+            icon: 'fa-coins',
+            value: '+' + tokens,
+            label: 'Tokens',
+            description: 'Úsalos en misiones de Play Zone, personalización de perfil y verificación de equipo.'
+          },
+          {
+            image: BADGE_CDN,
+            value: WELCOME_BADGE.name,
+            label: 'Insignia',
+            description: WELCOME_BADGE.description
+          }
+        ]);
+        btnEl.textContent = 'Reclamar y comenzar';
+      } else {
+        textEl.innerHTML = 'Has llegado al mundo de <strong>StudiosGamesRS.com</strong>. ' +
+          'En <strong>Play Zone</strong> encuentra amigos, coordina misiones y gana tokens jugando en equipo. ' +
+          'En <strong>Nexus</strong> sube de rango, gana XP real y desbloquea recompensas de creador.';
+        fillRewards(null);
+        btnEl.textContent = 'Comenzar la aventura';
+      }
       btnEl.removeAttribute('data-action');
       return { characterId: 'golem-tortoise', clip: 'awake' };
     }
+    fillRewards(null);
     if (mode === 'tournament-invite') {
       var tName = (payload && payload.tournamentName) || 'un torneo';
       var by = (payload && payload.invitedBy) || 'la organización';
@@ -673,13 +743,71 @@
     }, 450);
   }
 
-  // ---------- Trigger 1: primer login ----------
-  function checkFirstLogin(uid, db) {
+  // ---------- Trigger 1: bienvenida + recompensa de campaña ----------
+  /** Bienvenida "clásica" (sin recompensa): solo la primera vez. */
+  function showPlainWelcome(uid, db, nick) {
     db.ref('users/' + uid + '/welcomeOverlaySeen').once('value').then(function (snap) {
       if (snap.val() === true) return;
       db.ref('users/' + uid + '/welcomeOverlaySeen').set(true).catch(function () {});
-      showOverlay('welcome', null, 0);
+      showOverlay('welcome', { nick: nick }, 0);
     }).catch(function () {});
+  }
+
+  /**
+   * Mientras la campaña de bienvenida esté abierta, el overlay aparece para
+   * cualquiera que aún no haya reclamado su recompensa —también las cuentas
+   * que ya existían, no solo los registros nuevos—. El reclamo lo hace la
+   * Cloud Function claimWelcomeReward (tokens, boost e insignia son de
+   * escritura exclusiva del servidor) y solo se concede una vez por cuenta.
+   */
+  function checkWelcomeReward(uid, db) {
+    Promise.all([
+      db.ref('users/' + uid + '/welcomeReward/claimedAt').once('value'),
+      db.ref('siteCampaigns/welcome').once('value'),
+      db.ref('users/' + uid + '/nick').once('value')
+    ]).then(function (snaps) {
+      var alreadyClaimed = !!snaps[0].val();
+      var cfg = snaps[1].val() || {};
+      var nick = snaps[2].val() || '';
+      var endsAt = Number(cfg.endsAt) || 0;
+      var campaignOpen = cfg.active !== false && (!endsAt || Date.now() < endsAt);
+
+      if (alreadyClaimed || !campaignOpen) {
+        sgLog('bienvenida: ' + (alreadyClaimed ? 'recompensa ya reclamada' : 'campaña cerrada'));
+        showPlainWelcome(uid, db, nick);
+        return;
+      }
+
+      if (typeof firebase === 'undefined' || !firebase.functions) {
+        showPlainWelcome(uid, db, nick);
+        return;
+      }
+
+      firebase.functions().httpsCallable('claimWelcomeReward')({}).then(function (res) {
+        var data = (res && res.data) || {};
+        sgLog('recompensa de bienvenida otorgada', data);
+        db.ref('users/' + uid + '/welcomeOverlaySeen').set(true).catch(function () {});
+        showOverlay('welcome', {
+          nick: data.nick || nick,
+          rewarded: true,
+          tokens: data.tokens,
+          boostPercent: data.boostPercent,
+          boostDays: 30
+        }, 0);
+        // El perfil ya está pintado en pantalla: se refresca para que la
+        // insignia recién otorgada aparezca sin recargar la página.
+        if (typeof window.refreshProfileNexusBadges === 'function') {
+          setTimeout(function () { window.refreshProfileNexusBadges(); }, 1200);
+        }
+      }).catch(function (err) {
+        // already-exists (dos pestañas a la vez) o campaña cerrada en el
+        // servidor: no hay recompensa que anunciar, pero la bienvenida sí.
+        sgLog('no se pudo reclamar la recompensa:', (err && err.message) || err);
+        showPlainWelcome(uid, db, nick);
+      });
+    }).catch(function (e) {
+      sgLog('no se pudo leer el estado de la bienvenida:', e && e.message);
+    });
   }
 
   // ---------- Trigger 2: invitación a torneo nueva (capitán + roster) ----------
@@ -783,11 +911,11 @@
       var db = firebase.database();
       db.ref('users/' + user.uid + '/blocked').once('value').then(function (snap) {
         if (snap.val() === true) return;
-        checkFirstLogin(user.uid, db);
+        checkWelcomeReward(user.uid, db);
         listenForTournamentInvites(user.uid, db);
         listenForBroadcast(db);
       }).catch(function () {
-        checkFirstLogin(user.uid, db);
+        checkWelcomeReward(user.uid, db);
         listenForTournamentInvites(user.uid, db);
         listenForBroadcast(db);
       });

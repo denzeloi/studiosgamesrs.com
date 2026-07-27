@@ -4358,11 +4358,132 @@
     }
   }
 
-  /** Muestra/oculta el bloque de Broadcast según rango, y arranca la preview 3D al revelarlo por primera vez. */
+  // -------------------------------------------------
+  // Campaña de bienvenida (insignia Lealtad + tokens + boost)
+  // -------------------------------------------------
+  var welcomeCampaignInited = false;
+
+  function initWelcomeCampaignPanel() {
+    if (welcomeCampaignInited || !db) return;
+    var statusEl = document.getElementById('welcomeCampaignStatus');
+    if (!statusEl) return;
+    welcomeCampaignInited = true;
+
+    var campaignRef = db.ref('siteCampaigns/welcome');
+    var badgeEl = document.getElementById('welcomeCampaignBadge');
+    var endsAtInput = document.getElementById('welcomeCampaignEndsAt');
+    var openBtn = document.getElementById('welcomeCampaignOpenBtn');
+    var closeBtn = document.getElementById('welcomeCampaignCloseBtn');
+    var backfillBtn = document.getElementById('welcomeCampaignBackfillBtn');
+
+    function render(cfg) {
+      cfg = cfg || {};
+      // Sin nodo en la base la campaña se considera abierta: así arrancó y así
+      // la lee la Cloud Function.
+      var active = cfg.active !== false;
+      var endsAt = Number(cfg.endsAt) || 0;
+      var expired = endsAt && Date.now() >= endsAt;
+      var open = active && !expired;
+
+      if (badgeEl) {
+        badgeEl.style.display = open ? 'inline-flex' : 'none';
+        badgeEl.textContent = 'Abierta';
+      }
+      if (openBtn) openBtn.style.display = open ? 'none' : 'inline-flex';
+      if (closeBtn) closeBtn.style.display = open ? 'inline-flex' : 'none';
+
+      statusEl.className = open ? 'sg-hint sg-broadcast-live' : 'sg-hint';
+      if (open) {
+        statusEl.textContent = '🟢 Campaña abierta' +
+          (endsAt ? ' hasta ' + new Date(endsAt).toLocaleString() : ' sin fecha límite') + '.';
+      } else if (expired) {
+        statusEl.textContent = '⚪ Cerrada automáticamente el ' + new Date(endsAt).toLocaleString() + '.';
+      } else {
+        statusEl.textContent = '⚪ Campaña cerrada: las cuentas nuevas ya no reciben la recompensa.';
+      }
+    }
+    campaignRef.on('value', function(snap) { render(snap.val()); });
+
+    function writeCampaign(active) {
+      var payload = {
+        active: active,
+        updatedBy: currentCommanderUid,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      };
+      var raw = endsAtInput && endsAtInput.value;
+      if (active && raw) {
+        var ts = new Date(raw).getTime();
+        if (!isNaN(ts)) payload.endsAt = ts;
+      }
+      return campaignRef.set(payload);
+    }
+
+    if (openBtn) {
+      openBtn.addEventListener('click', function() {
+        if (!isBossOfTheStateRango(currentCommanderRango)) {
+          showFloatingMessage('error', 'Solo Boss of the State puede tocar la campaña.');
+          return;
+        }
+        openBtn.disabled = true;
+        writeCampaign(true).then(function() {
+          showFloatingMessage('success', '🎖️ Campaña abierta: los usuarios recibirán la recompensa al entrar al Dashboard.');
+        }).catch(function(err) {
+          console.error(err);
+          showFloatingMessage('error', 'No se pudo abrir la campaña (¿reglas Firebase?).');
+        }).finally(function() { openBtn.disabled = false; });
+      });
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function() {
+        if (!isBossOfTheStateRango(currentCommanderRango)) {
+          showFloatingMessage('error', 'Solo Boss of the State puede tocar la campaña.');
+          return;
+        }
+        closeBtn.disabled = true;
+        writeCampaign(false).then(function() {
+          showFloatingMessage('success', 'Campaña cerrada. Quien ya tenga la insignia la conserva.');
+        }).catch(function(err) {
+          console.error(err);
+          showFloatingMessage('error', 'No se pudo cerrar la campaña.');
+        }).finally(function() { closeBtn.disabled = false; });
+      });
+    }
+
+    if (backfillBtn) {
+      backfillBtn.addEventListener('click', function() {
+        if (!isBossOfTheStateRango(currentCommanderRango)) {
+          showFloatingMessage('error', 'Solo Boss of the State puede repartir la insignia.');
+          return;
+        }
+        if (!confirm('¿Otorgar la insignia Lealtad a todas las cuentas existentes que aún no la tengan?')) return;
+        backfillBtn.disabled = true;
+        var original = backfillBtn.innerHTML;
+        backfillBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Repartiendo…';
+        firebase.functions().httpsCallable('backfillWelcomeBadge')({}).then(function(res) {
+          var d = (res && res.data) || {};
+          showFloatingMessage('success', '🎖️ Insignia otorgada a ' + (d.granted || 0) + ' cuenta(s).');
+        }).catch(function(err) {
+          console.error(err);
+          showFloatingMessage('error', 'No se pudo repartir la insignia: ' + (err && err.message || 'error'));
+        }).finally(function() {
+          backfillBtn.disabled = false;
+          backfillBtn.innerHTML = original;
+        });
+      });
+    }
+  }
+
+  /** Muestra/oculta los bloques de Boss según rango, y arranca la preview 3D al revelarlos por primera vez. */
   function syncBroadcastBossUi() {
     var block = document.getElementById('secBossBroadcastBlock');
-    if (!block) return;
+    var campaignBlock = document.getElementById('secBossWelcomeCampaignBlock');
     var isBoss = isBossOfTheStateRango(currentCommanderRango);
+    if (campaignBlock) {
+      campaignBlock.style.display = isBoss ? '' : 'none';
+      if (isBoss) initWelcomeCampaignPanel();
+    }
+    if (!block) return;
     block.style.display = isBoss ? '' : 'none';
     if (isBoss) {
       initBroadcastPanel();

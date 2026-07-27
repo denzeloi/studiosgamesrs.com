@@ -2534,12 +2534,21 @@ function getProfileAchievementsMerged(userData) {
   return merged;
 }
 
+// Insignia de la campaña de bienvenida (welcomeReward.js la otorga). Va aparte
+// del catálogo Nexus porque usa imagen propia y se muestra siempre delante.
+const LOYALTY_PROFILE_BADGE = {
+  id: 'loyalty_trial',
+  name: 'Lealtad',
+  image: '/badges/lealtad-320.png',
+  description: 'Reconoce el honor de haberte registrado entre los primeros de StudiosGamesRS.'
+};
+
 const NEXUS_PROFILE_BADGES_DISPLAY = [
-  { id: 'first_steps', name: 'Primeros Pasos', icon: 'fa-shoe-prints' },
-  { id: 'social_butterfly', name: 'Social', icon: 'fa-share-alt', aliases: ['social'] },
-  { id: 'referral_master', name: 'Referidos', icon: 'fa-users', aliases: ['referral'] },
-  { id: 'streak_keeper', name: 'Racha', icon: 'fa-fire', aliases: ['streak'] },
-  { id: 'legendary', name: 'Leyenda', icon: 'fa-crown', aliases: ['legend', 'badge_elite'] }
+  { id: 'first_steps', name: 'Primeros Pasos', icon: 'fa-shoe-prints', description: 'Completaste tu primera misión en Nexus.' },
+  { id: 'social_butterfly', name: 'Social', icon: 'fa-share-alt', aliases: ['social'], description: 'Completaste 5 misiones sociales.' },
+  { id: 'referral_master', name: 'Referidos', icon: 'fa-users', aliases: ['referral'], description: 'Invitaste jugadores que se quedaron en el sitio.' },
+  { id: 'streak_keeper', name: 'Racha', icon: 'fa-fire', aliases: ['streak'], description: 'Mantuviste una racha de días activos.' },
+  { id: 'legendary', name: 'Leyenda', icon: 'fa-crown', aliases: ['legend', 'badge_elite'], description: 'Alcanzaste el rango legendario de Nexus.' }
 ];
 
 function isNexusProfileBadgeUnlocked(achievements, badge) {
@@ -2566,22 +2575,60 @@ function getPrimaryNexusBadgeForProfile(userData) {
   return unlocked || NEXUS_PROFILE_BADGES_DISPLAY[0];
 }
 
+function buildProfileBadgeChip(badge, unlocked, index) {
+  const core = badge.image
+    ? '<img class="profile-nexus-badge-chip-img" src="' + escapeDashboardHtml(badge.image) + '" alt="" loading="lazy" ' +
+        'onerror="this.onerror=null;this.src=\'https://studiosgamesrs.web.app' + escapeDashboardHtml(badge.image) + '\';">'
+    : '<i class="fas ' + escapeDashboardHtml(unlocked ? badge.icon : 'fa-lock') + '"></i>';
+  const tip = badge.description
+    ? '<span class="profile-nexus-badge-tip" role="tooltip">' +
+        '<strong>' + escapeDashboardHtml(badge.name) + '</strong>' +
+        escapeDashboardHtml(badge.description) +
+      '</span>'
+    : '';
+  return '<div class="profile-nexus-badge-chip' + (unlocked ? ' is-unlocked' : ' is-locked') +
+      (badge.image ? ' has-image' : '') + '" style="--badge-delay:' + (index * 0.09) + 's" tabindex="0" ' +
+      'aria-label="' + escapeDashboardHtml(badge.name + (unlocked ? '' : ' (bloqueada)')) + '">' +
+    '<span class="profile-nexus-badge-chip-ring" aria-hidden="true"></span>' +
+    '<span class="profile-nexus-badge-chip-core">' + core + '</span>' +
+    '<span class="profile-nexus-badge-chip-label">' + escapeDashboardHtml(badge.name) + '</span>' +
+    tip +
+    '</div>';
+}
+
 function renderProfileNexusBadges(userData) {
   const row = document.getElementById('profile-nexus-badges-row');
   const strip = document.getElementById('profileNexusBadgesStrip');
   if (!row || !strip) return;
   const achievements = getProfileAchievementsMerged(userData);
+  const chips = [];
+
+  // La insignia de Lealtad va primero: es la distinción de los primeros
+  // usuarios y solo se ve mientras se la hayan ganado.
+  if (achievements[LOYALTY_PROFILE_BADGE.id]) {
+    chips.push(buildProfileBadgeChip(LOYALTY_PROFILE_BADGE, true, 0));
+  }
+
   const badge = getPrimaryNexusBadgeForProfile(userData);
-  const unlocked = isNexusProfileBadgeUnlocked(achievements, badge);
-  const icon = unlocked ? badge.icon : 'fa-lock';
+  chips.push(buildProfileBadgeChip(badge, isNexusProfileBadgeUnlocked(achievements, badge), chips.length));
+
   strip.style.display = 'flex';
-  row.innerHTML =
-    '<div class="profile-nexus-badge-chip' + (unlocked ? ' is-unlocked' : ' is-locked') + '" title="' + escapeDashboardHtml(badge.name) + (unlocked ? '' : ' (bloqueada)') + '" aria-label="' + escapeDashboardHtml(badge.name) + '">' +
-    '<span class="profile-nexus-badge-chip-ring" aria-hidden="true"></span>' +
-    '<span class="profile-nexus-badge-chip-core"><i class="fas ' + escapeDashboardHtml(icon) + '"></i></span>' +
-    '<span class="profile-nexus-badge-chip-label">' + escapeDashboardHtml(badge.name) + '</span>' +
-    '</div>';
+  row.innerHTML = chips.join('');
 }
+
+/** Repinta la tira tras otorgar una insignia (lo usa el overlay de bienvenida). */
+window.refreshProfileNexusBadges = function() {
+  const uid = firebase.auth().currentUser && firebase.auth().currentUser.uid;
+  if (!uid) return;
+  firebase.database().ref('users/' + uid + '/badges').once('value').then(function(snap) {
+    const badges = snap.val();
+    if (!badges) return;
+    // window.currentUserData y currentUserData son el mismo objeto.
+    if (!window.currentUserData) window.currentUserData = {};
+    window.currentUserData.badges = badges;
+    renderProfileNexusBadges(window.currentUserData);
+  }).catch(function() {});
+};
 
 window.acceptFriendRequest = acceptFriendRequest;
 window.declineFriendRequest = declineFriendRequest;

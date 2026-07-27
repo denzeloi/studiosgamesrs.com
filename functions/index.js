@@ -115,3 +115,7 @@ exports.submitCommunityReport = communityReports.submitCommunityReport;
 
 const profileCustomizationShop = require('./profileCustomizationShop');
 exports.purchaseProfileCustomizationItem = profileCustomizationShop.purchaseProfileCustomizationItem;
+
+const welcomeReward = require('./welcomeReward');
+exports.claimWelcomeReward = welcomeReward.claimWelcomeReward;
+exports.backfillWelcomeBadge = welcomeReward.backfillWelcomeBadge;
