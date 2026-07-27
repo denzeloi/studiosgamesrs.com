@@ -13,9 +13,19 @@
     "public": ".",
     "cleanUrls": true,
     "trailingSlash": false,
+    "predeploy": [
+      "node tools/verify-site-assets.js local"
+    ],
+    "postdeploy": [
+      "node tools/verify-site-assets.js live"
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",
+      "**/.*/**",
+      ".git/**",
+      ".firebase/**",
+      "tools/**",
       "**/node_modules/**",
       "functions/**",
       "*.md",
