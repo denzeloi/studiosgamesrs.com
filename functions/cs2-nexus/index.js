@@ -15,6 +15,7 @@ if (!admin.apps.length) {
 }
 
 const COMMANDER_RANKS = new Set(['commander', 'boss_of_the_state', 'divisional_commander']);
+const CS2_GAME_PORT = 27015;
 
 function toHttpsError(err, fallbackCode) {
   if (err instanceof HttpsError) throw err;
@@ -130,7 +131,7 @@ async function pollRconUntilReady(serverId, tournamentId, ip) {
   for (let i = 0; i < maxAttempts; i += 1) {
     if (!(await isProvisionActive(serverId, tournamentId))) return;
 
-    const portOpen = await tcpProbe(ip, 27015, 3000);
+    const portOpen = await tcpProbe(ip, CS2_GAME_PORT, 3000);
     if (portOpen) {
       consecutivePortOpen += 1;
 
@@ -139,7 +140,7 @@ async function pollRconUntilReady(serverId, tournamentId, ip) {
         metamodGraceDone = true;
       }
 
-      const ping = await rcon.ping(ip, 27015, password, snapshot ? 4000 : 5000);
+      const ping = await rcon.ping(ip, CS2_GAME_PORT, password, snapshot ? 4000 : 5000);
       if (ping.ok) {
         if (!(await isProvisionActive(serverId, tournamentId))) return;
         await rtdb.writeGameServer(String(serverId), {
@@ -181,7 +182,8 @@ async function finishProvision(serverId, tournamentId, matchId) {
     await rtdb.writeGameServer(String(serverId), {
       status: 'booting',
       ip,
-      port: 27015,
+      port: CS2_GAME_PORT,
+      error: null,
       tournamentId,
       matchId,
       hetznerId: serverId,
@@ -190,7 +192,7 @@ async function finishProvision(serverId, tournamentId, matchId) {
     await rtdb.writeTournament(tournamentId, {
       activeServerId: String(serverId),
       serverIp: ip,
-      serverPort: port,
+      serverPort: CS2_GAME_PORT,
     });
 
     // Do not await — polling can take 5–9 min and causes 504 Gateway Timeout on provision.

@@ -586,7 +586,12 @@
         activeServerId = String(result.serverId);
         if (result.provisionMode) provisionMode = result.provisionMode;
         if (result.error) {
-          setAdminMsg('Provisioning failed: ' + result.error, true);
+          if (result.ip) {
+            setAdminMsg('Server at ' + result.ip + ':' + (result.port || 27015) + ' — CS2 starting. (Recovered from backend warning: ' + result.error + ')');
+            startServerStatusPoll();
+          } else {
+            setAdminMsg('Provisioning failed: ' + result.error, true);
+          }
         } else if (result.status === 'online' && result.ip) {
           setAdminMsg('Server ready at ' + result.ip + ':27015. Click Launch Match.');
         } else if (result.ip) {
