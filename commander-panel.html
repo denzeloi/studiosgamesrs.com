@@ -391,13 +391,50 @@
           <div class="nexus-widget-header">
             <div class="nexus-widget-icon"><i class="fas fa-trophy"></i></div>
             <div class="nexus-widget-title">
-              <h3>Control de torneos & juegos</h3>
-              <p>Brackets, premios y kill switch — módulo en expansión.</p>
+              <h3>CS2 Tournament Control</h3>
+              <p>Provision servers, launch matches, and monitor live data.</p>
             </div>
           </div>
-          <p class="commander-placeholder-text">
-            Próximamente: pausa/reanudar, brackets y asignación de premios. Usa el bloque superior para invitar equipos a torneos activos.
-          </p>
+          <div class="commander-tournament-controls" style="display:grid;gap:1rem;margin-top:1rem;">
+            <div>
+              <label for="cmdTournamentSelect">Active Tournament</label>
+              <select id="cmdTournamentSelect" class="modal-input" style="width:100%;max-width:480px;"></select>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+              <select id="cmdMapSelect" class="modal-input" style="width:auto;">
+                <option value="de_mirage">de_mirage</option>
+                <option value="de_inferno">de_inferno</option>
+                <option value="de_nuke">de_nuke</option>
+                <option value="de_ancient">de_ancient</option>
+                <option value="de_anubis">de_anubis</option>
+              </select>
+              <button type="button" class="commander-btn primary" id="cmdBtnProvision"><i class="fas fa-server"></i> Provision Server</button>
+              <button type="button" class="commander-btn primary" id="cmdBtnLaunch"><i class="fas fa-play"></i> Launch Match</button>
+              <button type="button" class="commander-btn danger" id="cmdBtnShutdown"><i class="fas fa-power-off"></i> Shutdown</button>
+              <a href="competition-hub.html" class="commander-btn secondary" id="cmdBtnCreateTournament"><i class="fas fa-plus"></i> Create Tournament</a>
+            </div>
+            <p id="cmdTournamentMsg" class="commander-placeholder-text" style="color:#ffca3a;"></p>
+          </div>
+        </div>
+        <div class="commander-block nexus-dashboard-widget" style="margin-top:1rem;">
+          <div class="nexus-widget-header">
+            <div class="nexus-widget-icon"><i class="fas fa-signal"></i></div>
+            <div class="nexus-widget-title">
+              <h3>Game Servers</h3>
+              <p>Live status from Hetzner (on-demand).</p>
+            </div>
+          </div>
+          <div id="cmdGameServersList" class="commander-customization-list"></div>
+        </div>
+        <div class="commander-block nexus-dashboard-widget" style="margin-top:1rem;">
+          <div class="nexus-widget-header">
+            <div class="nexus-widget-icon"><i class="fas fa-broadcast-tower"></i></div>
+            <div class="nexus-widget-title">
+              <h3>Live Match Feed</h3>
+              <p>Real-time data from active CS2 server.</p>
+            </div>
+          </div>
+          <pre id="cmdLiveMatchFeed" style="background:#111;color:#4caf50;padding:1rem;border-radius:8px;font-size:0.8rem;max-height:240px;overflow:auto;">Waiting for live match...</pre>
         </div>
       </section>
 
@@ -1367,6 +1404,8 @@
     </div>
   </div>
 
+  <script src="cs2-bridge-config.js?v=20260724b"></script>
+  <script src="tournament-system.js?v=20260724b"></script>
   <script src="shared-unified-header.js?v=20260711d"></script>
   <script src="shared-notifications.js?v=20260726motion1"></script>
   <script src="shared-header.js?v=20260711d"></script>

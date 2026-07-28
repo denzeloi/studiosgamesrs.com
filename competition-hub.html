@@ -24,6 +24,8 @@
   <script src="/sg-firebase-init.js?v=20260724nocaptcha"></script>
   <script src="https://cdn.jsdelivr.net/npm/motion@12.42.2/dist/motion.js"></script>
   <script>sgInitFirebaseApp();</script>
+  <script src="cs2-bridge-config.js?v=20260724b"></script>
+  <script src="tournament-system.js?v=20260724b"></script>
   </head>
 
 <body>
@@ -600,6 +602,91 @@
     </div>
   </div>
   
+  <div id="tournamentCreationModal" class="modal-container tournament-creation-modal" style="display: none;" role="dialog" aria-labelledby="tournamentModalTitle" aria-modal="true">
+    <div class="modal-content tournament-creation-modal__content">
+      <span id="closeTournamentCreationModal" class="modal-close" aria-label="Close">&times;</span>
+
+      <div class="tournament-creation-modal__header">
+        <h2 id="tournamentModalTitle" class="modal-title">Create Tournament</h2>
+        <p class="tournament-creation-modal__notice">
+          <i class="fas fa-shield-alt"></i>
+          Only Commander rank can create and manage official tournaments.
+        </p>
+      </div>
+
+      <form id="createTournamentForm" class="tournament-creation-modal__form">
+        <div class="tournament-creation-modal__body">
+          <div class="modal-input-group">
+            <label for="tournamentNameInput">Tournament Name</label>
+            <input type="text" id="tournamentNameInput" class="modal-input" placeholder="e.g. Studiosgamesrs CS2 Open" required maxlength="50">
+          </div>
+
+          <div class="modal-input-group">
+            <label for="tournamentGameSelect">Game</label>
+            <select id="tournamentGameSelect" class="modal-input" required>
+              <option value="cs2" selected>Counter-Strike 2</option>
+              <option value="valorant">Valorant</option>
+              <option value="lol">League of Legends</option>
+              <option value="rl">Rocket League</option>
+            </select>
+          </div>
+
+          <div class="tournament-creation-modal__row">
+            <div class="modal-input-group">
+              <label for="tournamentFormatSelect">Format</label>
+              <select id="tournamentFormatSelect" class="modal-input" required>
+                <option value="SingleElim">Single Elimination</option>
+                <option value="DoubleElim">Double Elimination</option>
+                <option value="RoundRobin">Round Robin</option>
+              </select>
+            </div>
+            <div class="modal-input-group">
+              <label for="tournamentRegionSelect">Region</label>
+              <select id="tournamentRegionSelect" class="modal-input" required>
+                <option value="LATAM">LATAM</option>
+                <option value="NorthAmerica" selected>North America</option>
+                <option value="Europe">Europe</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="modal-input-group">
+            <label for="tournamentMaxTeamsInput">Max Teams <span class="field-hint">(minimum 2)</span></label>
+            <input type="number" id="tournamentMaxTeamsInput" class="modal-input" placeholder="16" value="16" min="2" max="128" required>
+          </div>
+
+          <div class="modal-input-group">
+            <label for="tournamentScheduleInput">Schedule / Start Time</label>
+            <input type="datetime-local" id="tournamentScheduleInput" class="modal-input" required>
+          </div>
+
+          <div class="tournament-creation-modal__row">
+            <div class="modal-input-group">
+              <label for="tournamentPrizeInput">Base Prize Pool (Tokens)</label>
+              <input type="number" id="tournamentPrizeInput" class="modal-input" placeholder="500" min="0" value="0" required>
+            </div>
+            <div class="modal-input-group">
+              <label for="tournamentEntryFeeInput">Entry Fee per Team (Tokens)</label>
+              <input type="number" id="tournamentEntryFeeInput" class="modal-input" placeholder="10" min="0" value="0" required>
+            </div>
+          </div>
+
+          <div class="modal-input-group">
+            <label for="tournamentDescriptionTextarea">Description / Rules <span class="field-hint">(optional)</span></label>
+            <textarea id="tournamentDescriptionTextarea" class="modal-textarea" maxlength="300" rows="3" placeholder="Brief description of rules or format..."></textarea>
+          </div>
+        </div>
+
+        <div class="tournament-creation-modal__footer">
+          <button type="button" id="cancelTournamentBtn" class="modal-action-btn secondary">Cancel</button>
+          <button type="submit" id="saveTournamentBtn" class="modal-action-btn primary">
+            <i class="fas fa-trophy"></i> Create Tournament
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="shared-unified-header.js?v=20260711d"></script>
   <script src="shared-notifications.js?v=20260726motion1"></script>
   <script src="shared-header.js?v=20260719c"></script>

@@ -9,8 +9,15 @@ if (typeof firebase !== 'undefined') {
     // Necesario para el nuevo sistema de torneos
     // NOTA: Asegúrate de que tournament-system.js se cargue ANTES de esta lógica.
     // MODIFICACIÓN: Chequeo de existencia para evitar ReferenceError si tournament-system.js falla
-    if (typeof initializeTournamentCreation === 'function') {
-        // initializeTournamentCreation(); // Descomentar cuando el archivo tournament-system.js esté listo
+    function initTournamentCreationWhenReady() {
+        if (typeof initializeTournamentCreation === 'function') {
+            initializeTournamentCreation();
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTournamentCreationWhenReady);
+    } else {
+        initTournamentCreationWhenReady();
     }
 }
 
@@ -47,6 +54,13 @@ function getPermisosRango(rango) {
       puedeCrearTorneos: true,
       accesoTotal: true,
       prioridad: 3,
+    };
+  }
+  if (rango === "boss_of_the_state") {
+    return {
+      puedeCrearTorneos: true,
+      accesoTotal: true,
+      prioridad: 4,
     };
   }
   return { puedeCrearTorneos: false, accesoTotal: false, prioridad: 1 };
@@ -430,7 +444,7 @@ async function loadTeamDashboard(teamId, currentUserId) {
                         createTournamentBtn.innerHTML = '<i class="fas fa-tasks"></i> Gestionar Mi Torneo';
                         createTournamentBtn.onclick = (e) => {
                             e.preventDefault();
-                            openTournamentOrganizerModal(activeTournamentId);
+                            window.location.href = '/tournament-details?id=' + encodeURIComponent(activeTournamentId);
                         };
                         createTournamentBtn.style.display = 'flex';
                     } else {

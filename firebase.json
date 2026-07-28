@@ -5,16 +5,32 @@
   "storage": {
     "rules": "storage.rules"
   },
-  "functions": {
-    "source": "functions"
-  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default"
+    },
+    {
+      "source": "functions/cs2-nexus",
+      "codebase": "cs2-nexus",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ],
   "hosting": {
     "site": "studiosgamesrs",
     "public": ".",
     "cleanUrls": true,
     "trailingSlash": false,
     "predeploy": [
-      "node tools/verify-site-assets.js local"
+      "node tools/verify-site-assets.js local",
+      "node scripts/build-hosting-routes.js",
+      "node scripts/verify-hosting-files.js"
     ],
     "postdeploy": [
       "node tools/verify-site-assets.js live"
@@ -26,6 +42,7 @@
       ".git/**",
       ".firebase/**",
       "tools/**",
+      "scripts/**",
       "**/node_modules/**",
       "functions/**",
       "*.md",
@@ -33,6 +50,22 @@
       "steam-config.php",
       "serviceAccountKey.json",
       "animations/**"
+    ],
+    "redirects": [
+      { "source": "/", "destination": "/login", "type": 302 }
+    ],
+    "rewrites": [
+      { "source": "/login", "destination": "/login.html" },
+      { "source": "/dashboard", "destination": "/dashboard.html" },
+      { "source": "/competition-hub", "destination": "/competition-hub.html" },
+      { "source": "/tournament-details", "destination": "/tournament-details.html" },
+      { "source": "/commander-panel", "destination": "/commander-panel.html" },
+      { "source": "/community", "destination": "/community.html" },
+      { "source": "/nexus", "destination": "/nexus.html" },
+      { "source": "/playzone", "destination": "/playzone.html" },
+      { "source": "/steam-login-handler", "destination": "/steam-login-handler.html" },
+      { "source": "/steam-callback", "destination": "/steam-callback.html" },
+      { "source": "/steam_bridge", "destination": "/steam_bridge.html" }
     ],
     "headers": [
       {

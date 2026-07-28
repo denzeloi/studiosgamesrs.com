@@ -638,7 +638,19 @@
     },
     "partida_en_vivo": {
       ".read": true,
-      ".write": "auth != null"
+      ".write": false,
+      "$matchId": {
+        ".read": true,
+        ".write": false
+      }
+    },
+    "gameServers": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+      ".write": false,
+      "$serverId": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+        ".write": false
+      }
     },
     "presence": {
       ".read": "auth != null",
