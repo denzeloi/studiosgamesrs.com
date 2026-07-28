@@ -43,6 +43,17 @@ function projectPublicProfile(u) {
   copy('thought');
   copy('preferSteamAvatar');
   copy('avatarSource');
+  // Insignias públicas (p.ej. Lealtad). Solo IDs; el arte lo resuelve el cliente.
+  if (Array.isArray(u.badges)) {
+    out.badges = u.badges.filter(function (id) { return typeof id === 'string' && id; }).slice(0, 20);
+  } else if (u.badges && typeof u.badges === 'object') {
+    out.badges = Object.keys(u.badges).reduce(function (list, key) {
+      var val = u.badges[key];
+      if (val === true || val === 1) list.push(key);
+      else if (typeof val === 'string' && val) list.push(val);
+      return list;
+    }, []).slice(0, 20);
+  }
 
   // Del objeto steam solo se exponen las URLs de avatar, nunca steamid/personaname.
   if (u.steam && typeof u.steam === 'object') {

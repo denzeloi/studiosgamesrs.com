@@ -636,7 +636,11 @@ class NexusDashboardWidget {
         
         // Renderizar badges
         this.renderBadges();
-        renderProfileNexusBadges(window.currentUserData || {});
+        // Solo repinta la tira del perfil propio: si estamos mirando a otro
+        // usuario, no debemos sobrescribir sus insignias con las del visitante.
+        if (typeof isViewingOwnProfile === 'undefined' || isViewingOwnProfile) {
+          renderProfileNexusBadges(window.currentUserData || {}, firebase.auth().currentUser && firebase.auth().currentUser.uid);
+        }
     }
     
     getRankXp() {
@@ -2517,16 +2521,35 @@ async function declineFriendRequest(senderUid) {
   }
 }
 
-function getProfileAchievementsMerged(userData) {
+function normalizeBadgeList(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw.filter(function(id) { return typeof id === 'string' && id; });
+  }
+  if (typeof raw === 'object') {
+    return Object.keys(raw).reduce(function(list, key) {
+      var val = raw[key];
+      if (val === true || val === 1) list.push(key);
+      else if (typeof val === 'string' && val) list.push(val);
+      return list;
+    }, []);
+  }
+  return [];
+}
+
+function getProfileAchievementsMerged(userData, options) {
+  const opts = options || {};
   const merged = {};
   const fromUser = (userData && userData.achievements) || {};
   Object.keys(fromUser).forEach(function(key) {
     if (fromUser[key]) merged[key] = fromUser[key];
   });
-  if (userData && Array.isArray(userData.badges)) {
-    userData.badges.forEach(function(id) { merged[id] = true; });
-  }
-  if (window.NexusWidget && Array.isArray(window.NexusWidget.badgesList)) {
+  normalizeBadgeList(userData && userData.badges).forEach(function(id) {
+    merged[id] = true;
+  });
+  // El widget Nexus solo refleja al usuario logueado: al mirar otro perfil
+  // no debe mezclarse o se verían (o se ocultarían) las insignias incorrectas.
+  if (opts.includeViewerWidget !== false && window.NexusWidget && Array.isArray(window.NexusWidget.badgesList)) {
     window.NexusWidget.badgesList.forEach(function(badge) {
       if (badge.unlocked) merged[badge.id] = true;
     });
@@ -2560,15 +2583,15 @@ function isNexusProfileBadgeUnlocked(achievements, badge) {
   return false;
 }
 
-function getUnlockedNexusBadgesForProfile(userData) {
-  const achievements = getProfileAchievementsMerged(userData);
+function getUnlockedNexusBadgesForProfile(userData, options) {
+  const achievements = getProfileAchievementsMerged(userData, options);
   return NEXUS_PROFILE_BADGES_DISPLAY.filter(function(badge) {
     return isNexusProfileBadgeUnlocked(achievements, badge);
   });
 }
 
-function getPrimaryNexusBadgeForProfile(userData) {
-  const achievements = getProfileAchievementsMerged(userData);
+function getPrimaryNexusBadgeForProfile(userData, options) {
+  const achievements = getProfileAchievementsMerged(userData, options);
   const unlocked = NEXUS_PROFILE_BADGES_DISPLAY.find(function(badge) {
     return isNexusProfileBadgeUnlocked(achievements, badge);
   });
@@ -2596,38 +2619,83 @@ function buildProfileBadgeChip(badge, unlocked, index) {
     '</div>';
 }
 
-function renderProfileNexusBadges(userData) {
+/**
+ * Pinta la tira de insignias del perfil. profileUid es el dueño del perfil
+ * que se está mirando; si no es el usuario logueado, solo se muestran
+ * insignias públicas ya desbloqueadas (nunca el estado del widget Nexus).
+ */
+function renderProfileNexusBadges(userData, profileUid) {
   const row = document.getElementById('profile-nexus-badges-row');
   const strip = document.getElementById('profileNexusBadgesStrip');
   if (!row || !strip) return;
-  const achievements = getProfileAchievementsMerged(userData);
+
+  const viewerUid = (firebase.auth().currentUser && firebase.auth().currentUser.uid) || null;
+  const targetUid = profileUid || viewerUid;
+  const isOwn = !!(viewerUid && targetUid && viewerUid === targetUid);
+  const mergeOpts = { includeViewerWidget: isOwn };
+  const data = userData || {};
+  const achievements = getProfileAchievementsMerged(data, mergeOpts);
   const chips = [];
 
-  // La insignia de Lealtad va primero: es la distinción de los primeros
-  // usuarios y solo se ve mientras se la hayan ganado.
   if (achievements[LOYALTY_PROFILE_BADGE.id]) {
     chips.push(buildProfileBadgeChip(LOYALTY_PROFILE_BADGE, true, 0));
   }
 
-  const badge = getPrimaryNexusBadgeForProfile(userData);
-  chips.push(buildProfileBadgeChip(badge, isNexusProfileBadgeUnlocked(achievements, badge), chips.length));
+  if (isOwn) {
+    const badge = getPrimaryNexusBadgeForProfile(data, mergeOpts);
+    chips.push(buildProfileBadgeChip(badge, isNexusProfileBadgeUnlocked(achievements, badge), chips.length));
+  } else {
+    // En perfiles ajenos solo se muestran insignias públicas desbloqueadas.
+    getUnlockedNexusBadgesForProfile(data, mergeOpts).forEach(function(badge) {
+      chips.push(buildProfileBadgeChip(badge, true, chips.length));
+    });
+  }
+
+  if (!chips.length) {
+    strip.style.display = isOwn ? 'flex' : 'none';
+    row.innerHTML = '';
+    return;
+  }
 
   strip.style.display = 'flex';
   row.innerHTML = chips.join('');
+}
+
+/**
+ * Carga insignias públicas del perfil (users/{uid}/badges + publicProfiles)
+ * y pinta la tira. Así al mirar a otro usuario no dependemos de que el
+ * snapshot completo traiga badges, ni del widget Nexus del visitante.
+ */
+function loadAndRenderProfileBadges(profileUid, seedUserData) {
+  const data = Object.assign({}, seedUserData || {});
+  if (!profileUid || typeof firebase === 'undefined' || !firebase.database) {
+    renderProfileNexusBadges(data, profileUid);
+    return Promise.resolve();
+  }
+
+  const db = firebase.database();
+  return Promise.all([
+    db.ref('users/' + profileUid + '/badges').once('value').catch(function() { return null; }),
+    db.ref('publicProfiles/' + profileUid + '/badges').once('value').catch(function() { return null; })
+  ]).then(function(snaps) {
+    const fromUser = snaps[0] && snaps[0].val ? snaps[0].val() : null;
+    const fromPublic = snaps[1] && snaps[1].val ? snaps[1].val() : null;
+    const merged = {};
+    normalizeBadgeList(data.badges).forEach(function(id) { merged[id] = true; });
+    normalizeBadgeList(fromUser).forEach(function(id) { merged[id] = true; });
+    normalizeBadgeList(fromPublic).forEach(function(id) { merged[id] = true; });
+    data.badges = Object.keys(merged);
+    renderProfileNexusBadges(data, profileUid);
+  }).catch(function() {
+    renderProfileNexusBadges(data, profileUid);
+  });
 }
 
 /** Repinta la tira tras otorgar una insignia (lo usa el overlay de bienvenida). */
 window.refreshProfileNexusBadges = function() {
   const uid = firebase.auth().currentUser && firebase.auth().currentUser.uid;
   if (!uid) return;
-  firebase.database().ref('users/' + uid + '/badges').once('value').then(function(snap) {
-    const badges = snap.val();
-    if (!badges) return;
-    // window.currentUserData y currentUserData son el mismo objeto.
-    if (!window.currentUserData) window.currentUserData = {};
-    window.currentUserData.badges = badges;
-    renderProfileNexusBadges(window.currentUserData);
-  }).catch(function() {});
+  loadAndRenderProfileBadges(uid, window.currentUserData || {});
 };
 
 window.acceptFriendRequest = acceptFriendRequest;
@@ -3264,23 +3332,36 @@ async function registerProfileVisit(viewerUser, viewedProfileId, viewerProfileDa
 
 // ======== LÓGICA STEAM: Vincula tu cuenta, persistencia Firebase, redirección ========
 
+// Un SteamID64 son exactamente 17 dígitos. Un personaname suelto o un objeto
+// steam a medias no prueban nada, así que solo este identificador cuenta como
+// cuenta vinculada de verdad.
+function extractSteamId64(userData) {
+  if (!userData || typeof userData !== 'object') return '';
+  const raw = (userData.steamID != null && userData.steamID !== '')
+    ? userData.steamID
+    : (userData.steam && userData.steam.steamid != null ? userData.steam.steamid : '');
+  const id = String(raw || '').trim();
+  return /^\d{17}$/.test(id) ? id : '';
+}
+
 // Guarda steam en users/{uid}/steam Y el índice users/{uid}/steamID (necesario para login con Steam).
+// Las reglas dejan escribir users/{otroUid} a los rangos de mando, así que la
+// escritura se ancla al usuario autenticado: vincular Steam siempre es una
+// acción sobre la propia cuenta, nunca sobre el perfil que se está visitando.
 async function persistSteamLink(uid, steamData) {
   if (!uid || !steamData || typeof firebase === 'undefined') return;
-  const steamId = steamData.steamid ? String(steamData.steamid) : '';
-  const updates = { steam: steamData };
-  if (steamId) updates.steamID = steamId;
-  await firebase.database().ref('users/' + uid).update(updates);
+  const authUser = firebase.auth().currentUser;
+  if (!authUser || authUser.uid !== uid) return;
+  const steamId = extractSteamId64({ steam: steamData });
+  if (!steamId) return;
+  await firebase.database().ref('users/' + uid).update({ steam: steamData, steamID: steamId });
 }
 
 async function userHasSteamLinked(uid) {
   if (!uid || typeof firebase === 'undefined') return false;
   try {
     const snap = await firebase.database().ref('users/' + uid).once('value');
-    const d = snap.val() || {};
-    if (d.steamID) return true;
-    if (d.steam && (d.steam.steamid || d.steam.personaname)) return true;
-    return false;
+    return !!extractSteamId64(snap.val());
   } catch (e) {
     return false;
   }
@@ -3314,19 +3395,22 @@ async function updateSteamUI(user, isViewingOwnProfile, profileUserId, profileUs
     } catch (e) {}
   }
 
-  if (profileUserData && profileUserData.steam) {
-    steamData = profileUserData.steam;
-  } else if (!steamData && profileUserId && typeof firebase !== 'undefined') {
+  // El sello se decide únicamente con el registro del perfil visitado leído de
+  // la base de datos, para que la sesión del visitante no pinte nunca el estado
+  // de Steam de otra cuenta.
+  let profileRecord = profileUserData || null;
+  if (!profileRecord && profileUserId && typeof firebase !== 'undefined') {
     try {
-      const snap = await firebase.database().ref(`users/${profileUserId}/steam`).once('value');
-      const fb = snap.val();
-      if (fb) {
-        steamData = fb;
-        if (isViewingOwnProfile && user && profileUserId === user.uid) {
-          localStorage.setItem('usuario_steam', JSON.stringify(fb));
-        }
-      }
+      const snap = await firebase.database().ref(`users/${profileUserId}`).once('value');
+      profileRecord = snap.val();
     } catch (e) {}
+  }
+  const profileSteamId = extractSteamId64(profileRecord);
+  if (profileSteamId && profileRecord.steam) {
+    steamData = profileRecord.steam;
+    if (isViewingOwnProfile && user && profileUserId === user.uid) {
+      try { localStorage.setItem('usuario_steam', JSON.stringify(profileRecord.steam)); } catch (e) {}
+    }
   }
 
   // 3. Persistir a Firebase si tenemos en localStorage y es perfil propio (+ índice steamID)
@@ -3337,8 +3421,14 @@ async function updateSteamUI(user, isViewingOwnProfile, profileUserId, profileUs
   }
 
   // 4. Actualizar badge y alerta: solo mostrar "Vincula tu cuenta" cuando es perfil propio y NO hay Steam
-  const hasSteam = !!(steamData && (steamData.steamid || steamData.personaname));
+  // En el perfil propio también cuenta la vinculación recién hecha en este
+  // mismo paso, que todavía no estaba en el registro leído al abrir la página.
+  const ownSteamId = (isViewingOwnProfile && user) ? extractSteamId64({ steam: steamData }) : '';
+  const hasSteam = !!(profileSteamId || ownSteamId);
   if (steamStatusBadge) {
+    // En un perfil ajeno el sello solo existe si la vinculación es real; el
+    // aviso rojo de "No vinculado" es una llamada a la acción para el dueño.
+    steamStatusBadge.style.display = (hasSteam || isViewingOwnProfile) ? '' : 'none';
     steamStatusBadge.classList.toggle('disconnected', !hasSteam);
     steamStatusBadge.title = hasSteam ? 'Steam vinculado' : 'No vinculado';
     if (steamStatusText) steamStatusText.innerText = hasSteam ? 'Steam vinculado' : 'No vinculado';
@@ -3388,7 +3478,7 @@ async function updateSteamUI(user, isViewingOwnProfile, profileUserId, profileUs
   }
 
   // 7. Recuadro de estadísticas de CS2 (K/D + última partida) vía Steam
-  try { loadCs2StatsCard(profileUserId, hasSteam, profileUserData); } catch (e) { console.warn('CS2 card:', e); }
+  try { loadCs2StatsCard(profileUserId, hasSteam, profileRecord); } catch (e) { console.warn('CS2 card:', e); }
 
   // 8. Logout: se unifica en la función global logout() más abajo
 }
@@ -3428,8 +3518,7 @@ async function loadCs2StatsCard(profileUserId, hasSteam, profileUserData) {
   const section = document.getElementById('aportesSection');
   if (!card) return;
 
-  const ownerSteam = profileUserData && profileUserData.steam;
-  const ownerHasSteam = !!(ownerSteam && ownerSteam.steamid);
+  const ownerHasSteam = !!extractSteamId64(profileUserData);
   if (!ownerHasSteam || !profileUserId || typeof firebase === 'undefined' || !firebase.functions) {
     card.style.display = 'none';
     if (section) section.classList.add('profile-cs2-unavailable');
@@ -3638,6 +3727,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       initializeWidget(currentUserData); // Inicializa el nuevo widget
       if (isViewingOwnProfile) initializeGlobalChatButton();
+      maybeOpenDashboardDmFromUrl();
       if (typeof initBattleCallListenerDashboard === 'function') initBattleCallListenerDashboard();
       if (typeof initPresenceDashboard === 'function') initPresenceDashboard();
 
@@ -3879,9 +3969,9 @@ document.addEventListener("DOMContentLoaded", function () {
           favoriteGameText.textContent = mainGame;
       }
 
-      renderProfileNexusBadges(isViewingOwnProfile ? currentUserData : profileUserData);
+      loadAndRenderProfileBadges(profileUserId, isViewingOwnProfile ? currentUserData : profileUserData);
       setTimeout(function() {
-        renderProfileNexusBadges(isViewingOwnProfile ? currentUserData : profileUserData);
+        loadAndRenderProfileBadges(profileUserId, isViewingOwnProfile ? currentUserData : profileUserData);
       }, 800);
 
       const honorText = document.getElementById('communityHonorText');
@@ -4374,24 +4464,40 @@ async function refreshProfileSocialButtons(targetUid, targetData) {
 
     actions.style.display = 'flex';
     const isEs = (navigator.language || '').toLowerCase().startsWith('es');
+    const db = firebase.database();
 
-    const friendSnap = await firebase.database().ref('sgFriends/' + authUser.uid + '/' + targetUid).once('value');
-    const isFriend = friendSnap.exists();
-    const pendingSnap = await firebase.database().ref('friendRequests/' + targetUid + '/' + authUser.uid).once('value');
-    const isPending = pendingSnap.exists();
+    // Una lectura denegada aquí dejaba el botón congelado en "Agregar amigo":
+    // cada estado se resuelve por separado y su fallo no bloquea a los demás.
+    const readOrNull = (path) => db.ref(path).once('value').then((s) => s.val()).catch(() => null);
+    const [friendData, sentData, incomingData] = await Promise.all([
+        readOrNull('sgFriends/' + authUser.uid + '/' + targetUid),
+        readOrNull('friendRequests/' + targetUid + '/' + authUser.uid),
+        readOrNull('friendRequests/' + authUser.uid + '/' + targetUid)
+    ]);
 
     friendBtn.className = 'profile-action-badge';
     friendBtn.disabled = false;
     friendBtn.onclick = () => openDashboardFriendRequestModal(targetUid, targetData?.nick || 'Usuario');
 
-    if (isFriend) {
+    if (friendData) {
         friendBtn.disabled = true;
         friendBtn.classList.add('profile-action-badge--friend');
         friendBtn.title = isEs ? 'Ya son amigos' : 'Already friends';
         friendBtn.innerHTML = '<i class="fas fa-user-check"></i>';
         chatBtn.style.display = 'inline-flex';
+        chatBtn.title = isEs ? 'Chat privado' : 'Private chat';
         chatBtn.onclick = () => openProfilePrivateChat(targetUid, targetData);
-    } else if (isPending) {
+    } else if (incomingData) {
+        friendBtn.classList.add('profile-action-badge--pending');
+        friendBtn.title = isEs ? 'Te envió una solicitud: acéptala' : 'They sent you a request: accept it';
+        friendBtn.innerHTML = '<i class="fas fa-user-clock"></i>';
+        friendBtn.onclick = () => acceptFriendRequest({
+            senderUid: targetUid,
+            senderNick: incomingData.senderNick || targetData?.nick || 'Usuario',
+            senderAvatar: incomingData.senderAvatar || targetData?.photoURL || '/dragon_profile_studiosgamesrs.png'
+        });
+        chatBtn.style.display = 'none';
+    } else if (sentData) {
         friendBtn.disabled = true;
         friendBtn.classList.add('profile-action-badge--pending');
         friendBtn.title = isEs ? 'Solicitud enviada' : 'Request sent';
@@ -4419,7 +4525,46 @@ async function openProfilePrivateChat(targetUid, targetData) {
         await firebase.database().ref('sgChatLinks/' + targetUid + '/' + authUser.uid).set(true);
     } catch (e) {}
     const nick = targetData?.nick || 'Usuario';
+    if (window.SGNotifications && typeof window.SGNotifications.markPrivateChatRead === 'function') {
+        window.SGNotifications.markPrivateChatRead(targetUid);
+    }
     openTeamChat(roomId, nick, {}, 'privateChat');
+}
+
+/**
+ * Abre el chat privado con un jugador sin pasar por su perfil: lo usa el aviso
+ * de mensaje nuevo (shared-notifications) y el parámetro ?dm= de la URL.
+ */
+async function openDashboardPrivateChatWith(targetUid, partnerNick) {
+    const authUser = firebase.auth().currentUser;
+    if (!authUser || !targetUid || targetUid === authUser.uid) return;
+    const roomId = getDashboardPrivateChatRoomId(targetUid);
+    if (!roomId) return;
+    let nick = partnerNick || '';
+    if (!nick) {
+        try {
+            const snap = await firebase.database().ref('users/' + targetUid + '/nick').once('value');
+            nick = snap.val() || 'Jugador';
+        } catch (e) {
+            nick = 'Jugador';
+        }
+    }
+    if (window.SGNotifications && typeof window.SGNotifications.markPrivateChatRead === 'function') {
+        window.SGNotifications.markPrivateChatRead(targetUid);
+    }
+    openTeamChat(roomId, nick, {}, 'privateChat');
+}
+window.openDashboardPrivateChatWith = openDashboardPrivateChatWith;
+
+function maybeOpenDashboardDmFromUrl() {
+    const dmUid = getURLParameter('dm');
+    if (!dmUid) return;
+    try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('dm');
+        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+    } catch (e) {}
+    openDashboardPrivateChatWith(dmUid);
 }
 
 function initializeProfileSocialActions(targetUid, targetData) {
@@ -5158,6 +5303,12 @@ function openTeamChat(chatId, chatName, roster, firebaseNode = 'teamChats') {
     currentChatTeamId = chatId;
     currentChatRoster = roster;
     currentChatFirebaseNode = firebaseNode;
+    if (window.SGNotifications && typeof window.SGNotifications.setActivePrivateChat === 'function') {
+        const dmPartnerUid = firebaseNode === 'privateChat'
+            ? String(chatId).split('_').find(part => part && part !== authUser.uid)
+            : null;
+        window.SGNotifications.setActivePrivateChat(dmPartnerUid || null);
+    }
     if (firebaseNode === 'teamChats') {
         currentTeamChatId = chatId;
         currentTeamChatName = chatName;
@@ -5251,6 +5402,9 @@ function openTeamChat(chatId, chatName, roster, firebaseNode = 'teamChats') {
  * Cierra la ventana del chat y limpia los listeners.
  */
 function closeTeamChat() {
+    if (window.SGNotifications && typeof window.SGNotifications.setActivePrivateChat === 'function') {
+        window.SGNotifications.setActivePrivateChat(null);
+    }
     if (currentChatMessagesRef && currentChatListener) {
         currentChatMessagesRef.off('value', currentChatListener);
     }
