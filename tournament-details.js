@@ -428,7 +428,15 @@
     var conn = $('tdConnectInfo');
     if (isServerReady() && conn) {
       conn.style.display = 'block';
-      conn.textContent = 'connect ' + getServerIp() + ':' + getServerPort();
+      var line = 'connect ' + getServerIp() + ':' + getServerPort();
+      conn.innerHTML =
+        '<div style="margin-bottom:8px;">' + line + '</div>' +
+        '<div style="font-size:0.8rem;color:#aaa;line-height:1.5;">' +
+        '1. Open CS2 → press <strong>~</strong> (console)<br>' +
+        '2. Paste the line above and press Enter<br>' +
+        '3. Do not use Community Server browser — direct connect only<br>' +
+        '4. Both players need a Steam account with CS2 installed' +
+        '</div>';
     } else if (conn) {
       conn.style.display = 'none';
       conn.textContent = '';
@@ -653,7 +661,10 @@
         var result = await TournamentSystem.launchMatch(
           tournamentId, matchId, map, activeServerId || tournamentData.activeServerId, teamIds
         );
-        var msg = 'Match launched. Connect: ' + result.serverIp + ':' + (result.port || 27015);
+        var msg = 'Match launched. Connect in CS2 console (~): connect ' + result.serverIp + ':' + (result.port || 27015);
+        if (result.manualConnect || result.rconOk === false) {
+          msg += ' (Map may need a minute to load if RCON timed out — try connect anyway.)';
+        }
         if (result.manualConnect || result.rconOk === false) {
           msg += '. RCON could not load the map from the cloud — join the server and run: changelevel ' + map;
           if (result.rconError) msg += ' (' + result.rconError + ')';

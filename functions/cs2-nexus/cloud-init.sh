@@ -83,6 +83,16 @@ chown -R "${CS2_USER}:${CS2_USER}" "${CS2_ROOT}"
 
 mkdir -p "$CS2_DIR/cfg" /etc/cs2-nexus
 
+# Allow CS2 game traffic (UDP + TCP) and SSH before enabling host firewall.
+if command -v ufw >/dev/null 2>&1; then
+  ufw allow OpenSSH >/dev/null 2>&1 || true
+  ufw allow 27015/udp >/dev/null 2>&1 || true
+  ufw allow 27015/tcp >/dev/null 2>&1 || true
+  ufw allow 27020/udp >/dev/null 2>&1 || true
+  ufw --force enable >/dev/null 2>&1 || true
+  echo "[install] ufw enabled (27015 udp/tcp open)"
+fi
+
 cat > "$CS2_DIR/cfg/server.cfg" << 'CFGEOF'
 hostname "Studiosgamesrs | Nexus Tournament"
 sv_password ""
