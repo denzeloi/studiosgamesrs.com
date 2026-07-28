@@ -3,12 +3,12 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
-const hetzner = require('../lib/hetzner');
-const rcon = require('../lib/rcon');
-const { tcpProbe, probePortOpen } = require('../lib/net-probe');
-const rtdb = require('../lib/firebase-rtdb');
-const bracket = require('../lib/bracket');
-const webhook = require('../lib/webhook');
+const hetzner = require('./lib/hetzner');
+const rcon = require('./lib/rcon');
+const { tcpProbe, probePortOpen } = require('./lib/net-probe');
+const rtdb = require('./lib/firebase-rtdb');
+const bracket = require('./lib/bracket');
+const webhook = require('./lib/webhook');
 
 if (!admin.apps.length) {
   admin.initializeApp();

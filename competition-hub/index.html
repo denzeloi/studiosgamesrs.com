@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Competition Hub - Studiosgamesrs</title>
+  <link rel="icon" href="dragon_profile_studiosgamesrs.png" type="image/png" />
+
+  <link rel="stylesheet" href="dashboard-styles.css">
+  <link rel="stylesheet" href="shared-header.css">
+  <link rel="stylesheet" href="shared-notifications.css?v=20260711d">
+  <link rel="stylesheet" href="competition-hub.css">
+  <link rel="stylesheet" href="sg-tournament-hub.css?v=20260724perf">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-functions-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-check-compat.js"></script>
+  <script src="/sg-firebase-init.js?v=20260724nocaptcha"></script>
+  <script src="https://cdn.jsdelivr.net/npm/motion@12.42.2/dist/motion.js"></script>
+  <script>sgInitFirebaseApp();</script>
+  <script src="cs2-bridge-config.js?v=20260724b"></script>
+  <script src="tournament-system.js?v=20260724b"></script>
+  </head>
+
+<body>
+  <header class="unified-header">
+    <div class="header-brand">
+      <a href="/dashboard" class="header-logo" tabindex="0" aria-label="Ir al Home Studiosgamesrs">
+        <span class="studio">Studios</span><span class="gamesrs">gamesrs</span>
+      </a>
+      <div>
+        <div class="header-subtitle">/ Competition Hub</div>
+        <div class="header-version">v 2.4.0</div>
+      </div>
+    </div>
+    <div class="header-search">
+      <div class="search-input-container">
+        <input type="text" id="userSearchInput" placeholder="🔍 Buscar usuarios..." class="user-search-input">
+        <div id="searchResults" class="search-results"></div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="header-toggles">
+        <label class="nexus-toggle-label" title="Modo Furia">
+          <span class="toggle-text">Furia</span>
+          <input type="checkbox" id="themeFuryToggle" aria-label="Modo Furia">
+          <span class="nexus-toggle-switch"></span>
+        </label>
+        <label class="nexus-toggle-label" title="Modo Streamer">
+          <span class="toggle-text">Streamer</span>
+          <input type="checkbox" id="streamerModeToggle" aria-label="Modo Streamer">
+          <span class="nexus-toggle-switch"></span>
+        </label>
+      </div>
+      <button type="button" class="icon-btn" id="audioAmbientToggle" title="Audio ambiental"><i class="fas fa-music"></i></button>
+      <button type="button" class="icon-btn" id="generatePlayerCardBtn" title="Carta de Jugador"><i class="fas fa-id-card"></i></button>
+      <div class="header-notifications-wrap">
+        <button type="button" class="icon-btn" id="notificationsToggleBtn" title="Notificaciones" aria-expanded="false" aria-haspopup="true">
+          <i class="fas fa-bell"></i>
+          <span id="headerNotifBadge" class="header-notif-badge" style="display:none;">0</span>
+        </button>
+        <div id="headerNotificationsPanel" class="header-notifications-panel" style="display:none;" role="menu" aria-label="Notificaciones">
+          <div class="header-notif-head">
+            <span><i class="fas fa-bell"></i> Notificaciones</span>
+            <button type="button" class="header-notif-refresh" id="headerNotifRefreshBtn" title="Actualizar"><i class="fas fa-sync-alt"></i></button>
+          </div>
+          <div id="headerNotificationsList" class="header-notifications-list">
+            <p class="header-notif-empty">No tienes notificaciones.</p>
+          </div>
+        </div>
+      </div>
+      <a href="/commander-panel" class="icon-btn commander-panel-btn" id="commanderPanelBtn" title="Panel de Commander" aria-label="Panel de Commander" style="display:none;"><i class="fas fa-user-shield"></i></a>
+      <button class="icon-btn" onclick="toggleTheme()" title="Cambiar tema"><i class="fas fa-palette" id="theme-icon"></i></button>
+      <div class="header-account-end" role="group" aria-label="Navegación del sitio y sesión">
+        <div class="nav-dropdown" id="navDropdown">
+          <button type="button" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
+            <i class="fas fa-dragon nav-dropdown-icon"></i>
+            <span class="nav-dropdown-current">Competition</span>
+            <i class="fas fa-chevron-down nav-dropdown-chevron"></i>
+          </button>
+          <div class="nav-dropdown-menu" role="menu">
+            <a href="/dashboard" role="menuitem"><i class="fas fa-th-large"></i> Dashboard</a>
+            <a href="/community" role="menuitem"><i class="fas fa-users"></i> Comunidad</a>
+            <a href="/nexus" role="menuitem"><i class="fas fa-bolt"></i> Nexus</a>
+            <a href="/playzone" role="menuitem"><i class="fas fa-flag-checkered"></i> PlayZone</a>
+            <a href="/competition-hub" class="current" role="menuitem"><i class="fas fa-trophy"></i> Competition</a>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="hub-layout">
+
+      <aside id="competitionStatusSidebar" class="competition-status-sidebar">
+        
+        <div class="sidebar-section">
+          <div class="sidebar-header">
+            <h2 class="sidebar-title">My Competitive Status</h2>
+          </div>
+          <div id="teamStatus" class="status-widget-content">
+            <p>Loading team status...</p>
+          </div>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="sidebar-header top-teams-header">
+                <h2 class="sidebar-title">Top Teams</h2>
+                <button id="openTeamBrowserBtn" class="team-browser-open-btn" type="button" title="Explorar y buscar equipos" aria-label="Explorar equipos">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            <div class="teams-list" id="topTeamsList">
+                <div class="team-item" style="opacity: 0.5;">
+                    <div class="team-emblem" style="background-color: #333; border-radius: 50%; width: 50px; height: 50px;"></div>
+                    <div class="team-info" style="flex: 1;">
+                        <span class="team-name" style="background-color: #333; height: 1.2rem; width: 70%; border-radius: 4px; display: block; margin-bottom: 0.5rem;"></span>
+                        <div class="team-stats" style="background-color: #333; height: 1rem; width: 50%; border-radius: 4px;"></div>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+      </aside>
+
+      <div class="hub-main-content">
+
+        <div class="hub-card" id="createTeamCard">
+          <h2 class="hub-section-title">My Competitive Hub</h2>
+          <div class="hub-actions">
+            <p>Your legacy starts here. Form a team to compete in tournaments and rise through the ranks.</p>
+            <button id="createTeamBtn" class="create-team-btn">
+              <i class="fas fa-coins"></i> Create a Team
+            </button>
+          </div>
+
+          <div class="join-team-section">
+            <div class="join-team-header">
+              <h3 class="join-team-title" style="margin:0;">Or Join an Existing Team</h3>
+              <button id="openTeamBrowserBtn2" class="team-browser-open-btn" type="button" title="Explorar y buscar equipos" aria-label="Explorar equipos">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+            <div id="joinableTeamsList" class="joinable-teams-list">
+              <div class="team-join-bar-skeleton"></div>
+              <div class="team-join-bar-skeleton"></div>
+            </div>
+          </div>
+
+          <div class="join-team-section" id="receivedInvitesSection">
+            <h3 class="join-team-title">Invitaciones de Equipo Recibidas</h3>
+            <div id="receivedInvitesList" class="joinable-teams-list">
+              <p style="color: #888; text-align: center; font-size: 0.9rem;">Cargando invitaciones...</p>
+            </div>
+          </div>
+          </div>
+
+        <div class="hub-card team-dashboard-card" id="teamDashboardCard" style="display: none;">
+            <button class="team-chat-btn" title="Team Chat"><i class="fas fa-comments"></i></button>
+
+            <div class="member-actions-container">
+              <button class="team-edit-btn" id="teamEditBtn" title="Team Actions">
+                  <i class="fas fa-ellipsis-v"></i>
+              </button>
+              <div class="member-actions-dropdown" id="memberActionsDropdown" style="display: none;">
+                  <button id="leaveTeamBtn" class="dropdown-item leave-team">
+                      <i class="fas fa-sign-out-alt"></i> Leave Team
+                  </button>
+                   <button id="openEditModalBtn" class="dropdown-item edit-team" style="display: none;">
+        <i class="fas fa-edit"></i> Edit Emblem
+    </button>
+    <button id="editTeamAppearanceBtn" class="dropdown-item edit-appearance" style="display: none;">
+        <i class="fas fa-paint-brush"></i> Editar apariencia
+    </button>
+    <button id="invitePlayerBtn" class="dropdown-item invite-player" style="display: none;">
+        <i class="fas fa-user-plus"></i> Invitar a Jugador
+    </button>
+    
+    <button type="button" id="createTournamentBtn" class="dropdown-item create-tournament" style="display: none;">
+    <i class="fas fa-trophy"></i> Crear / Gestionar torneo
+</button>
+
+                  </div>
+            </div>
+
+            <div class="team-dashboard-header">
+                <img id="dashboardTeamEmblem" src="https://placehold.co/100x100/333/ccc?text=TEAM" alt="Team Emblem" class="team-dashboard-emblem">
+                <a href="#" id="teamProfileLink" class="team-profile-link">
+                    <h2 id="dashboardTeamName" class="team-dashboard-name stylized-team-name">Loading Team...</h2>
+                </a>
+                </div>
+
+            <div class="team-dashboard-grid">
+                <div class="dashboard-column">
+                    
+                    <div id="tournamentInvitesSection" style="display: none;">
+                        <h3 class="dashboard-section-title" style="color: #ffca3a;">
+                            <i class="fas fa-envelope-open-text"></i> Invitaciones a torneos
+                        </h3>
+                        <p class="sg-tour-inline-hint" style="margin-bottom:0.75rem;">Como capitán, acepta o rechaza invitaciones oficiales aquí.</p>
+                        <div id="tournamentInvitesList" class="pending-requests-list">
+                            <p style="color: #888; font-size: 0.9rem;">Comprobando invitaciones…</p>
+                        </div>
+                        <div style="margin-bottom: 2rem;"></div>
+                    </div>
+                    <div class="roster-header">
+                        <h3 class="dashboard-section-title" style="margin:0;">Roster</h3>
+                        <div class="roster-header-actions">
+                            <button id="rosterInviteBtn" class="roster-invite-btn" type="button" title="Invitar jugador" style="display:none;">+</button>
+                            <button id="rosterRemoveToggle" class="roster-remove-toggle" type="button" title="Eliminar miembros" style="display:none;">&times;</button>
+                        </div>
+                    </div>
+                    <div id="rosterList" class="roster-list">
+                        <div class="roster-member-item skeleton"></div>
+                    </div>
+
+                    <h3 class="dashboard-section-title">Pending Requests</h3>
+                    <div id="pendingRequestsList" class="pending-requests-list">
+                        <p style="color: #888; font-size: 0.9rem;">No pending requests.</p>
+                    </div>
+                </div>
+
+                <div class="dashboard-column">
+                    <h3 class="dashboard-section-title">Team Info</h3>
+                    <div id="nextEventSection" class="next-event-widget team-info-widget">
+                        <div class="team-info-row">
+                            <span class="team-info-label"><i class="fas fa-calendar-alt"></i> Founded</span>
+                            <span class="team-info-value" id="teamInfoFounded">—</span>
+                        </div>
+                        <div class="team-info-row">
+                            <span class="team-info-label"><i class="fas fa-crown"></i> Founder</span>
+                            <span class="team-info-value" id="teamInfoFounder">—</span>
+                        </div>
+                        <div class="team-info-row">
+                            <span class="team-info-label"><i class="fas fa-trophy"></i> Matches won</span>
+                            <span class="team-info-value" id="teamInfoWins">0</span>
+                        </div>
+                        <div class="team-info-row">
+                            <span class="team-info-label"><i class="fas fa-skull"></i> Matches lost</span>
+                            <span class="team-info-value" id="teamInfoLosses">0</span>
+                        </div>
+
+                        <div class="team-level-block">
+                            <div class="team-level-top">
+                                <span class="team-level-badge" id="teamInfoLevel">Lv 1</span>
+                                <span class="team-level-xp" id="teamInfoLevelXp">0 XP</span>
+                            </div>
+                            <div class="team-level-bar"><div class="team-level-bar-fill" id="teamInfoLevelBar" style="width:0%"></div></div>
+                            <div class="team-level-next" id="teamInfoLevelNext">Nivel máximo 10</div>
+                        </div>
+
+                        <div class="team-verify-block" id="teamVerifyBlock">
+                            <div class="team-verify-head">
+                                <span class="team-verify-badge unverified" id="teamVerifyBadge"><i class="fas fa-shield-alt"></i> No verificado</span>
+                            </div>
+                            <div class="team-verify-meta" id="teamVerifyMeta">La verificación permite jugar torneos oficiales.</div>
+                            <div class="team-verify-progress" id="teamVerifyProgress"></div>
+                            <button id="teamVerifyPayBtn" class="team-verify-btn" type="button" style="display:none;">
+                                <i class="fas fa-coins"></i> Pagar mi verificación (5 coins)
+                            </button>
+                        </div>
+                    </div>
+                    </div>
+            </div>
+        </div>
+
+        <div class="hub-card">
+            <h2 class="hub-section-title">Tournaments</h2>
+            <div class="hub-view-toggle">
+                <button id="activeTournamentsBtn" class="hub-toggle-btn active" data-view="active">Active</button>
+                <button id="upcomingTournamentsBtn" class="hub-toggle-btn" data-view="upcoming">Upcoming</button>
+                <button id="finishedTournamentsBtn" class="hub-toggle-btn" data-view="finished">Finished</button>
+            </div>
+            <div id="tournamentsList" class="tournaments-grid">
+                <div class="tournament-card skeleton"></div>
+            </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="userPopupCard" class="user-popup-card" style="display: none; position: absolute; z-index: 1000;">
+        <div class="popup-header">
+            <img id="popupUserPhoto" src="dragon_profile_studiosgamesrs.png" alt="User Photo">
+            <span id="popupUserNick">Nickname</span>
+        </div>
+        <div class="popup-body">
+            <div class="popup-detail">
+                <span class="detail-label">Current group:</span>
+                <span id="popupUserGroup">N/A</span>
+            </div>
+            <div class="popup-detail">
+                <span class="detail-label">Honor:</span>
+                <span id="popupUserHonor">0</span>
+            </div>
+            <div class="popup-detail">
+                <span class="detail-label">Rank:</span>
+                <span id="popupUserRank" class="user-rank">Loading...</span>
+            </div>
+        </div>
+    </div>
+    <div id="notificationContainer" class="notification-container"></div>
+
+    <div id="confirmationModal" class="modal-container confirmation-modal" style="display: none;">
+        <div class="modal-content confirmation-content">
+            <span id="closeConfirmationModal" class="modal-close">&times;</span>
+            <h2 id="confirmationTitle" class="modal-title confirmation-title">Confirm Action</h2>
+            <p id="confirmationMessage" class="confirmation-message">Are you sure?</p>
+            <div class="confirmation-actions">
+                <button id="confirmBtn" class="modal-action-btn primary confirm">Confirm</button>
+                <button id="cancelBtn" class="modal-action-btn secondary cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+  </main>
+
+  <div id="createTeamModal" class="modal-container" style="display: none;">
+     <div class="modal-content large">
+      <span id="closeModal" class="modal-close">&times;</span>
+      <div id="modalStep1">
+        <h2 class="modal-title">Create a New Competitive Team</h2>
+        <p class="modal-subtitle">Forge your legacy. Gather your squad and prepare for battle.</p>
+        <div class="token-cost-notice">
+          <p>Team creation requires a one-time fee of <span class="token-amount">10 Tokens</span>.</p>
+          <p class="token-balance">Your current balance: <span id="userTokenBalance">--</span> Tokens</p>
+        </div>
+        <button id="proceedWithTokensBtn" class="modal-action-btn primary">
+          Proceed to Team Setup
+        </button>
+        <button id="cancelCreationBtn" class="modal-action-btn secondary">Cancel</button>
+      </div>
+      <div id="modalStep2" style="display: none;">
+        <h2 class="modal-title">Team Setup</h2>
+        <div class="modal-form-grid">
+          <div class="form-section">
+            <h3 class="form-section-title">Team Details</h3>
+            <div class="modal-input-group">
+              <label for="teamNameInput">Team Name</label>
+              <input type="text" id="teamNameInput" class="modal-input" placeholder="e.g., Cosmic Dragons" maxlength="24" required>
+            </div>
+            <div class="modal-input-group">
+              <label for="teamGameSelect">Main Game</label>
+              <select id="teamGameSelect" class="modal-input" required>
+                <option value="cs2">Counter-Strike 2</option>
+                <option value="valorant">Valorant</option>
+                <option value="lol">League of Legends</option>
+                <option value="rl">Rocket League</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="modal-input-group">
+              <label>Team Emblem</label>
+              <div class="team-emblem-uploader">
+                <img id="teamEmblemPreview" src="https://placehold.co/100x100/2a2a2a/888?text=Emblem" alt="Team Emblem Preview">
+                <input type="file" id="teamEmblemInput" accept="image/png, image/jpeg, image/webp" style="display: none;">
+                <button type="button" class="upload-emblem-btn" onclick="document.getElementById('teamEmblemInput').click();">
+                  <i class="fas fa-upload"></i> Upload Image
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="form-section">
+            <h3 class="form-section-title">Initial Roster</h3>
+            <div class="modal-input-group">
+              <label for="inviteUserInput">Invite Members</label>
+              <div class="user-search-wrapper">
+                <i class="fas fa-search"></i>
+                <input type="text" id="inviteUserInput" class="modal-input" placeholder="Search by username..." maxlength="50">
+                <div id="inviteSearchResults" class="search-results-modal"></div>
+              </div>
+            </div>
+            <div class="team-roster-list">
+              <div class="roster-member" id="captain-roster-member">
+                <img id="captainProfilePic" src="dragon_profile_studiosgamesrs.png" alt="Captain" class="roster-member-img">
+                <span id="captainProfileName" class="roster-member-name">You</span>
+                <span class="roster-member-role captain">Captain</span>
+              </div>
+              </div>
+          </div>
+        </div>
+        <button id="finalizeTeamBtn" class="modal-action-btn primary final" form="teamSetupForm">
+          <i class="fas fa-check-circle"></i> Finalize and Create Team
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="editTeamModal" class="modal-container" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+      <span id="closeEditModal" class="modal-close">&times;</span>
+      <h2 class="modal-title">Editar Emblema del Equipo</h2>
+      <div class="team-emblem-uploader" style="justify-content: center; flex-direction: column; margin-top: 2rem;">
+        <img id="editEmblemPreview" src="https://placehold.co/100x100/2a2a2a/888?text=Emblem" alt="Team Emblem Preview" style="width: 150px; height: 150px; border-radius: 50%;">
+        <input type="file" id="editEmblemInput" accept="image/png, image/jpeg, image/webp" style="display: none;">
+        <button type="button" class="upload-emblem-btn" style="margin-top: 1rem;" onclick="document.getElementById('editEmblemInput').click();">
+          <i class="fas fa-upload"></i> Subir Nueva Imagen
+        </button>
+      </div>
+      <button id="saveEmblemBtn" class="modal-action-btn primary final" style="margin-top: 2rem;">
+        <i class="fas fa-save"></i> Guardar Cambios
+      </button>
+    </div>
+  </div>
+
+  <div id="invitePlayerModal" class="modal-container" style="display: none;">
+    <div class="modal-content" style="max-width: 550px;">
+      <span id="closeInviteModal" class="modal-close">&times;</span>
+      <h2 id="inviteModalTitle" class="modal-title" style="margin-bottom: 1.5rem;">Invitar Jugador</h2>
+      
+      <div class="modal-input-group">
+        <label for="teamInviteSearchInput">Buscar por Nickname</label>
+        <div class="user-search-wrapper">
+          <i class="fas fa-search"></i>
+          <input type="text" id="teamInviteSearchInput" class="modal-input" placeholder="Buscar jugadores sin equipo..." maxlength="50">
+          <div id="teamInviteSearchResults" class="search-results-modal" style="position: relative; top: 0; max-height: 250px;">
+            </div>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+
+  <div id="teamChatWindow" class="team-chat-window" style="display: none;">
+    <div class="team-chat-header">
+      <a href="#" id="chatTeamNameLink" class="team-chat-title-link">Nombre del Equipo</a>
+      <button id="closeChatBtn" class="team-chat-close-btn">&times;</button>
+    </div>
+    <div id="chatMessagesList" class="team-chat-messages">
+      <p style="color: #888; text-align: center; padding-top: 2rem;">Cargando mensajes...</p>
+    </div>
+    <form id="teamChatForm" class="team-chat-input-area">
+      
+      <button type="button" id="openTokenTransferBtn" class="chat-action-btn" title="Transferir Tokens">
+        <i class="fas fa-coins"></i>
+      </button>
+
+      <input type="file" id="chatImageUpload" accept="image/png, image/jpeg, image/webp" style="display: none;">
+      <label for="chatImageUpload" class="chat-action-btn" title="Subir Imagen (Max 2MB)">
+        <i class="fas fa-paperclip"></i>
+      </label>
+
+      <button type="button" id="chatEmojiBtn" class="chat-action-btn" title="Emojis">
+        <i class="fas fa-smile"></i>
+      </button>
+      
+      <input type="text" id="chatMessageInput" class="team-chat-input" placeholder="Escribe /help para ver comandos..." maxlength="250">
+      
+      <button type="submit" id="sendChatBtn" class="chat-action-btn send" title="Enviar">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </form>
+  </div>
+
+  <div id="tokenTransferModal" class="modal-container" style="display: none;">
+    <div class="modal-content" style="max-width: 450px; text-align: left;">
+      <span id="closeTokenTransferModal" class="modal-close">&times;</span>
+      <h2 class="modal-title">Transferir Tokens al Equipo</h2>
+      <p class="modal-subtitle" style="text-align: left;">Transfiere tokens a un miembro de tu equipo.</p>
+      
+      <form id="tokenTransferForm">
+        <div class="modal-input-group">
+          <label for="transferMemberSelect">Seleccionar Miembro:</label>
+          <select id="transferMemberSelect" class="modal-input" required>
+            </select>
+        </div>
+
+        <div class="modal-input-group">
+          <label for="transferAmountInput">Cantidad:</label>
+          <input type="number" id="transferAmountInput" class="modal-input" placeholder="0" min="1" required>
+        </div>
+
+        <button type="submit" id="confirmTransferBtn" class="modal-action-btn primary" style="width: 100%; margin-top: 1rem;">
+          <i class="fas fa-check-circle"></i> Confirmar Transferencia
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div id="sgTourCommandCenterModal" class="modal-container sg-tour-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="sgTourCcTitle">
+    <div class="modal-content sg-tour-command-center">
+      <span id="sgTourCloseCommandCenter" class="modal-close" aria-label="Cerrar">&times;</span>
+      <div class="sg-tour-cc-header">
+        <h2 id="sgTourCcTitle" class="sg-tour-cc-title">Centro de torneo</h2>
+        <p id="sgTourCcSubtitle" class="sg-tour-cc-sub">Gestión profesional de invitaciones</p>
+        <div class="sg-tour-stats">
+          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Inscritos</span><span class="sg-tour-stat-value" id="sgTourStatRegistered">—</span></div>
+          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Pendientes</span><span class="sg-tour-stat-value" id="sgTourStatPending">—</span></div>
+          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Premio</span><span class="sg-tour-stat-value" id="sgTourStatPrize">—</span></div>
+          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Cuota</span><span class="sg-tour-stat-value" id="sgTourStatFee">—</span></div>
+        </div>
+        <div class="sg-tour-capacity-wrap">
+          <div class="sg-tour-capacity-row">
+            <span class="sg-tour-stat-label" id="sgTourCapacityText">Plazas del torneo</span>
+            <span class="sg-tour-capacity-pct" id="sgTourCapacityPct">—</span>
+          </div>
+          <div class="sg-tour-capacity-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="sgTourCapacityTrack">
+            <div id="sgTourCapacityFill" class="sg-tour-capacity-fill"></div>
+          </div>
+        </div>
+        <span class="sg-tour-stat-label sg-tour-schedule-line">Inicio: <span id="sgTourStatSchedule">—</span></span>
+      </div>
+      <div class="sg-tour-tabs" role="tablist">
+        <button type="button" class="sg-tour-tab" data-sg-tour-tab="Overview" role="tab">Resumen</button>
+        <button type="button" class="sg-tour-tab active" data-sg-tour-tab="Invite" role="tab">Invitar equipos</button>
+        <button type="button" class="sg-tour-tab" data-sg-tour-tab="Pending" role="tab">Pendientes</button>
+        <button type="button" class="sg-tour-tab" data-sg-tour-tab="Registered" role="tab">Inscritos</button>
+      </div>
+      <div class="sg-tour-body">
+        <div id="sgTourPanelOverview" class="sg-tour-panel" role="tabpanel"></div>
+        <div id="sgTourPanelInvite" class="sg-tour-panel active" role="tabpanel">
+          <div class="sg-tour-filters">
+            <button type="button" class="sg-tour-filter-chip active" data-sg-tour-filter="sameGame">Mismo juego</button>
+            <button type="button" class="sg-tour-filter-chip active" data-sg-tour-filter="hideReg">Ocultar inscritos</button>
+            <button type="button" class="sg-tour-filter-chip active" data-sg-tour-filter="hidePending">Sin invite pendiente</button>
+          </div>
+          <div class="sg-tour-search-wrap">
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input type="search" id="sgTourTeamSearchInput" placeholder="Buscar equipo por nombre (mín. 2 letras)…" maxlength="40" autocomplete="off" aria-label="Buscar equipos">
+            <button type="button" id="sgTourSearchClear" class="sg-tour-search-clear" aria-label="Limpiar búsqueda" title="Limpiar">&times;</button>
+          </div>
+          <p id="sgTourSearchHint" class="sg-tour-inline-hint">Los capitanes reciben la invitación en su panel de equipo en Competition Hub.</p>
+          <div id="sgTourSearchResults" class="sg-tour-list"></div>
+        </div>
+        <div id="sgTourPanelPending" class="sg-tour-panel" role="tabpanel">
+          <p class="sg-tour-inline-hint">Invitaciones enviadas y aún no aceptadas. Puedes retirarlas antes de que el capitán responda.</p>
+          <div id="sgTourOutboundList" class="sg-tour-list"></div>
+        </div>
+        <div id="sgTourPanelRegistered" class="sg-tour-panel" role="tabpanel">
+          <div id="sgTourRegisteredList" class="sg-tour-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="tournamentCreationModal" class="modal-container sg-tour-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="sgTourCreateTitle">
+    <div class="modal-content" style="max-width: 620px; text-align: left;">
+      <span id="closeTournamentCreationModal" class="modal-close" aria-label="Cerrar">&times;</span>
+      <h2 id="sgTourCreateTitle" class="modal-title" style="text-align: center;">Nuevo torneo oficial</h2>
+      <p class="modal-subtitle" style="text-align: center; color: #ffca3a;">
+        Solo Commanders / Boss pueden crear torneos en Studiosgamesrs.
+      </p>
+      <form id="createTournamentForm" class="sg-tour-create-grid">
+        <div class="modal-input-group">
+          <label for="tournamentNameInput">Nombre del torneo</label>
+          <input type="text" id="tournamentNameInput" class="modal-input" placeholder="Ej: Studiosgamesrs CS2 Open" required maxlength="50">
+        </div>
+        <div class="modal-input-group">
+          <label for="tournamentGameSelect">Juego</label>
+          <select id="tournamentGameSelect" class="modal-input" required></select>
+        </div>
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+          <div class="modal-input-group" style="flex: 1; min-width: 140px;">
+            <label for="tournamentFormatSelect">Formato</label>
+            <select id="tournamentFormatSelect" class="modal-input" required>
+              <option value="SingleElim">Eliminación simple</option>
+              <option value="DoubleElim">Doble eliminación</option>
+              <option value="RoundRobin">Round Robin</option>
+            </select>
+          </div>
+          <div class="modal-input-group" style="flex: 1; min-width: 140px;">
+            <label for="tournamentRegionSelect">Región</label>
+            <select id="tournamentRegionSelect" class="modal-input" required>
+              <option value="LATAM">LATAM</option>
+              <option value="NorthAmerica">Norteamérica</option>
+              <option value="Europe">Europa</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-input-group">
+          <label for="tournamentMaxTeamsInput">Máximo de equipos (mín. 2)</label>
+          <input type="number" id="tournamentMaxTeamsInput" class="modal-input" placeholder="16" min="2" required>
+        </div>
+        <div class="modal-input-group">
+          <label for="tournamentScheduleInput">Fecha y hora de inicio</label>
+          <input type="datetime-local" id="tournamentScheduleInput" class="modal-input" required>
+        </div>
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+          <div class="modal-input-group" style="flex: 1;">
+            <label for="tournamentPrizeInput">Premio base (tokens)</label>
+            <input type="number" id="tournamentPrizeInput" class="modal-input" placeholder="500" min="0" required>
+          </div>
+          <div class="modal-input-group" style="flex: 1;">
+            <label for="tournamentEntryFeeInput">Cuota por equipo (tokens)</label>
+            <input type="number" id="tournamentEntryFeeInput" class="modal-input" placeholder="10" min="0" required>
+          </div>
+        </div>
+        <div class="modal-input-group">
+          <label for="tournamentDescriptionTextarea">Reglas / descripción (opcional)</label>
+          <textarea id="tournamentDescriptionTextarea" class="modal-textarea" maxlength="300" placeholder="Formato, mapas, contacto…"></textarea>
+        </div>
+        <button type="submit" id="saveTournamentBtn" class="modal-action-btn primary sg-tour-create-actions" style="width: 100%;">
+          <i class="fas fa-check-circle"></i> Crear torneo
+        </button>
+      </form>
+    </div>
+  </div>
+  
+  <div id="tournamentCreationModal" class="modal-container tournament-creation-modal" style="display: none;" role="dialog" aria-labelledby="tournamentModalTitle" aria-modal="true">
+    <div class="modal-content tournament-creation-modal__content">
+      <span id="closeTournamentCreationModal" class="modal-close" aria-label="Close">&times;</span>
+
+      <div class="tournament-creation-modal__header">
+        <h2 id="tournamentModalTitle" class="modal-title">Create Tournament</h2>
+        <p class="tournament-creation-modal__notice">
+          <i class="fas fa-shield-alt"></i>
+          Only Commander rank can create and manage official tournaments.
+        </p>
+      </div>
+
+      <form id="createTournamentForm" class="tournament-creation-modal__form">
+        <div class="tournament-creation-modal__body">
+          <div class="modal-input-group">
+            <label for="tournamentNameInput">Tournament Name</label>
+            <input type="text" id="tournamentNameInput" class="modal-input" placeholder="e.g. Studiosgamesrs CS2 Open" required maxlength="50">
+          </div>
+
+          <div class="modal-input-group">
+            <label for="tournamentGameSelect">Game</label>
+            <select id="tournamentGameSelect" class="modal-input" required>
+              <option value="cs2" selected>Counter-Strike 2</option>
+              <option value="valorant">Valorant</option>
+              <option value="lol">League of Legends</option>
+              <option value="rl">Rocket League</option>
+            </select>
+          </div>
+
+          <div class="tournament-creation-modal__row">
+            <div class="modal-input-group">
+              <label for="tournamentFormatSelect">Format</label>
+              <select id="tournamentFormatSelect" class="modal-input" required>
+                <option value="SingleElim">Single Elimination</option>
+                <option value="DoubleElim">Double Elimination</option>
+                <option value="RoundRobin">Round Robin</option>
+              </select>
+            </div>
+            <div class="modal-input-group">
+              <label for="tournamentRegionSelect">Region</label>
+              <select id="tournamentRegionSelect" class="modal-input" required>
+                <option value="LATAM">LATAM</option>
+                <option value="NorthAmerica" selected>North America</option>
+                <option value="Europe">Europe</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="modal-input-group">
+            <label for="tournamentMaxTeamsInput">Max Teams <span class="field-hint">(minimum 2)</span></label>
+            <input type="number" id="tournamentMaxTeamsInput" class="modal-input" placeholder="16" value="16" min="2" max="128" required>
+          </div>
+
+          <div class="modal-input-group">
+            <label for="tournamentScheduleInput">Schedule / Start Time</label>
+            <input type="datetime-local" id="tournamentScheduleInput" class="modal-input" required>
+          </div>
+
+          <div class="tournament-creation-modal__row">
+            <div class="modal-input-group">
+              <label for="tournamentPrizeInput">Base Prize Pool (Tokens)</label>
+              <input type="number" id="tournamentPrizeInput" class="modal-input" placeholder="500" min="0" value="0" required>
+            </div>
+            <div class="modal-input-group">
+              <label for="tournamentEntryFeeInput">Entry Fee per Team (Tokens)</label>
+              <input type="number" id="tournamentEntryFeeInput" class="modal-input" placeholder="10" min="0" value="0" required>
+            </div>
+          </div>
+
+          <div class="modal-input-group">
+            <label for="tournamentDescriptionTextarea">Description / Rules <span class="field-hint">(optional)</span></label>
+            <textarea id="tournamentDescriptionTextarea" class="modal-textarea" maxlength="300" rows="3" placeholder="Brief description of rules or format..."></textarea>
+          </div>
+        </div>
+
+        <div class="tournament-creation-modal__footer">
+          <button type="button" id="cancelTournamentBtn" class="modal-action-btn secondary">Cancel</button>
+          <button type="submit" id="saveTournamentBtn" class="modal-action-btn primary">
+            <i class="fas fa-trophy"></i> Create Tournament
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="shared-unified-header.js?v=20260711d"></script>
+  <script src="shared-notifications.js?v=20260726motion1"></script>
+  <script src="shared-header.js?v=20260719c"></script>
+  <script src="tournament-organizer-ui.js?v=20260724perf"></script>
+  <script src="competition-hub-logic.js?v=20260726pz017"></script>
+<div id="teamProfileModal" class="modal" style="display: none;">
+    <div class="modal-content team-profile-card">
+        <span class="close-btn" id="closeTeamProfileModal">&times;</span>
+        
+        <div class="team-profile-header" style="text-align: center;">
+            <img src="" id="modalTeamEmblem" class="team-profile-emblem" style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid #ffca3a; object-fit: cover; margin-bottom: 10px;">
+            <h2 id="modalTeamName" style="color: #ffca3a;">Nombre del Equipo</h2>
+            
+            <div class="team-profile-stats-row" style="display: flex; justify-content: center; gap: 15px; margin: 15px 0;">
+                <div class="stat-badge" style="background: #333; padding: 5px 15px; border-radius: 20px;">
+                    <i class="fas fa-gamepad"></i> <span id="modalStatGame">--</span>
+                </div>
+                <div class="stat-badge" style="background: #333; padding: 5px 15px; border-radius: 20px;">
+                    <i class="fas fa-trophy"></i> <span id="modalStatWins">0</span> Wins
+                </div>
+                <div class="stat-badge" style="background: #333; padding: 5px 15px; border-radius: 20px;">
+                    <i class="fas fa-coins"></i> <span id="modalStatTokens">0</span> T
+                </div>
+            </div>
+            <p style="color: #888; font-size: 0.9rem;">Creado: <span id="modalStatCreated">--/--/----</span></p>
+        </div>
+
+        <div class="team-profile-body" style="margin-top: 20px;">
+            <h3 style="border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 15px;">Roster Activo</h3>
+            <div id="modalRosterList" class="team-roster-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;">
+                </div>
+        </div>
+
+        <div class="team-profile-footer" style="margin-top: 25px; text-align: center;">
+            <button id="modalJoinTeamBtn" class="action-btn join-btn" style="background: #ffca3a; color: #000; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; display: none;">
+                <i class="fas fa-plus"></i> Enviar Solicitud de Uni鏮
+            </button>
+        </div>
+    </div>
+</div>
+<!-- MODAL: EXPLORAR / BUSCAR EQUIPOS -->
+<div id="teamBrowserModal" class="modal" style="display: none;">
+    <div class="modal-content team-profile-card team-browser-card">
+        <span class="close-btn" id="closeTeamBrowserModal">&times;</span>
+        <div class="team-browser-top">
+            <h2 class="modal-title" style="margin-bottom: 0.75rem;"><i class="fas fa-users"></i> Explorar Equipos</h2>
+            <div class="team-browser-search-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" id="teamBrowserSearch" class="modal-input" placeholder="Buscar equipo por nombre..." autocomplete="off" maxlength="40">
+            </div>
+        </div>
+        <div id="teamBrowserList" class="team-browser-list">
+            <p class="team-browser-empty">Cargando equipos...</p>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: EDITAR APARIENCIA DEL GRUPO -->
+<div id="teamAppearanceModal" class="modal" style="display: none;">
+    <div class="modal-content team-profile-card">
+        <span class="close-btn" id="closeTeamAppearanceModal">&times;</span>
+        <h2 class="modal-title"><i class="fas fa-paint-brush"></i> Apariencia del Grupo</h2>
+        <p class="modal-subtitle" style="text-align:center;">Personaliza cómo se ve tu equipo en el buscador de equipos.</p>
+
+        <div id="appearancePreview" class="team-browser-item appearance-preview">
+            <img id="appearancePreviewEmblem" class="team-browser-emblem" src="https://placehold.co/50x50/333/ccc?text=??" alt="Emblema">
+            <div class="team-browser-info">
+                <span class="team-browser-name" id="appearancePreviewName">Tu equipo</span>
+                <span class="team-browser-motto" id="appearancePreviewMotto">Tu lema aparecerá aquí</span>
+                <div class="team-browser-stats"><span><i class="fas fa-trophy"></i> <span id="appearancePreviewWins">0</span> Wins</span></div>
+            </div>
+        </div>
+
+        <div class="appearance-field">
+            <label>Color del nombre / acento</label>
+            <div id="appearanceColors" class="appearance-color-grid"></div>
+        </div>
+        <div class="appearance-field">
+            <label>Fondo del perfil (popup del equipo)</label>
+            <div id="appearanceBackgrounds" class="appearance-bg-grid"></div>
+        </div>
+        <div class="appearance-field">
+            <label>Imagen de fondo personalizada <span id="appearanceBgImgLevelTag" class="appearance-level-tag"><i class="fas fa-lock"></i> Nivel 10</span></label>
+            <div class="appearance-bgimg-uploader">
+                <div id="appearanceBgImgPreview" class="appearance-bgimg-preview"><span>Sin imagen</span></div>
+                <input type="file" id="appearanceBgImgInput" accept="image/*" style="display:none;">
+                <div class="appearance-bgimg-actions">
+                    <button type="button" id="appearanceBgImgUploadBtn" class="upload-emblem-btn" onclick="document.getElementById('appearanceBgImgInput').click();">
+                        <i class="fas fa-upload"></i> Subir imagen
+                    </button>
+                    <button type="button" id="appearanceBgImgRemoveBtn" class="upload-emblem-btn danger" style="display:none;">
+                        <i class="fas fa-trash"></i> Quitar
+                    </button>
+                </div>
+            </div>
+            <p class="appearance-hint" id="appearanceBgImgHint">Cualquier imagen sirve: la página baja el tamaño/calidad automáticamente si es grande. Solo se ve en el buscador y en el perfil del equipo.</p>
+        </div>
+        <div class="appearance-field">
+            <label for="appearanceMotto">Lema del equipo</label>
+            <input type="text" id="appearanceMotto" class="modal-input" maxlength="60" placeholder="Ej: Siempre a la ofensiva">
+        </div>
+
+        <button id="saveTeamAppearanceBtn" class="modal-action-btn primary final"><i class="fas fa-save"></i> Guardar apariencia</button>
+    </div>
+</div>
+
+<!-- SISTEMA DE ESENCIA (funciona en todas las páginas) -->
+<script src="js/essence-system.js"></script>
+</body>
+
+</html>

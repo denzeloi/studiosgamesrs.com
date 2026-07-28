@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8" />
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Dashboard Usuario - Studiosgamesrs</title>
+  <link rel="icon" href="/dragon_profile_studiosgamesrs.png" type="image/png" />
+
+  <link rel="stylesheet" href="/dashboard-styles.css?v=20260727welcome">
+  <link rel="stylesheet" href="/shared-header.css">
+  <link rel="stylesheet" href="/shared-notifications.css?v=20260711d">
+  <link rel="stylesheet" href="/tribunal-user-overlay.css?v=20260719c">
+  <link rel="stylesheet" href="/welcome-overlay.css?v=20260727welcome">
+  <link rel="stylesheet" href="/site-engagement.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-functions-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-check-compat.js"></script>
+  <script src="/sg-firebase-init.js?v=20260724nocaptcha"></script>
+  <script>sgInitFirebaseApp();</script>
+  <script src="https://cdn.jsdelivr.net/npm/motion@12.42.2/dist/motion.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+
+<body>
+  <div id="floatingMessage" class="floating-message"></div>
+
+  <!-- Modal Tu Frase -->
+  <div id="phraseModalOverlay" class="phrase-modal-overlay">
+    <div class="phrase-modal-box">
+      <h3 class="phrase-modal-title"><i class="far fa-comment-dots"></i> Tu frase</h3>
+      <input type="text" id="phraseModalInput" class="phrase-modal-input" maxlength="18" placeholder="Escribe tu frase...">
+      <p class="phrase-modal-hint"><span id="phraseModalCounter">0</span> / 18 caracteres</p>
+      <div class="phrase-modal-actions">
+        <button type="button" id="phraseModalCancel" class="phrase-modal-btn phrase-modal-btn-cancel">Cancelar</button>
+        <button type="button" id="phraseModalSave" class="phrase-modal-btn phrase-modal-btn-save">Guardar</button>
+      </div>
+    </div>
+  </div>
+  <header class="unified-header">
+    <div class="header-brand">
+      <a href="/dashboard" class="header-logo" tabindex="0" aria-label="Ir al Home Studiosgamesrs">
+        <span class="studio">Studios</span><span class="gamesrs">gamesrs</span>
+      </a>
+      <div>
+        <div class="header-subtitle">/ Dashboard del usuario</div>
+        <div class="header-version">v 2.1.2</div>
+      </div>
+    </div>
+    <div class="header-search">
+      <div class="search-input-container">
+        <input type="text" id="userSearchInput" placeholder="🔍 Buscar usuarios..." class="user-search-input">
+        <div id="searchResults" class="search-results"></div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="icon-btn" id="audioAmbientToggle" title="Audio ambiental"><i class="fas fa-music"></i></button>
+      <button type="button" class="icon-btn" id="generatePlayerCardBtn" title="Carta de Jugador"><i class="fas fa-id-card"></i></button>
+      <div class="header-notifications-wrap">
+        <button type="button" class="icon-btn" id="notificationsToggleBtn" title="Notificaciones" aria-expanded="false" aria-haspopup="true">
+          <i class="fas fa-bell"></i>
+          <span id="headerNotifBadge" class="header-notif-badge" style="display:none;">0</span>
+        </button>
+        <div id="headerNotificationsPanel" class="header-notifications-panel" role="menu" aria-label="Notificaciones">
+          <div class="header-notif-head">
+            <span><i class="fas fa-bell"></i> Notificaciones</span>
+            <button type="button" class="header-notif-refresh" id="headerNotifRefreshBtn" title="Actualizar"><i class="fas fa-sync-alt"></i></button>
+          </div>
+          <div id="headerNotificationsList" class="header-notifications-list">
+            <p class="header-notif-empty">No tienes notificaciones.</p>
+          </div>
+        </div>
+      </div>
+      <button class="dashboard-return-btn" id="dashboardReturnBtn" onclick="returnToDashboard()" style="display:none;">Volver</button>
+      <a href="/commander-panel" class="icon-btn commander-panel-btn" id="commanderPanelBtn" title="Panel de Commander" aria-label="Panel de Commander" style="display:none;"><i class="fas fa-user-shield"></i></a>
+      <button class="icon-btn" onclick="toggleTheme()" title="Cambiar tema"><i class="fas fa-palette" id="theme-icon"></i></button>
+      <div class="header-account-end" role="group" aria-label="Navegación del sitio y sesión">
+        <div class="nav-dropdown" id="navDropdown">
+          <button type="button" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
+            <i class="fas fa-dragon nav-dropdown-icon"></i>
+            <span class="nav-dropdown-current">Dashboard</span>
+            <i class="fas fa-chevron-down nav-dropdown-chevron"></i>
+          </button>
+          <div class="nav-dropdown-menu" role="menu">
+            <a href="/dashboard" class="current" role="menuitem"><i class="fas fa-th-large"></i> Dashboard</a>
+            <a href="/community" role="menuitem"><i class="fas fa-users"></i> Comunidad</a>
+            <a href="/nexus" role="menuitem"><i class="fas fa-bolt"></i> Nexus</a>
+            <a href="/playzone" role="menuitem"><i class="fas fa-flag-checkered"></i> PlayZone</a>
+            <a href="/competition-hub" role="menuitem"><i class="fas fa-trophy"></i> Competition</a>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+      </div>
+    </div>
+  </header>
+  
+  <h1 class="dashboard-main-title">Mi Portal de Comando</h1>
+  <main class="main">
+    
+    <div class="unified-command-panel" id="unifiedCommandPanel" style="display: none;">
+        <aside id="competitiveWidget" class="unified-widget competitive-widget collapsed" aria-label="Mi Estado Competitivo" style="display: none;">
+          <button type="button" class="widget-hero-toggle" data-widget-toggle="competitiveWidget" aria-expanded="false" title="Mostrar Mi Estado Competitivo">
+            <span class="widget-hero-main"><i class="fas fa-shield-alt"></i> Mi Estado Competitivo</span>
+            <span class="widget-hero-sub">Equipo, rol, invitaciones y próxima partida</span>
+            <i class="fas fa-chevron-down widget-hero-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="widget-collapsible-body competitive-section">
+            <div class="competitive-title">Mi Estado Competitivo</div>
+            <div class="competitive-row">
+              <span class="competitive-label">Equipo:</span>
+              <span id="competitiveTeamEnhanced" class="competitive-team-value skeleton skeleton-text skeleton-short">Cargando...</span>
+            </div>
+            <div class="competitive-row" data-streamer-blur>
+              <span class="competitive-label">Rol:</span>
+              <span id="competitiveRoleEnhanced" class="competitive-role-value skeleton skeleton-text skeleton-short">Cargando...</span>
+            </div>
+            <div class="competitive-row" data-streamer-blur>
+              <span class="competitive-label">Invitaciones:</span>
+              <span id="competitiveInvitesEnhanced" class="competitive-invites-value skeleton skeleton-text skeleton-short">Cargando...</span>
+            </div>
+            <div class="competitive-divider" data-streamer-blur></div>
+            <div class="competitive-subtitle" data-streamer-blur>Próxima Partida</div>
+            <div id="upcomingMatchSectionEnhanced" data-streamer-blur>
+              <div id="upcomingMatchDetailsEnhanced" class="competitive-match-details skeleton skeleton-text skeleton-medium">Buscando...</div>
+              <div id="upcomingMatchTournamentEnhanced" class="competitive-match-tournament"></div>
+              <div id="upcomingMatchTimeEnhanced" class="competitive-match-time"></div>
+            </div>
+            <button id="competitiveWidgetDashboardBtn" class="competitive-widget-btn" style="display: none;">Team Dashboard</button>
+          </div>
+        </aside>
+
+        <div class="unified-widget-connector" id="unifiedWidgetConnector" style="display: none;"></div>
+        <aside id="playZoneWidget" class="unified-widget playzone-widget collapsed" aria-label="Estado de Misión PlayZone" style="display: none;">
+            <button type="button" class="widget-hero-toggle" data-widget-toggle="playZoneWidget" aria-expanded="false" title="Mostrar estado PlayZone">
+              <span class="widget-hero-main"><i class="fas fa-flag-checkered"></i> PlayZone</span>
+              <span class="widget-hero-sub">Misión activa, tiempo y acceso rápido</span>
+              <i class="fas fa-chevron-down widget-hero-chevron" aria-hidden="true"></i>
+            </button>
+            <div class="widget-collapsible-body">
+            <div class="streamer-mode-placeholder" aria-hidden="true">Misión activa (datos ocultos en modo streamer)</div>
+            <div id="playZoneContent" data-streamer-blur>
+              <div class="playzone-idle-container">
+                <a href="/playzone" class="playzone-redirect-btn playzone-redirect-btn--solo skeleton">
+                  Go to PlayZone
+                </a>
+              </div>
+            </div>
+            </div>
+        </aside>
+    </div>
+
+    <div id="dashboardSideModules" class="unified-command-panel dashboard-side-panel" style="display: none;" aria-label="Módulos del dashboard">
+
+        <aside id="dashboardEventsWidget" class="unified-widget events-widget collapsed" aria-label="Próximos eventos">
+          <button type="button" class="widget-hero-toggle" data-widget-toggle="dashboardEventsWidget" aria-expanded="false" title="Mostrar próximos eventos">
+            <span class="widget-hero-main"><i class="fas fa-calendar-alt"></i> Próximos Eventos</span>
+            <span class="widget-hero-sub">Torneos, fechas y actividades</span>
+            <i class="fas fa-chevron-down widget-hero-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="widget-collapsible-body">
+            <div class="dashboard-widget-section">
+              <div class="dashboard-widget-title">
+                <span>Próximos Eventos</span>
+                <button id="addContentBtn" class="add-content-btn" title="Añadir nuevo contenido" style="display: none;">+</button>
+              </div>
+              <div id="eventsList" class="news-events-list dashboard-panel-list"></div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="unified-widget-connector" aria-hidden="true"></div>
+
+        <aside id="dashboardNewsWidget" class="unified-widget news-widget collapsed" aria-label="Noticias">
+          <button type="button" class="widget-hero-toggle" data-widget-toggle="dashboardNewsWidget" aria-expanded="false" title="Mostrar noticias">
+            <span class="widget-hero-main"><i class="fas fa-newspaper"></i> Noticias</span>
+            <span class="widget-hero-sub">Novedades y anuncios</span>
+            <i class="fas fa-chevron-down widget-hero-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="widget-collapsible-body">
+            <div class="dashboard-widget-section">
+              <div class="dashboard-widget-title">Noticias</div>
+              <div id="newsList" class="news-events-list dashboard-panel-list"></div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="unified-widget-connector" aria-hidden="true"></div>
+
+        <aside id="dashboardFriendsWidget" class="unified-widget friends-widget collapsed" aria-label="Mis amigos">
+          <button type="button" class="widget-hero-toggle" data-widget-toggle="dashboardFriendsWidget" aria-expanded="false" title="Mostrar mis amigos">
+            <span class="widget-hero-main">
+              <i class="fas fa-user-friends"></i> Mis Amigos
+              <span id="dashboardFriendsCount" class="dashboard-widget-count" style="display: none;">0</span>
+            </span>
+            <span class="widget-hero-sub">Aliados por rango y nivel</span>
+            <i class="fas fa-chevron-down widget-hero-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="widget-collapsible-body">
+            <div class="dashboard-widget-section">
+              <div id="dashboardFriendsRequests" class="dashboard-friends-requests" style="display: none;" aria-label="Solicitudes de amistad pendientes"></div>
+              <div class="dashboard-widget-title">Mis Amigos</div>
+              <div id="dashboardFriendsGrid" class="dashboard-friends-list"></div>
+              <div class="dashboard-friends-pager" id="dashboardFriendsPager" style="display: none;">
+                <button type="button" id="dashboardFriendsPrev" class="dashboard-friends-pager-btn" aria-label="Página anterior" disabled>
+                  <i class="fas fa-chevron-left"></i>
+                </button>
+                <span id="dashboardFriendsPageLabel" class="dashboard-friends-page-label">1 / 1</span>
+                <button type="button" id="dashboardFriendsNext" class="dashboard-friends-pager-btn" aria-label="Página siguiente" disabled>
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+    </div>
+
+    <div id="sgSitePromoMount" class="sg-promo-mount-dashboard" aria-live="polite"></div>
+
+    <div id="profileCardWrapper" class="profile-card-wrapper">
+      <div class="profile-card enhanced-hud" role="region" aria-label="User Profile">
+
+      <div class="profile-stage" id="profileStage">
+        <div class="profile-customization-bg" aria-hidden="true"></div>
+
+        <div class="profile-badges-row">
+          <div class="profile-badges-top-left">
+            <div id="verifiedStatusBadge" class="account-status-badge account-status-badge-icon-only" data-type="verified" title="Verificando...">
+              <i class="fas fa-shield-alt"></i><span class="account-badge-text" aria-hidden="true">Verificando...</span>
+            </div>
+            <div id="steamStatusBadge" class="account-status-badge account-status-badge-icon-only disconnected" data-type="steam" title="No vinculado">
+              <i class="fab fa-steam"></i><span id="steamStatusText" class="account-badge-text" aria-hidden="true">No vinculado</span>
+            </div>
+          </div>
+          <div class="profile-badges-top-right" id="profileSocialActions" style="display: none;" aria-label="Acciones de perfil">
+            <button type="button" id="profileRecommendBtn" class="profile-action-badge" title="Recomendar usuario" aria-label="Recomendar usuario">
+              <i class="fas fa-thumbs-up"></i>
+            </button>
+            <button type="button" id="profileAddFriendBtn" class="profile-action-badge" title="Agregar amigo" aria-label="Agregar amigo">
+              <i class="fas fa-user-plus"></i>
+            </button>
+            <button type="button" id="profileDmChatBtn" class="profile-action-badge profile-action-badge--chat" title="Chat privado" aria-label="Chat privado" style="display: none;">
+              <i class="fas fa-comment-dots"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="profile-header-nexus">
+          <div class="profile-photo-column">
+          <div class="profile-image-container" id="profileImageContainer">
+              <img id="profilePic" src="" alt="Profile Photo" loading="lazy" class="skeleton skeleton-circle" />
+              <input type="file" id="photoInput" accept="image/*" style="display:none" aria-label="Cambiar foto de perfil" />
+              <div class="photo-edit-mode" id="photoEditMode">
+                  <div class="tooltip"><button class="photo-upload-btn" id="photoUploadBtn" type="button">📁</button></div>
+                  <div class="tooltip"><button class="photo-delete-btn" id="photoDeleteBtn" type="button">🗑️</button></div>
+              </div>
+          </div>
+          <div class="profile-nexus-badges-strip" id="profileNexusBadgesStrip" aria-label="Insignias Nexus">
+            <div id="profile-nexus-badges-row" class="profile-nexus-badges-row"></div>
+          </div>
+          </div>
+
+          <div class="profile-identity-section">
+              <div class="profile-identity-cards-block">
+              <div id="nicknameViewMode" class="nickname-row">
+                  <span id="profileNickname" class="profile-nickname-text skeleton skeleton-text skeleton-medium">Cargando...</span>
+                  <button class="nickname-edit-btn" id="nicknameEditBtn" title="Editar nickname">⋮</button>
+              </div>
+              <div id="nicknameMessage" class="nickname-message" style="display:none;"></div>
+
+              <div id="nicknameEditMode" class="nickname-edit-container" style="display:none;">
+                  <input type="text" id="nicknameInput" class="nickname-input" maxlength="18" placeholder="Enter nickname">
+                  <div class="nickname-actions">
+                      <button id="nicknameSaveBtn" class="nickname-save-btn">Guardar</button>
+                      <button id="nicknameCancelBtn" class="nickname-cancel-btn">Cancelar</button>
+                  </div>
+              </div>
+
+              <div class="profile-top-cards-row">
+                  <div class="profile-insight-card profile-insight-card-compact">
+                      <div class="profile-insight-title" id="communityCardTitle">Comunidad</div>
+                      <div class="profile-meta-row profile-meta-row-compact">
+                          <span id="countryMetaSpan"><span id="countryFlag">...</span></span>
+                          <span><i class="far fa-clock"></i> <span id="daysRegistered">...</span></span>
+                      </div>
+                      <div class="profile-meta-row profile-meta-row-compact">
+                          <span><i class="fas fa-gamepad"></i> <strong id="favoriteGameText">N/A</strong></span>
+                      </div>
+                  </div>
+
+                  <div class="profile-insight-card profile-insight-card-compact" id="rankAndLevelCard">
+                      <div class="profile-insight-title" id="rankCardTitle">Rango</div>
+                      <div class="profile-rank-level-row">
+                          <span class="rango-display" id="userRangoDisplay">Tribal Warrior</span>
+                          <span class="profile-level-badge" id="profileLevelDisplay">LEVEL (0) "Novato"</span>
+                          <span id="nexus-widget-level" style="display:none;">0</span>
+                          <span id="nexus-widget-rank" class="nexus-tier-badge" style="display:none;">Novato</span>
+                      </div>
+                      <div class="profile-rank-meta-row">
+                          <span>Honor: <strong id="communityHonorText">0</strong></span>
+                          <span>Puesto global: <strong id="globalRankPositionText">#-</strong></span>
+                      </div>
+                  </div>
+              </div>
+              </div>
+
+              <div class="profile-insights-grid" data-streamer-blur>
+                  <div class="profile-hud-compact-row hud-stats-modern" id="profileHudCompactRow" data-streamer-blur>
+                      <div class="hud-stat-box hud-stat-compact" id="tokensRow">
+                          <div class="hud-icon"><i class="fas fa-coins"></i></div>
+                          <div class="hud-value" id="tokensValue">...</div>
+                          <div class="hud-label"><span id="tokensLabel">TOKENS</span> <a id="tokensHelp" href="/tokens-help" target="_blank" class="tokens-help-link" title="¿Qué son los Tokens?">?</a></div>
+                      </div>
+                      <div class="hud-stat-box hud-stat-compact" onclick="showReferralInfo()">
+                          <div class="hud-icon"><i class="fas fa-users"></i></div>
+                          <div class="hud-value" id="nexus-widget-referrals">-</div>
+                          <div class="hud-label" id="referralsLabel">REFERIDOS</div>
+                          <div class="hud-label" id="recommendationsInReferralsLabel"><i class="fas fa-thumbs-up"></i> <span id="recommendationCount">0</span></div>
+                      </div>
+                  </div>
+
+                  <div class="profile-insight-card profile-insight-card-full recommendations-section recommendations-below-country" id="recommendationsSection">
+                      <div id="recommendationsList" class="recommendations-list"></div>
+                  </div>
+              </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="steamMissingAlert" class="steam-missing-alert" style="display:none;">
+          <div class="steam-alert-content">
+              <div class="steam-alert-icon"><i class="fas fa-exclamation-triangle"></i></div>
+              <div class="steam-alert-text">
+                  <strong>Cuenta de Steam No Vinculada</strong>
+                  <span>Vincula tu cuenta para sincronizar tu foto, nombre y ganar recompensas.</span>
+              </div>
+          </div>
+          <button id="steamLinkBtn" class="steam-link-btn" onclick="window.location.href=this.dataset.href||'/auth/steam'">VINCULAR AHORA</button>
+      </div>
+
+      <div class="profile-content-showcase">
+        <div class="profile-panel-tabs" role="tablist" aria-label="Secciones del perfil">
+          <button type="button" class="profile-panel-tab active" id="profilePanelTabMoments" role="tab" aria-selected="true" aria-controls="profilePanelMoments" data-profile-panel="moments">
+            <i class="fas fa-photo-video" aria-hidden="true"></i>
+            <span id="profilePanelTabMomentsLabel">Mejores momentos</span>
+          </button>
+          <button type="button" class="profile-panel-tab" id="profilePanelTabStats" role="tab" aria-selected="false" aria-controls="aportesSection" data-profile-panel="stats">
+            <i class="fas fa-chart-bar" aria-hidden="true"></i>
+            <span id="profilePanelTabStatsLabel">Estadísticas</span>
+          </button>
+        </div>
+
+        <div class="profile-dual-sections profile-panel-tabs-mode" id="profileDualSections">
+          <section class="profile-match-history-section profile-panel-pane active" id="profilePanelMoments" data-profile-panel-pane="moments" data-streamer-blur role="tabpanel" aria-labelledby="profilePanelTabMoments" aria-label="Best moments and contributions">
+            <div class="profile-moments-aportes-row">
+              <div class="profile-best-moments-block">
+                <div class="profile-subsection-head">
+                  <h3 class="profile-subsection-title"><i class="fas fa-photo-video"></i> <span id="bestMomentsTitle">Best Moments</span></h3>
+                  <button type="button" id="addBestMomentBtn" class="profile-moments-add-btn" style="display:none;">+ Add</button>
+                </div>
+                <div id="profileBestMomentsList" class="profile-best-moments-list">
+                  <div class="profile-match-skeleton">Loading moments…</div>
+                </div>
+              </div>
+
+              <div class="profile-aportes-box" aria-label="Nexus contributions">
+                <div class="profile-subsection-head">
+                  <h3 class="profile-subsection-title"><i class="fas fa-hand-holding-heart"></i> <span id="contributionsTitle">Contributions</span></h3>
+                </div>
+                <div class="aportes-layout aportes-layout-single">
+                  <div class="aportes-contribution-card">
+                    <span class="aportes-pill-icon"><i class="fas fa-trumpet"></i></span>
+                    <div class="aportes-nexus-pill-main">
+                      <span class="aportes-pill-text" id="trumpetHelpsLabel">Trumpet call helps</span>
+                      <span class="aportes-pill-value" id="aportesTrumpetHelpsCount">0</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="profile-aportes-section profile-panel-pane" id="aportesSection" data-profile-panel-pane="stats" data-streamer-blur role="tabpanel" aria-labelledby="profilePanelTabStats" aria-label="Counter Strike 2 stats" hidden>
+            <div class="profile-insight-card cs2-stats-card cs2-card-relocated" id="cs2StatsCard" style="display:none;">
+              <div class="profile-insight-title cs2-card-title"><i class="fab fa-steam"></i> Counter Strike 2</div>
+              <div id="cs2StatsBody" class="cs2-stats-body">
+                <div class="cs2-stat">
+                  <span class="cs2-stat-label">K/D</span>
+                  <span class="cs2-stat-value" id="cs2KdText">-</span>
+                </div>
+                <div class="cs2-stat">
+                  <span class="cs2-stat-label">Victorias</span>
+                  <span class="cs2-stat-value" id="cs2WinsText">-</span>
+                </div>
+                <div class="cs2-last-match" id="cs2LastMatchWrap">
+                  <span class="cs2-last-badge" id="cs2LastMatchResult">Última: -</span>
+                  <span class="cs2-last-kd">K/D <strong id="cs2LastKdText">-</strong></span>
+                </div>
+              </div>
+              <div id="cs2StatsMsg" class="cs2-stats-msg" style="display:none;"></div>
+            </div>
+            <div class="profile-subsection-head" id="latestMatchesHead">
+              <h3 class="profile-subsection-title"><i class="fas fa-history"></i> <span id="latestMatchesTitle">Latest Verified Matches</span></h3>
+            </div>
+            <div id="profileMatchHistoryList" class="profile-match-history-list">
+              <div class="profile-match-skeleton">Loading match history…</div>
+            </div>
+            <span id="recognitionsContainer" class="sr-only" aria-hidden="true"></span>
+            <div id="recognitionsStatBox" style="display:none;" aria-hidden="true"></div>
+          </section>
+        </div>
+      </div>
+
+
+      <div class="profile-appearance-actions" id="profileAppearanceActions">
+          <button type="button" id="customizeProfileBtn" class="profile-appearance-btn profile-appearance-btn-primary" style="display: none;" title="Customize frame and background">
+              <i class="fas fa-palette"></i> Customize profile appearance
+          </button>
+      </div>
+
+    </div>
+    </div>
+    
+    <section class="thoughts-wall-section">
+      <div class="view-toggle-container">
+        <button id="thoughtsToggleBtn" class="toggle-btn active">Últimos Pensamientos</button>
+        <button id="commentsToggleBtn" class="toggle-btn">Comentarios del Perfil</button>
+      </div>
+      <section id="thoughtsWallSection">
+        <div id="thoughtsWall" class="thoughtsWall"></div>
+        <div id="thoughtsPaginator" class="thoughts-paginator"></div>
+      </section>
+      <section id="commentsWallSection" style="display: none;">
+        <div id="commentsWall" class="commentsWall"></div>
+        <div id="commentForm" class="comment-form" style="display: none;">
+          <textarea id="commentInput" class="comment-input" placeholder="Escribe un comentario..."
+            maxlength="200"></textarea>
+          <div class="comment-form-actions">
+            <span id="commentCharCount" class="comment-char-count">200 caracteres restantes</span>
+            <button id="postCommentBtn" class="post-comment-btn">Publicar</button>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <button class="back-button" onclick="location.href='https://studiosgamesrs.com/home/'">← Volver al Home</button>
+  </main>
+
+  <div id="contentModal" class="modal-container" style="display: none;">
+    <div class="modal-content">
+      <span id="closeModal" class="modal-close">&times;</span>
+      <h3>Añadir Nuevo Contenido</h3>
+
+      <div class="modal-input-group">
+        <label for="contentType">Tipo de Contenido:</label>
+        <select id="contentType" class="modal-input">
+          <option value="event">Evento</option>
+          <option value="news">Noticia</option>
+        </select>
+      </div>
+
+      <input type="text" id="contentTitle" placeholder="Título" class="modal-input">
+      <input type="date" id="contentDate" class="modal-input">
+      <textarea id="contentDescription" placeholder="Descripción corta" maxlength="120" class="modal-textarea"></textarea>
+      <input type="url" id="contentLink" placeholder="Enlace (Opcional)" class="modal-input">
+      <button id="saveContentBtn" class="modal-save-btn">Guardar</button>
+    </div>
+  </div>
+
+  <div id="profileCustomizationModal" class="profile-customization-modal" style="display: none;" aria-labelledby="profileCustomizationModalTitle">
+    <div class="profile-customization-modal-backdrop" onclick="typeof closeProfileCustomizationModal === 'function' && closeProfileCustomizationModal();"></div>
+    <div class="profile-customization-modal-content">
+      <div class="profile-customization-modal-header">
+        <h3 id="profileCustomizationModalTitle">Customize profile appearance</h3>
+        <button type="button" class="profile-customization-modal-close" onclick="typeof closeProfileCustomizationModal === 'function' && closeProfileCustomizationModal();" aria-label="Close">&times;</button>
+      </div>
+      <div id="profileCustomizationModalBody" class="profile-customization-modal-body">
+        <p class="profile-customization-modal-intro">Marcos y <strong>fondos de perfil</strong> (imagen dentro del panel superior con bordes). Las pestañas quedan fuera de ese fondo.</p>
+        <div id="profileCustomizationLivePreview" class="profile-customization-live-preview" aria-hidden="true">
+          <div class="profile-customization-live-preview-bg"></div>
+          <div class="profile-customization-live-preview-card profile-customization-live-preview-mock-card">
+            <div class="profile-customization-live-preview-header">
+              <img id="profileCustomizationLiveAvatar" src="" alt="">
+            </div>
+            <div class="profile-customization-live-preview-body">
+              <span class="profile-customization-live-preview-label">Tu tarjeta sigue igual — solo cambia el banner del perfil</span>
+            </div>
+          </div>
+        </div>
+        <div id="profileCustomizationDashboardColors" class="profile-customization-section profile-customization-dashboard-colors">
+          <h4 class="profile-customization-section-title">Colores del Dashboard</h4>
+          <p class="profile-customization-dashboard-colors-desc">Cambia el color de acento de tu dashboard.</p>
+          <div class="profile-customization-dashboard-colors-btns">
+            <button type="button" id="dashboardThemeRedBtn" class="profile-customization-theme-btn" data-theme="red" title="Modo normal (rojo)">
+              <span class="theme-btn-swatch theme-btn-swatch-red"></span>
+              <span class="theme-btn-label">Normal (Rojo)</span>
+            </button>
+            <button type="button" id="dashboardThemeGoldBtn" class="profile-customization-theme-btn" data-theme="gold" title="Tema dorado">
+              <span class="theme-btn-swatch theme-btn-swatch-gold"></span>
+              <span class="theme-btn-label">Dorado</span>
+            </button>
+          </div>
+        </div>
+        <div id="profileCustomizationFramesList" class="profile-customization-list"></div>
+        <div id="profileCustomizationBackgroundsList" class="profile-customization-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bestMomentModal" class="phrase-modal-overlay" style="display:none;">
+    <div class="phrase-modal-box">
+      <h3 class="phrase-modal-title"><i class="fas fa-photo-video"></i> <span id="bestMomentModalTitle">Add best moment</span></h3>
+      <input type="file" id="bestMomentFileInput" class="phrase-modal-input" accept="image/*,video/*">
+      <input type="text" id="bestMomentTaggedInput" class="phrase-modal-input" placeholder="Tagged user UIDs (comma separated)">
+      <input type="text" id="bestMomentCaptionInput" class="phrase-modal-input" maxlength="120" placeholder="Caption (optional)">
+      <p class="phrase-modal-hint" id="bestMomentModalHint">Upload image/video and optionally tag players by UID.</p>
+      <div class="phrase-modal-actions">
+        <button type="button" id="bestMomentCancelBtn" class="phrase-modal-btn phrase-modal-btn-cancel">Cancel</button>
+        <button type="button" id="bestMomentSaveBtn" class="phrase-modal-btn phrase-modal-btn-save">Upload</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/site-config.js?v=20260724"></script>
+  <script src="/profile-customization-config.js?v=20260724stage"></script>
+  <script src="/profile-customization.js?v=20260724stage"></script>
+  <script src="/shared-unified-header.js?v=20260711d"></script>
+  <script src="/shared-notifications.js?v=20260726motion1"></script>
+  <script src="/shared-header.js?v=20260719c"></script>
+  <script src="/dashboard-logic.js?v=20260727welcome"></script>
+  <script src="/welcome-overlay.js?v=20260727welcome"></script>
+  <script src="/sg-visit-tracker.js?v=20260724a"></script>
+  <script src="/site-engagement.js"></script>
+  <script>
+    if (window.SGSiteEngagement) window.SGSiteEngagement.init({ page: 'dashboard' });
+  </script>
+  <div id="dashboardFriendRequestModal" class="dashboard-social-modal" style="display: none;" role="dialog" aria-modal="true">
+    <div class="dashboard-social-modal-backdrop" id="dashboardFriendRequestBackdrop"></div>
+    <div class="dashboard-social-modal-content">
+      <div class="dashboard-social-modal-header">
+        <h3><i class="fas fa-user-plus"></i> Solicitud de amistad</h3>
+        <button type="button" id="closeDashboardFriendRequestModal" class="dashboard-social-modal-close" aria-label="Cerrar">&times;</button>
+      </div>
+      <p id="dashboardFriendRequestSubTitle" class="dashboard-social-modal-hint">Envía una solicitud de amistad. Si acepta, podrán chatear en el sitio.</p>
+      <form id="dashboardFriendRequestForm">
+        <textarea id="dashboardFriendRequestMessage" placeholder="Ej: Vi tu perfil, ¿jugamos juntos?" required maxlength="200"></textarea>
+        <button type="submit" id="sendDashboardFriendRequestBtn" class="dashboard-social-modal-submit">
+          <i class="fas fa-paper-plane"></i> Enviar solicitud
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <button id="floatingChatButton" class="floating-chat-btn" style="display: none;">
+    <img id="floatingChatEmblem" src="/dragon_profile_studiosgamesrs.png" alt="Chat" />
+    <span id="chatNotificationBadge" class="chat-notification-badge" style="display: none;"></span>
+  </button>
+  <button id="floatingGlobalChatButton" class="floating-chat-btn floating-chat-btn-global" style="display: none;" title="Fuego de Campamento (Chat Global)">
+    <img id="floatingGlobalChatEmblem" src="/dragon_profile_studiosgamesrs.png" alt="Comunidad" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIyMCIgZmlsbD0iIzMzMyIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMTUiIHI9IjYiIGZpbGw9IiM2NjYiLz48Y2lyY2xlIGN4PSIyMCIgY3k9IjMwIiByPSI5IiBmaWxsPSIjNjY2Ii8+PC9zdmc+'" />
+  </button>
+  <button id="floatingPlayZoneChatButton" class="floating-chat-btn floating-chat-btn-playzone" style="display: none;" title="Chat de misión PlayZone">
+    <img id="floatingPlayZoneChatEmblem" src="/dragon_profile_studiosgamesrs.png" alt="PlayZone Mission Chat" />
+  </button>
+
+  <div id="teamChatWindow" class="team-chat-window" style="display: none;">
+    <div class="team-chat-header">
+      <a href="#" id="chatTeamNameLink" class="team-chat-title-link">Nombre del Equipo</a>
+      <span id="dashboardPlayerStatusWrap" style="display:none; margin-left: auto;"></span>
+      <button id="closeChatBtn" class="team-chat-close-btn">&times;</button>
+    </div>
+    <div id="chatMessagesList" class="team-chat-messages">
+      <p style="color: #888; text-align: center; padding-top: 2rem;">Cargando mensajes...</p>
+    </div>
+    <form id="teamChatForm" class="team-chat-input-area">
+      <input type="file" id="chatImageUpload" accept="image/png, image/jpeg, image/webp" style="display: none;">
+      <label for="chatImageUpload" class="chat-action-btn" title="Subir Imagen (Max 2MB)">
+        <i class="fas fa-paperclip"></i>
+      </label>
+      <button type="button" id="chatEmojiBtn" class="chat-action-btn" title="Emojis">
+        <i class="fas fa-smile"></i>
+      </button>
+      <input type="text" id="chatMessageInput" class="team-chat-input" placeholder="Escribe un mensaje...">
+      <button type="submit" id="sendChatBtn" class="chat-action-btn send" title="Enviar">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </form>
+  </div>
+
+  <div id="legacy-ghost-container" style="display: none;">
+      <span id="headerUserEmail"></span>
+      <span id="userEmailDisplay"></span>
+      <span id="nexusLevel"></span>
+      <span id="nexusCurrentLevel"></span>
+      <span id="nexusPoints"></span>
+  </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // La lógica Steam (vinculación, persistencia, alerta) se maneja en dashboard-logic.js via updateSteamUI()
+    if (!window.editStatusPhrase) {
+        window.editStatusPhrase = function() {
+            var o = document.getElementById('phraseModalOverlay');
+            var i = document.getElementById('phraseModalInput');
+            var c = document.getElementById('phraseModalCounter');
+            var txt = document.getElementById('userStatusPhraseText');
+            if (!o || !i) return;
+            i.value = (txt && txt.textContent !== 'Añadir frase...') ? txt.textContent : '';
+            if (c) c.textContent = i.value.length;
+            o.classList.add('show');
+            i.focus();
+            var done = function() { o.classList.remove('show'); };
+            var save = document.getElementById('phraseModalSave');
+            var cancel = document.getElementById('phraseModalCancel');
+            var onS = function() { done(); if (txt) txt.textContent = i.value.trim().slice(0, 18) || 'Añadir frase...'; save.removeEventListener('click', onS); cancel.removeEventListener('click', onC); };
+            var onC = function() { done(); save.removeEventListener('click', onS); cancel.removeEventListener('click', onC); };
+            save.addEventListener('click', onS);
+            cancel.addEventListener('click', onC);
+        };
+    }
+});
+</script>
+</body>
+</html>
