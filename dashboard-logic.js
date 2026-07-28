@@ -3474,7 +3474,9 @@ async function updateSteamUI(user, isViewingOwnProfile, profileUserId, profileUs
   // 6. Actualizar href del botón VINCULAR con uid para que el backend pueda vincular
   if (isViewingOwnProfile && user) {
     const steamBtn = document.getElementById('steamLinkBtn');
-    if (steamBtn) steamBtn.dataset.href = '/steam_login.php?intent=link';
+    if (steamBtn) steamBtn.dataset.href = (typeof SITE_CONFIG !== 'undefined' && SITE_CONFIG.getSteamAuthUrl)
+      ? SITE_CONFIG.getSteamAuthUrl('link')
+      : '/steam_login.php?intent=link';
   }
 
   // 7. Recuadro de estadísticas de CS2 (K/D + última partida) vía Steam

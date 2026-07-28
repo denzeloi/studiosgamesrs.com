@@ -337,6 +337,183 @@ button.dashboard-return-btn {
 .modal-content { 
     max-width: 500px; 
 }
+
+/* --- Tournament creation modal --- */
+.tournament-creation-modal {
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+.tournament-creation-modal__content {
+    max-width: 560px;
+    width: 100%;
+    max-height: min(92vh, 760px);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+    text-align: left;
+    border: 1px solid rgba(229, 57, 53, 0.35);
+    background: linear-gradient(180deg, #23262f 0%, #1a1c22 100%);
+}
+
+.tournament-creation-modal__header {
+    flex-shrink: 0;
+    padding: 1.75rem 1.75rem 0.75rem;
+    text-align: center;
+}
+
+.tournament-creation-modal__header .modal-title {
+    margin-bottom: 0.75rem;
+    font-size: 1.65rem;
+    background: linear-gradient(90deg, #fff 0%, #ffca3a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.tournament-creation-modal__notice {
+    margin: 0;
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+    background: rgba(255, 202, 58, 0.08);
+    border: 1px solid rgba(255, 202, 58, 0.25);
+    color: #ffca3a;
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.tournament-creation-modal__notice i {
+    margin-right: 0.4rem;
+}
+
+.tournament-creation-modal__form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.tournament-creation-modal__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 1.75rem 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: #555 #1a1a1a;
+}
+
+.tournament-creation-modal__body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tournament-creation-modal__body::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 3px;
+}
+
+.tournament-creation-modal__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.tournament-creation-modal .modal-input-group {
+    margin-bottom: 0.85rem;
+}
+
+.tournament-creation-modal .modal-input-group label {
+    color: #e0e0e0;
+    font-weight: 500;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+}
+
+.tournament-creation-modal .field-hint {
+    color: #888;
+    font-weight: 400;
+}
+
+.tournament-creation-modal .modal-input,
+.tournament-creation-modal .modal-textarea {
+    margin-bottom: 0;
+    border-color: #3a3d48;
+    background: #14161b;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tournament-creation-modal .modal-input:focus,
+.tournament-creation-modal .modal-textarea:focus {
+    border-color: #e53935;
+    box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.15);
+}
+
+.tournament-creation-modal select.modal-input {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23888' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    padding-right: 2rem;
+}
+
+.tournament-creation-modal .modal-textarea {
+    min-height: 72px;
+    max-height: 120px;
+}
+
+.tournament-creation-modal__footer {
+    flex-shrink: 0;
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 1.75rem 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.tournament-creation-modal__footer .modal-action-btn {
+    flex: 1;
+    margin: 0;
+    max-width: none;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+}
+
+.tournament-creation-modal__footer .modal-action-btn.primary {
+    background: linear-gradient(135deg, #ffca3a 0%, #e6a817 100%);
+    color: #1a1a1a;
+    font-weight: 700;
+}
+
+.tournament-creation-modal__footer .modal-action-btn.primary:hover:not(:disabled) {
+    box-shadow: 0 6px 20px rgba(255, 202, 58, 0.35);
+    transform: translateY(-1px);
+}
+
+.tournament-creation-modal__footer .modal-action-btn.primary:disabled {
+    background: #555;
+    color: #999;
+}
+
+@media (max-width: 600px) {
+    .tournament-creation-modal {
+        padding: 0.5rem;
+        align-items: flex-end;
+    }
+
+    .tournament-creation-modal__content {
+        max-height: 94vh;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .tournament-creation-modal__row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    .tournament-creation-modal__footer {
+        flex-direction: column-reverse;
+    }
+}
 .modal-content.large { max-width: 850px; text-align: center; }
 .modal-title { font-size: 1.8rem; color: #fff; margin-bottom: 0.5rem; }
 .modal-subtitle { font-size: 1rem; color: #ccc; margin-bottom: 2rem; }

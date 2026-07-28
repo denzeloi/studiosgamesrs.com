@@ -1,0 +1,14 @@
+{
+  "name": "studiosgamesrs-hosting",
+  "private": true,
+  "scripts": {
+    "hosting:build": "node scripts/build-hosting-routes.js",
+    "hosting:clean": "node scripts/clean-hosting-routes.js",
+    "hosting:verify": "node scripts/verify-hosting-live.js",
+    "verify:secrets": "node scripts/verify-no-secrets.js",
+    "verify:functions": "node scripts/verify-cs2-functions.js",
+    "deploy:hosting": "npm run verify:secrets && npm run hosting:build && firebase deploy --only hosting && npm run hosting:verify",
+    "deploy:functions": "npm run verify:secrets && npm run verify:functions && firebase deploy --only functions:cs2-nexus",
+    "deploy:all": "npm run verify:secrets && npm run hosting:build && npm run verify:functions && firebase deploy --only functions:cs2-nexus,hosting && npm run hosting:verify"
+  }
+}

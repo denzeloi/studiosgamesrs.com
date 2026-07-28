@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base href="/">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tournament Details - Studiosgamesrs</title>
+  <link rel="icon" href="dragon_profile_studiosgamesrs.png" type="image/png" />
+  <link rel="stylesheet" href="dashboard-styles.css">
+  <link rel="stylesheet" href="shared-header.css">
+  <link rel="stylesheet" href="shared-notifications.css?v=20260711d">
+  <link rel="stylesheet" href="competition-hub.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-functions-compat.js"></script>
+  <script src="/sg-firebase-init.js?v=20260724nocaptcha"></script>
+  <script src="cs2-bridge-config.js?v=20260726a"></script>
+  <script src="tournament-system.js?v=20260727h"></script>
+  <style>
+    .td-wrap { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+    .td-header { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+    .td-title { font-size: 1.8rem; color: #ffca3a; margin: 0; }
+    .td-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 768px) { .td-grid { grid-template-columns: 1fr; } }
+    .td-card { background: rgba(20,20,30,0.9); border: 1px solid #333; border-radius: 12px; padding: 1.25rem; }
+    .td-card h3 { margin: 0 0 1rem; color: #fff; font-size: 1rem; }
+    .td-status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; }
+    .td-status.live { background: #e53935; color: #fff; }
+    .td-status.pending { background: #555; color: #fff; }
+    .td-status.finished { background: #333; color: #aaa; }
+    .td-score { font-size: 2rem; font-weight: bold; text-align: center; color: #ffca3a; }
+    .td-roster { list-style: none; padding: 0; margin: 0; }
+    .td-roster li { padding: 6px 0; border-bottom: 1px solid #222; color: #ccc; }
+    .td-bracket-match { padding: 8px; margin: 4px 0; background: #111; border-radius: 6px; font-size: 0.9rem; }
+    .td-bracket-match.active { border: 1px solid #ffca3a; }
+    .td-admin-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1rem; }
+    .td-btn { padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: opacity 0.2s ease; }
+    .td-btn-primary { background: #ffca3a; color: #000; }
+    .td-btn-danger { background: #e53935; color: #fff; }
+    .td-btn-secondary { background: #333; color: #fff; }
+    .td-btn:disabled, .td-btn-disabled { opacity: 0.45; cursor: not-allowed; }
+    .td-btn-loading { opacity: 0.85; cursor: wait; }
+    .td-connect { font-family: monospace; background: #111; padding: 10px; border-radius: 8px; color: #4caf50; word-break: break-all; }
+    .td-kills-table { width: 100%; font-size: 0.85rem; color: #aaa; }
+    .td-kills-table td { padding: 4px 8px; }
+  </style>
+</head>
+<body>
+  <header class="unified-header">
+    <div class="header-brand">
+      <a href="/dashboard" class="header-logo"><span class="studio">Studios</span><span class="gamesrs">gamesrs</span></a>
+      <div><div class="header-subtitle">/ Tournament</div></div>
+    </div>
+    <div class="header-actions">
+      <a href="competition-hub.html" class="icon-btn" title="Back to Hub"><i class="fas fa-arrow-left"></i></a>
+    </div>
+  </header>
+
+  <div class="td-wrap">
+    <div class="td-header">
+      <div>
+        <h1 class="td-title" id="tdName">Loading...</h1>
+        <span class="td-status pending" id="tdStatus">pending</span>
+      </div>
+      <div id="tdAdminBar" style="display:none;">
+        <select id="tdMapSelect" class="modal-input" style="width:auto;">
+          <option value="de_mirage">de_mirage</option>
+          <option value="de_inferno">de_inferno</option>
+          <option value="de_nuke">de_nuke</option>
+          <option value="de_ancient">de_ancient</option>
+          <option value="de_anubis">de_anubis</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="td-grid">
+      <div class="td-card">
+        <h3><i class="fas fa-broadcast-tower"></i> Live Match</h3>
+        <div class="td-score" id="tdScore">— : —</div>
+        <p style="text-align:center;color:#888;font-size:0.85rem;" id="tdRound">Round —</p>
+        <p style="text-align:center;color:#888;font-size:0.85rem;" id="tdDuration">Duration: —</p>
+        <div class="td-connect" id="tdConnectInfo" style="display:none;margin-top:1rem;"></div>
+        <table class="td-kills-table" id="tdKillsTable" style="margin-top:1rem;display:none;">
+          <tbody id="tdKillsBody"></tbody>
+        </table>
+      </div>
+
+      <div class="td-card">
+        <h3><i class="fas fa-sitemap"></i> Bracket</h3>
+        <div id="tdBracket">No bracket yet.</div>
+      </div>
+
+      <div class="td-card">
+        <h3><i class="fas fa-users"></i> Registered Teams</h3>
+        <ul class="td-roster" id="tdTeams"></ul>
+      </div>
+
+      <div class="td-card">
+        <h3><i class="fas fa-info-circle"></i> Details</h3>
+        <p id="tdMeta" style="color:#aaa;line-height:1.6;"></p>
+        <div class="td-admin-actions" id="tdAdminActions" style="display:none;">
+          <button class="td-btn td-btn-secondary" id="tdBtnCheck" style="display:none;"><i class="fas fa-sync"></i> Check Readiness</button>
+          <button class="td-btn td-btn-primary" id="tdBtnProvision"><i class="fas fa-server"></i> Provision Server</button>
+          <button class="td-btn td-btn-primary" id="tdBtnLaunch"><i class="fas fa-play"></i> Launch Match</button>
+          <button class="td-btn td-btn-danger" id="tdBtnShutdown"><i class="fas fa-power-off"></i> Shutdown Server</button>
+        </div>
+        <p id="tdAdminMsg" style="color:#ffca3a;font-size:0.85rem;margin-top:8px;"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="tournament-details.js?v=20260727j"></script>
+</body>
+</html>

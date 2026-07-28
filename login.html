@@ -422,7 +422,7 @@
 		<button class="google-btn" id="google-login">
 			<img src="https://img.icons8.com/color/48/000000/google-logo.png" alt="Google Logo"> &nbsp; &nbsp; Login with Google &nbsp; &nbsp; 
 		</button>
-		<a href="steam_login.php?intent=login" style="text-decoration: none;">
+		<a id="steamLoginLink" href="steam_login.php?intent=login" style="text-decoration: none;">
 			<button type="button" class="steam-btn">
 				<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Steam_Logo.png" alt="Steam Logo">
 				&nbsp; &nbsp; Login with Steam &nbsp; &nbsp;
@@ -455,7 +455,7 @@
 		<button class="google-btn" id="google-register">
 			<img src="https://img.icons8.com/color/48/000000/google-logo.png" alt="Google Logo"> &nbsp; &nbsp; Register with Google &nbsp; &nbsp; 
 		</button>
-		<a href="steam_login.php?intent=register" style="text-decoration: none;">
+		<a id="steamRegisterLink" href="steam_login.php?intent=register" style="text-decoration: none;">
 			<button type="button" class="steam-btn">
 				<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Steam_Logo.png" alt="Steam Logo">
 				&nbsp; &nbsp; Register with Steam &nbsp; &nbsp;
@@ -465,12 +465,28 @@
 		<div class="footer-note">If you don't receive the verification email, check your spam folder.</div>
 	</div>
 
+	<script src="site-config.js?v=20260724"></script>
 	<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 	<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 	<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 	<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-check-compat.js"></script>
 	<script src="/sg-firebase-init.js?v=20260724nocaptcha"></script>
 	<script>
+		(function () {
+			function applySteamLinks() {
+				if (typeof SITE_CONFIG === 'undefined' || !SITE_CONFIG.getSteamAuthUrl) return;
+				var login = document.getElementById('steamLoginLink');
+				var reg = document.getElementById('steamRegisterLink');
+				if (login) login.href = SITE_CONFIG.getSteamAuthUrl('login');
+				if (reg) reg.href = SITE_CONFIG.getSteamAuthUrl('register');
+			}
+			if (document.readyState === 'loading') {
+				document.addEventListener('DOMContentLoaded', applySteamLinks);
+			} else {
+				applySteamLinks();
+			}
+		})();
+
 		// Desregistrar SW de Community en login (evita "Failed to convert value to Response")
 		(function() {
 			if (!('serviceWorker' in navigator)) return;

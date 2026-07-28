@@ -256,6 +256,131 @@
   }
 
   // -------------------------------------------------
+  // CS2 Tournament tab — server provisioning & live feed
+  // -------------------------------------------------
+  var cmdActiveServerId = null;
+  var cmdLiveMatchListener = null;
+
+  function setCmdTournamentMsg(text, isError) {
+    var el = document.getElementById('cmdTournamentMsg');
+    if (el) {
+      el.textContent = text || '';
+      el.style.color = isError ? '#e53935' : '#ffca3a';
+    }
+  }
+
+  function initTournamentsTab() {
+    if (!db) return;
+    var select = document.getElementById('cmdTournamentSelect');
+    if (!select) return;
+
+    db.ref('tournaments').orderByChild('createdAt').limitToLast(30).on('value', function(snap) {
+      select.innerHTML = '<option value="">— Select tournament —</option>';
+      snap.forEach(function(child) {
+        var t = child.val();
+        if (!t || !t.name) return;
+        var opt = document.createElement('option');
+        opt.value = child.key;
+        opt.textContent = t.name + ' [' + (t.status || 'pending') + ']';
+        select.appendChild(opt);
+      });
+    });
+
+    db.ref('gameServers').on('value', function(snap) {
+      var list = document.getElementById('cmdGameServersList');
+      if (!list) return;
+      list.innerHTML = '';
+      if (!snap.exists()) {
+        list.innerHTML = '<p class="commander-placeholder-text">No game servers active.</p>';
+        return;
+      }
+      snap.forEach(function(child) {
+        var s = child.val();
+        var row = document.createElement('div');
+        row.className = 'telemetry-server-row';
+        row.innerHTML =
+          '<span class="srv-name">' + (s.ip || child.key) + '</span>' +
+          '<span class="srv-status srv-online">' + (s.status || 'unknown') + '</span>' +
+          '<span class="srv-meta">' + (s.tournamentId || '') + '</span>';
+        list.appendChild(row);
+        if (s.status === 'online' || s.status === 'booting') cmdActiveServerId = child.key;
+      });
+    });
+
+    var btnProvision = document.getElementById('cmdBtnProvision');
+    var btnLaunch = document.getElementById('cmdBtnLaunch');
+    var btnShutdown = document.getElementById('cmdBtnShutdown');
+
+    if (btnProvision && typeof TournamentSystem !== 'undefined') {
+      btnProvision.addEventListener('click', function() {
+        var tid = select.value;
+        if (!tid) { setCmdTournamentMsg('Select a tournament first.', true); return; }
+        setCmdTournamentMsg('Provisioning Hetzner server...');
+        db.ref('tournaments/' + tid + '/currentMatchId').once('value').then(function(snap) {
+          var matchId = snap.val() || 'r1_m1';
+          return TournamentSystem.provisionServer(tid, matchId, 0);
+        }).then(function(res) {
+          cmdActiveServerId = String(res.serverId);
+          setCmdTournamentMsg('Server provisioning started: ' + res.serverId);
+        }).catch(function(err) {
+          setCmdTournamentMsg(err.message || String(err), true);
+        });
+      });
+    }
+
+    if (btnLaunch && typeof TournamentSystem !== 'undefined') {
+      btnLaunch.addEventListener('click', function() {
+        var tid = select.value;
+        if (!tid) { setCmdTournamentMsg('Select a tournament first.', true); return; }
+        var mapEl = document.getElementById('cmdMapSelect');
+        var map = mapEl ? mapEl.value : 'de_mirage';
+        setCmdTournamentMsg('Launching match...');
+        Promise.all([
+          db.ref('tournaments/' + tid).once('value'),
+          db.ref('tournaments/' + tid + '/currentMatchId').once('value'),
+        ]).then(function(results) {
+          var t = results[0].val() || {};
+          var matchId = results[1].val() || 'r1_m1';
+          var teamIds = Object.keys(t.registeredTeams || {});
+          return TournamentSystem.launchMatch(tid, matchId, map, cmdActiveServerId || t.activeServerId, teamIds);
+        }).then(function(res) {
+          setCmdTournamentMsg('Match live on ' + res.serverIp + ':' + res.port);
+          attachCmdLiveFeed(tid);
+        }).catch(function(err) {
+          setCmdTournamentMsg(err.message || String(err), true);
+        });
+      });
+    }
+
+    if (btnShutdown && typeof TournamentSystem !== 'undefined') {
+      btnShutdown.addEventListener('click', function() {
+        if (!cmdActiveServerId) { setCmdTournamentMsg('No active server to shutdown.', true); return; }
+        setCmdTournamentMsg('Shutting down server...');
+        TournamentSystem.shutdownServer(cmdActiveServerId, tid).then(function() {
+          setCmdTournamentMsg('Server shutdown requested.');
+          cmdActiveServerId = null;
+        }).catch(function(err) {
+          setCmdTournamentMsg(err.message || String(err), true);
+        });
+      });
+    }
+  }
+
+  function attachCmdLiveFeed(tournamentId) {
+    if (cmdLiveMatchListener) cmdLiveMatchListener.off();
+    db.ref('tournaments/' + tournamentId + '/activeMatchId').on('value', function(snap) {
+      var matchId = snap.val();
+      if (!matchId) return;
+      if (cmdLiveMatchListener) cmdLiveMatchListener.off();
+      cmdLiveMatchListener = db.ref('partida_en_vivo/' + matchId);
+      cmdLiveMatchListener.on('value', function(liveSnap) {
+        var feed = document.getElementById('cmdLiveMatchFeed');
+        if (feed) feed.textContent = JSON.stringify(liveSnap.val(), null, 2) || 'Waiting for live match...';
+      });
+    });
+  }
+
+  // -------------------------------------------------
   // Telemetría real: usuarios en línea, actividad global, monitor de registros
   // -------------------------------------------------
   function initTelemetryRealtime() {
@@ -4991,6 +5116,7 @@
       initTelemetryRealtime();
       initCommanderCLI();
       initTelemetryPlaceholders();
+      initTournamentsTab();
       setTimeout(function() { drawServerLoadChart(); }, 300);
     }
 
