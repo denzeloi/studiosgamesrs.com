@@ -667,7 +667,9 @@
   height: var(--cf-stream-h);
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0.65rem 0.35rem 0.75rem;
+  /* Padding extra a la izquierda/arriba para que el marco (~1.3×) no se recorte;
+     la columna del avatar sigue en 38px así la foto y el texto no se mueven. */
+  padding: 0.85rem 0.55rem 0.95rem 0.9rem;
   display: flex;
   flex-direction: column;
   gap: var(--cf-msg-gap);
@@ -723,8 +725,9 @@
   gap: 0.55rem;
   align-items: start;
   position: relative;
-  padding: 0.1rem 0.15rem;
+  padding: 0.35rem 0.15rem;
   border-radius: 10px;
+  overflow: visible;
   animation: cfMsgIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -736,7 +739,9 @@
 .cf-shell .campfire-message:hover { background: rgba(255, 255, 255, 0.03); }
 
 .cf-msg.cf-grouped { margin-top: calc(var(--cf-msg-gap) * -0.55); }
+.cf-msg.cf-grouped .cf-avatar-wrap,
 .cf-msg.cf-grouped .message-avatar,
+.cf-msg.cf-grouped .cf-msg-head { visibility: hidden; }
 .cf-msg.cf-grouped .cf-msg-head { display: none; }
 .cf-msg.cf-grouped .message-bubble { border-top-left-radius: 6px; }
 
@@ -751,9 +756,75 @@
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
+/* Contenedor del avatar + marco encima (mismo overlay que el perfil).
+   El wrap ocupa 38×38 en el layout; el marco se pinta por encima sin
+   desplazar la foto ni la columna del texto. */
+.cf-avatar-wrap {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  flex-shrink: 0;
+  overflow: visible;
+  z-index: 2;
+}
+
+.cf-avatar-wrap .message-avatar {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  display: block;
+}
+
+.cf-avatar-wrap.has-profile-frame .message-avatar {
+  clip-path: circle(42% at 50% 50%);
+  border: none !important;
+  box-shadow: none !important;
+  transform: none;
+  transform-origin: center center;
+}
+
+.cf-avatar-wrap .profile-photo-frame-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(100% * var(--frame-outer-ratio, 1.28));
+  height: calc(100% * var(--frame-outer-ratio, 1.28));
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 3;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+}
+
+.cf-avatar-wrap .profile-photo-frame-overlay.frame-layout-standard { --frame-outer-ratio: 1.24; }
+.cf-avatar-wrap .profile-photo-frame-overlay.frame-layout-wide { --frame-outer-ratio: 1.30; }
+.cf-avatar-wrap .profile-photo-frame-overlay.frame-layout-ornate { --frame-outer-ratio: 1.36; }
+
+/* Built-ins: glow en el wrap del avatar del chat. */
+.cf-avatar-wrap.profile-frame-nexus-ember .message-avatar {
+  border-color: rgba(229, 57, 53, 0.75);
+  box-shadow: 0 0 10px rgba(229, 57, 53, 0.45);
+}
+.cf-avatar-wrap.profile-frame-dragon-guard .message-avatar {
+  border-color: rgba(255, 152, 0, 0.8);
+  box-shadow: 0 0 12px rgba(255, 152, 0, 0.4), 0 0 4px rgba(229, 57, 53, 0.35);
+}
+.cf-avatar-wrap.profile-frame-golden-nexus .message-avatar {
+  border-color: rgba(255, 193, 7, 0.85);
+  box-shadow: 0 0 14px rgba(255, 193, 7, 0.45);
+}
+
+.cf-shell .campfire-message:hover .cf-avatar-wrap .message-avatar,
 .cf-shell .campfire-message:hover .message-avatar {
   transform: scale(1.06);
   box-shadow: 0 0 16px rgba(229, 57, 53, 0.45);
+}
+
+.cf-shell .campfire-message:hover .cf-avatar-wrap.has-profile-frame .message-avatar {
+  transform: scale(1.03);
+  box-shadow: none !important;
 }
 
 .cf-msg[data-cf-tier="bronze"] .message-avatar { border-color: #cd7f32; }
@@ -1801,7 +1872,7 @@ body.cf-expanded-lock { overflow: hidden; }
   z-index: 22050;
   width: min(280px, calc(100vw - 24px));
   border-radius: 14px;
-  overflow: hidden;
+  overflow: visible;
   pointer-events: auto;
   background: #12161c;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -1825,6 +1896,8 @@ body.cf-expanded-lock { overflow: hidden; }
   background-position: center;
   opacity: 0.55;
   pointer-events: none;
+  border-radius: 14px;
+  overflow: hidden;
 }
 
 .cf-user-card-bg::after {
@@ -1837,16 +1910,27 @@ body.cf-expanded-lock { overflow: hidden; }
 .cf-user-card-inner {
   position: relative;
   z-index: 1;
-  padding: 0.85rem 0.9rem 0.75rem;
+  padding: 0.95rem 0.9rem 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
+  border-radius: 14px;
+  overflow: visible;
 }
 
 .cf-user-card-top {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.75rem;
+}
+
+.cf-user-card-avatar-wrap {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+  overflow: visible;
+  z-index: 2;
 }
 
 .cf-user-card-avatar {
@@ -1857,7 +1941,44 @@ body.cf-expanded-lock { overflow: hidden; }
   border: 2px solid rgba(255, 255, 255, 0.35);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
   background: #1a1f26;
-  flex: 0 0 auto;
+  display: block;
+}
+
+.cf-user-card-avatar-wrap.has-profile-frame .cf-user-card-avatar {
+  clip-path: circle(42% at 50% 50%);
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.cf-user-card-avatar-wrap .profile-photo-frame-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(100% * var(--frame-outer-ratio, 1.30));
+  height: calc(100% * var(--frame-outer-ratio, 1.30));
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 3;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+}
+
+.cf-user-card-avatar-wrap .profile-photo-frame-overlay.frame-layout-standard { --frame-outer-ratio: 1.24; }
+.cf-user-card-avatar-wrap .profile-photo-frame-overlay.frame-layout-wide { --frame-outer-ratio: 1.30; }
+.cf-user-card-avatar-wrap .profile-photo-frame-overlay.frame-layout-ornate { --frame-outer-ratio: 1.36; }
+
+.cf-user-card-avatar-wrap.profile-frame-nexus-ember .cf-user-card-avatar {
+  border-color: rgba(229, 57, 53, 0.75);
+  box-shadow: 0 0 12px rgba(229, 57, 53, 0.45);
+}
+.cf-user-card-avatar-wrap.profile-frame-dragon-guard .cf-user-card-avatar {
+  border-color: rgba(255, 152, 0, 0.8);
+  box-shadow: 0 0 14px rgba(255, 152, 0, 0.4);
+}
+.cf-user-card-avatar-wrap.profile-frame-golden-nexus .cf-user-card-avatar {
+  border-color: rgba(255, 193, 7, 0.85);
+  box-shadow: 0 0 14px rgba(255, 193, 7, 0.45);
 }
 
 .cf-user-card-id { min-width: 0; flex: 1; }
