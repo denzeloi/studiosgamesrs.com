@@ -43,6 +43,8 @@
       ".firebase/**",
       "tools/**",
       "scripts/**",
+      "docs/**",
+      "cs2-server/**",
       "**/node_modules/**",
       "functions/**",
       "*.md",

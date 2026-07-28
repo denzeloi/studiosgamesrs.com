@@ -9,10 +9,6 @@ const root = path.join(__dirname, '..');
 const required = [
   'index.html',
   'login.html',
-  'login/index.html',
-  'dashboard/index.html',
-  'competition-hub/index.html',
-  'tournament-details/index.html',
   '404.html',
   'dashboard.html',
   'competition-hub.html',
@@ -22,7 +18,6 @@ const required = [
   'tournament-system.js',
   'tournament-details.js',
   'firebase.json',
-  '.hosting-routes-built.json',
 ];
 
 const missing = required.filter(function (file) {
@@ -35,4 +30,4 @@ if (missing.length) {
   process.exit(1);
 }
 
-console.log('[hosting] Verified', required.length, 'critical files (including clean URL directories).');
+console.log('[hosting] Verified', required.length, 'critical hosting files.');

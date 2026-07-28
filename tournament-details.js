@@ -2,19 +2,10 @@
 (function (global) {
   'use strict';
 
-  var firebaseConfig = {
-    apiKey: 'AIzaSyBiGoggMhj_yCE7NbmXKE9VqneG0uqyDrU',
-    authDomain: 'studiosgamesrs.firebaseapp.com',
-    databaseURL: 'https://studiosgamesrs-default-rtdb.firebaseio.com',
-    projectId: 'studiosgamesrs',
-    storageBucket: 'studiosgamesrs.firebasestorage.app',
-    messagingSenderId: '113076073338',
-    appId: '1:113076073338:web:74354ea705903240029cc3',
-  };
-
-  if (typeof firebase !== 'undefined' && !firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
+  if (typeof global.sgInitFirebaseApp !== 'function') {
+    throw new Error('sg-firebase-init.js must load before tournament-details.js');
   }
+  global.sgInitFirebaseApp();
 
   var db = firebase.database();
   var tournamentId = new URLSearchParams(window.location.search).get('id');

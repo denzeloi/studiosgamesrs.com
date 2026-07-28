@@ -1,12 +1,13 @@
-# Dependencias
+# Dependencies
 node_modules/
 functions/node_modules/
+functions/cs2-nexus/node_modules/
 
-# Secretos: nunca deben entrar al repositorio
-# steam_login.php lleva la clave de Steam dentro y debe coincidir con el archivo de cPanel.
+# Secrets — never commit
 steam_login.php
 steam-config.php
 serviceAccountKey.json
+serviceAccountKey*.json
 .env
 .env.*
 !.env.example
@@ -15,14 +16,14 @@ serviceAccountKey.json
 *.pem
 *.key
 
-# Firebase
+# Firebase local state
 .firebase/
 firebase-debug.log
 firebase-debug.*.log
 ui-debug.log
 database-debug.log
 
-# Sistema y editor
+# OS / editor
 Thumbs.db
 ehthumbs.db
 Desktop.ini
@@ -31,19 +32,28 @@ $RECYCLE.BIN/
 .vscode/
 .idea/
 
-# Temporales
+# Temporaries
 *.log
 *.tmp
 *.bak
 *~
 
-# Hosting clean-URL dirs — committed so partial/client deploys still serve routes.
-# Regenerate with: npm run hosting:build
+# Generated hosting artifacts (legacy — no longer created; run npm run hosting:clean)
 .hosting-routes-built.json
+/login/
+/dashboard/
+/competition-hub/
+/tournament-details/
+/commander-panel/
+/community/
+/nexus/
+/playzone/
+/steam-login-handler/
+/steam-callback/
+/steam_bridge/
 
-# Fuentes 3D de Blender/Substance (~2 GB). Al sitio solo suben los .glb
-# exportados y optimizados que viven en models/.
+# Large Blender/Substance sources (~2 GB). Only optimized .glb exports are deployed.
 Animations/
 
-# Archivo vacío que quedó suelto en la raíz
+# Stray empty file from legacy layout
 /studiosgamesrs

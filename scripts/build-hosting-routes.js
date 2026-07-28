@@ -2,9 +2,9 @@
 'use strict';
 
 /**
- * Creates /login/index.html, /dashboard/index.html, etc.
- * Source of truth: *.html at repo root. Generated dirs are gitignored.
- * Runs automatically via firebase.json predeploy and npm run hosting:build.
+ * Verifies root *.html sources exist for Firebase Hosting rewrites.
+ * Clean URLs (/login, /dashboard, …) are handled by firebase.json rewrites
+ * pointing to login.html, dashboard.html, etc. No duplicate route folders.
  */
 
 const fs = require('fs');
@@ -26,28 +26,18 @@ const routes = [
   { path: 'steam_bridge', file: 'steam_bridge.html' },
 ];
 
-const marker = path.join(root, '.hosting-routes-built.json');
+let failed = 0;
 
-function build() {
-  let built = 0;
-  routes.forEach(function (route) {
-    const src = path.join(root, route.file);
-    if (!fs.existsSync(src)) {
-      console.error('[hosting] Missing source file for route /' + route.path + ':', route.file);
-      process.exit(1);
-    }
-    const dir = path.join(root, route.path);
-    fs.mkdirSync(dir, { recursive: true });
-    fs.copyFileSync(src, path.join(dir, 'index.html'));
-    built += 1;
-  });
+routes.forEach(function (route) {
+  const src = path.join(root, route.file);
+  if (!fs.existsSync(src)) {
+    console.error('[hosting] Missing source for /' + route.path + ':', route.file);
+    failed += 1;
+  }
+});
 
-  fs.writeFileSync(
-    marker,
-    JSON.stringify({ builtAt: new Date().toISOString(), routes: routes.map(function (r) { return r.path; }) }, null, 2)
-  );
-
-  console.log('[hosting] Built', built, 'clean URL directories (e.g. /login → login/index.html).');
+if (failed) {
+  process.exit(1);
 }
 
-build();
+console.log('[hosting] Verified', routes.length, 'page sources (rewrites in firebase.json, no generated dirs).');
