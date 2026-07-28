@@ -29,14 +29,24 @@
       "**/node_modules/**",
       "functions/**",
       "*.md",
-      "steam_login.php",
-      "steam-config.php",
+      "*.php",
+      "**/*.php",
       "serviceAccountKey.json",
       "animations/**"
     ],
     "headers": [
       {
         "source": "**/*.@(js|css|html)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, must-revalidate"
+          }
+        ]
+      },
+      {
+        "comment": "cleanUrls sirve /dashboard sin extension, asi que la regla de *.html no lo alcanza y el HTML quedaba cacheado con versiones viejas de js/css.",
+        "source": "/@(login|dashboard|playzone|community|nexus|competition-hub|commander-panel|steam-callback|steam-login-handler|steam_bridge)",
         "headers": [
           {
             "key": "Cache-Control",
