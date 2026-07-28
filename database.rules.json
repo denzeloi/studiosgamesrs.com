@@ -343,6 +343,12 @@
         }
       }
     },
+    "tournamentMatchResults": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+        ".write": false
+      }
+    },
     "missions": {
       ".indexOn": ["createdAt", "creatorUid", "game", "type", "skill"],
       ".read": "auth != null",
@@ -355,7 +361,7 @@
         "participants": {
           "$participantUid": {
             ".write": "auth != null && data.exists() && !newData.exists() && (auth.uid === $participantUid || root.child('missions').child($missionId).child('creatorUid').val() === auth.uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
-            ".validate": "$participantUid === auth.uid && newData.hasChildren(['nick', 'photoURL', 'joinedAt', 'rank']) && newData.child('nick').isString() && newData.child('nick').val().length > 0 && newData.child('nick').val().length <= 60 && (newData.child('nick').val() === root.child('users').child($participantUid).child('nick').val() || newData.child('nick').val() === 'Usuario') && newData.child('rank').isString() && newData.child('rank').val().length > 0 && newData.child('rank').val().length <= 60 && (newData.child('rank').val() === root.child('users').child($participantUid).child('rango').val() || newData.child('rank').val() === 'Operativo' || newData.child('rank').val() === 'Tribal Warrior') && newData.child('photoURL').isString() && newData.child('photoURL').val().length <= 600 && (newData.child('photoURL').val() === root.child('users').child($participantUid).child('photoURL').val() || newData.child('photoURL').val() === 'dragon_profile_studiosgamesrs.png') && newData.child('joinedAt').isNumber() && newData.child('joinedAt').val() <= (now + 60000)"
+            ".validate": "!newData.exists() || ($participantUid === auth.uid && newData.hasChildren(['nick', 'photoURL', 'joinedAt', 'rank']) && newData.child('nick').isString() && newData.child('nick').val().length > 0 && newData.child('nick').val().length <= 60 && (newData.child('nick').val() === root.child('users').child($participantUid).child('nick').val() || newData.child('nick').val() === 'Usuario') && newData.child('rank').isString() && newData.child('rank').val().length > 0 && newData.child('rank').val().length <= 60 && (newData.child('rank').val() === root.child('users').child($participantUid).child('rango').val() || newData.child('rank').val() === 'Operativo' || newData.child('rank').val() === 'Tribal Warrior') && newData.child('photoURL').isString() && newData.child('photoURL').val().length <= 600 && (newData.child('photoURL').val() === root.child('users').child($participantUid).child('photoURL').val() || newData.child('photoURL').val() === 'dragon_profile_studiosgamesrs.png') && newData.child('joinedAt').isNumber() && newData.child('joinedAt').val() <= (now + 60000))"
           }
         },
         "status": {
@@ -394,8 +400,8 @@
         },
         "cs2Ready": {
           "$readyUid": {
-            ".write": "auth != null && auth.uid === $readyUid && root.child('missions').child($missionId).child('participants').child(auth.uid).exists()",
-            ".validate": "newData.isBoolean() && newData.val() === true"
+            ".write": "auth != null && ((!newData.exists() && data.exists() && (auth.uid === $readyUid || root.child('missions').child($missionId).child('creatorUid').val() === auth.uid)) || (newData.exists() && auth.uid === $readyUid && root.child('missions').child($missionId).child('participants').child(auth.uid).exists()))",
+            ".validate": "!newData.exists() || (newData.isBoolean() && newData.val() === true)"
           }
         },
         "rewardPerPlayer": {
@@ -560,6 +566,7 @@
       "$targetUid": {
         ".read": "auth != null && auth.uid === $targetUid",
         "$senderUid": {
+          ".read": "auth != null && auth.uid === $senderUid",
           ".write": "auth != null && (auth.uid === $senderUid || auth.uid === $targetUid)",
           ".validate": "!newData.exists() || (newData.hasChildren(['senderNick', 'timestamp']) && newData.child('senderUid').val() === $senderUid)"
         }

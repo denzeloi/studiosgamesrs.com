@@ -20,6 +20,7 @@ exports.getPlayzoneRewardBudget = missionTokens.getPlayzoneRewardBudget;
 exports.refillPlayzoneRewardBudget = missionTokens.refillPlayzoneRewardBudget;
 exports.joinMission = missionTokens.joinMission;
 exports.sendMissionInvite = missionTokens.sendMissionInvite;
+exports.kickMissionParticipant = missionTokens.kickMissionParticipant;
 
 const teamVerification = require('./teamVerification');
 exports.payTeamVerification = teamVerification.payTeamVerification;
