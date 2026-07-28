@@ -37,12 +37,35 @@
     var threeModPromise = null;
     var threeMod = null; // { THREE, GLTFLoader } una vez cargado
 
+    /**
+     * Encuadre por defecto (el que usaba el golem). Cada personaje puede
+     * sobreescribir solo lo que necesite en su propia clave `frame`, para que
+     * sumar un personaje siga siendo rellenar una entrada del mapa:
+     *   targetHeight = alto al que se normaliza el modelo, sea cual sea su escala
+     *   ground       = altura a la que quedan los pies antes de encuadrar
+     *   distFactor/distPad = distancia de cámara = alto * factor + pad
+     *   camHeight/lookHeight = altura de la cámara y del punto que mira,
+     *                          en fracciones del alto ya normalizado
+     *   drop         = cuánto se baja el modelo, en fracción del alto visible
+     */
+    var DEFAULT_FRAME = {
+      targetHeight: 2.4,
+      ground: 0.55,
+      distFactor: 1.9,
+      distPad: 1.6,
+      camHeight: 0.55,
+      lookHeight: 0.42,
+      drop: 0.15
+    };
+
     // Config de personajes/animaciones. Fácil de extender: agregar otro
     // characterId con su propio basePath + mapa de clips.
     var CHARACTERS = {
       'golem-tortoise': {
         label: 'Golem Tortuga',
         basePath: SG_CDN + '/models/golem-tortoise/',
+        backdrop: '/overlay-volcano.jpg',
+        theme: 'ember',
         clips: {
           idle: 'golem-idle.glb',
           awake: 'golem-awake.glb',
@@ -66,8 +89,90 @@
           hurt: 'idle',
           faint: 'hold'
         }
+      },
+      'soldier-specops': {
+        label: 'Soldado SpecOps',
+        basePath: SG_CDN + '/models/soldier-specops/',
+        backdrop: '/overlay-cs2-desert.jpg',
+        theme: 'desert',
+        clips: {
+          idle: 'soldier-idle.glb',
+          rifle_pose: 'soldier-rifle-pose.glb',
+          talk: 'soldier-talk.glb',
+          walk: 'soldier-walk.glb',
+          run: 'soldier-run.glb',
+          jump: 'soldier-jump.glb',
+          crouch_walk: 'soldier-crouch-walk.glb',
+          death: 'soldier-death.glb'
+        },
+        loopClip: 'idle',
+        // Sol duro de tarde y rebote cálido de la arena, sin el rim rojo de
+        // lava del golem.
+        lights: {
+          hemiSky: 0xbcd4ee, hemiGround: 0xc79a5e, hemiInt: 1.25,
+          keyColor: 0xfff0cf, keyInt: 2.15, keyPos: [3.4, 5.2, 3.2],
+          rimColor: 0xffd08a, rimInt: 0.95, rimPos: [-4, 2.4, -3],
+          bounceColor: 0xd9a463, bounceInt: 0.9, bouncePos: [0, -1.6, 1.8]
+        },
+        // El modelo sale de la exportación mirando al frente (+Z), que es
+        // justo hacia la cámara: no necesita giro, solo el tres cuartos leve.
+        yawDeg: 20,
+        // Silueta humana (1,93 de alto y estrecha): con la distancia del golem
+        // se veía diminuta, así que la cámara se acerca y sube. No se acerca
+        // más porque el clip de muerte desplaza al personaje más de un metro
+        // al caer y tiene que seguir cabiendo en el cuadro.
+        frame: {
+          distFactor: 1.6,
+          distPad: 1.05,
+          camHeight: 0.62,
+          lookHeight: 0.5
+        },
+        postEntrance: {
+          idle: 'loop',
+          // rifle_pose dura 0,38 s: congelarla dejaría al soldado como una
+          // estatua durante todo el aviso, así que enlaza con el reposo.
+          rifle_pose: 'idle',
+          talk: 'idle',
+          walk: 'loop',
+          run: 'loop',
+          jump: 'idle',
+          crouch_walk: 'loop',
+          death: 'hold'
+        }
       }
     };
+
+    /**
+     * Rig de luces por defecto (volcánico, el del golem). Cada personaje puede
+     * dar el suyo en `lights` para que la escena 3D acompañe a su ambiente:
+     * un rim rojo de lava sobre un soldado en el desierto quedaría fuera de
+     * lugar. Se reaplica en cada entrada porque un mismo visor puede cambiar
+     * de personaje (la vista previa del Commander Panel lo hace).
+     */
+    var DEFAULT_LIGHTS = {
+      hemiSky: 0x9aa2b0, hemiGround: 0x9c3010, hemiInt: 1.35,
+      keyColor: 0xffcaa8, keyInt: 1.85, keyPos: [3, 5, 4],
+      rimColor: 0xff3e14, rimInt: 1.2, rimPos: [-4, 2, -3],
+      bounceColor: 0xff5a1e, bounceInt: 1.6, bouncePos: [0, -1.7, 1.6]
+    };
+
+    function lightsOf(character) {
+      var custom = (character && character.lights) || {};
+      var out = {};
+      Object.keys(DEFAULT_LIGHTS).forEach(function (k) {
+        out[k] = (custom[k] === undefined) ? DEFAULT_LIGHTS[k] : custom[k];
+      });
+      return out;
+    }
+
+    function frameOf(character) {
+      var custom = (character && character.frame) || {};
+      var out = {};
+      Object.keys(DEFAULT_FRAME).forEach(function (k) {
+        out[k] = typeof custom[k] === 'number' ? custom[k] : DEFAULT_FRAME[k];
+      });
+      return out;
+    }
 
     // Los addons de Three (GLTFLoader, DRACOLoader) importan 'three' como
     // especificador desnudo, que solo resuelve si la página declara un
@@ -117,6 +222,7 @@
       var renderer = null, scene = null, camera = null, mixer = null, clock = null;
       var resizeObs = null;
       var currentModelRoot = null;
+      var lightRig = null;
       var gen = 0;
       var rafId = null;
       var paused = true;
@@ -132,19 +238,17 @@
         camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
         camera.position.set(0, 1.4, 5.2);
 
-        // Ambiente volcánico: cielo gris frío, rebote de lava desde abajo y
-        // contraluz rojo, en línea con la paleta roja/negra/gris del sitio.
-        var hemi = new THREE.HemisphereLight(0x9aa2b0, 0x9c3010, 1.35);
-        scene.add(hemi);
-        var key = new THREE.DirectionalLight(0xffcaa8, 1.85);
-        key.position.set(3, 5, 4);
-        scene.add(key);
-        var rim = new THREE.DirectionalLight(0xff3e14, 1.2);
-        rim.position.set(-4, 2, -3);
-        scene.add(rim);
-        var lava = new THREE.PointLight(0xff5a1e, 1.6, 16, 2);
-        lava.position.set(0, -1.7, 1.6);
-        scene.add(lava);
+        lightRig = {
+          hemi: new THREE.HemisphereLight(0xffffff, 0xffffff, 1),
+          key: new THREE.DirectionalLight(0xffffff, 1),
+          rim: new THREE.DirectionalLight(0xffffff, 1),
+          bounce: new THREE.PointLight(0xffffff, 1, 16, 2)
+        };
+        scene.add(lightRig.hemi);
+        scene.add(lightRig.key);
+        scene.add(lightRig.rim);
+        scene.add(lightRig.bounce);
+        applyLighting(null);
 
         clock = new THREE.Clock();
 
@@ -153,6 +257,23 @@
           resizeObs.observe(canvasEl.parentElement);
         }
         resizeRenderer();
+      }
+
+      function applyLighting(character) {
+        if (!lightRig) return;
+        var L = lightsOf(character);
+        lightRig.hemi.color.setHex(L.hemiSky);
+        lightRig.hemi.groundColor.setHex(L.hemiGround);
+        lightRig.hemi.intensity = L.hemiInt;
+        lightRig.key.color.setHex(L.keyColor);
+        lightRig.key.intensity = L.keyInt;
+        lightRig.key.position.set(L.keyPos[0], L.keyPos[1], L.keyPos[2]);
+        lightRig.rim.color.setHex(L.rimColor);
+        lightRig.rim.intensity = L.rimInt;
+        lightRig.rim.position.set(L.rimPos[0], L.rimPos[1], L.rimPos[2]);
+        lightRig.bounce.color.setHex(L.bounceColor);
+        lightRig.bounce.intensity = L.bounceInt;
+        lightRig.bounce.position.set(L.bouncePos[0], L.bouncePos[1], L.bouncePos[2]);
       }
 
       function resizeRenderer() {
@@ -166,6 +287,7 @@
 
       function frameModel(root, character) {
         var THREE = threeMod.THREE;
+        var fr = frameOf(character);
         var yaw = (character && typeof character.yawDeg === 'number') ? character.yawDeg : 0;
         // Se rota antes de medir para que el encuadre y el centrado tengan en
         // cuenta la orientación final.
@@ -178,8 +300,7 @@
         var box = new THREE.Box3().setFromObject(root);
         var size = new THREE.Vector3();
         box.getSize(size);
-        var targetHeight = 2.4;
-        var scale = size.y > 0 ? targetHeight / size.y : 1;
+        var scale = size.y > 0 ? fr.targetHeight / size.y : 1;
         root.scale.setScalar(scale);
         root.updateMatrixWorld(true);
 
@@ -190,18 +311,17 @@
         box2.getCenter(center2);
         root.position.x -= center2.x;
         root.position.z -= center2.z;
-        root.position.y -= box2.min.y - 0.55;
+        root.position.y -= box2.min.y - fr.ground;
 
-        var dist = size2.y * 1.9 + 1.6;
-        camera.position.set(0, size2.y * 0.55, dist);
-        camera.lookAt(0, size2.y * 0.42, 0);
+        var dist = size2.y * fr.distFactor + fr.distPad;
+        camera.position.set(0, size2.y * fr.camHeight, dist);
+        camera.lookAt(0, size2.y * fr.lookHeight, 0);
 
         // El modelo quedaba pegado al borde superior y los clips en los que el
         // golem se alza (rugido) se recortaban por arriba, con el borde
-        // inferior desperdiciado. Se baja un 15% del alto visible del cuadro.
-        var drop = (character && typeof character.frameDrop === 'number') ? character.frameDrop : 0.15;
+        // inferior desperdiciado; se baja una fracción del alto visible.
         var visibleHeight = 2 * dist * Math.tan((camera.fov * Math.PI / 180) / 2);
-        root.position.y -= visibleHeight * drop;
+        root.position.y -= visibleHeight * fr.drop;
         root.updateMatrixWorld(true);
       }
 
@@ -286,6 +406,7 @@
           if (token !== gen) return;
           var THREE = threeMod.THREE;
           clearCurrentModel();
+          applyLighting(character);
           currentModelRoot = gltf.scene;
           frameModel(currentModelRoot, character);
           scene.add(currentModelRoot);
@@ -352,6 +473,7 @@
         clearCurrentModel();
         if (resizeObs) { resizeObs.disconnect(); resizeObs = null; }
         if (renderer) { renderer.dispose(); renderer = null; }
+        lightRig = null;
         scene = null; camera = null; clock = null;
       }
       function resize() { resizeRenderer(); }
@@ -368,16 +490,19 @@
   if (window.__sgWelcomeOverlayBooted) return;
   window.__sgWelcomeOverlayBooted = true;
 
+  // La bienvenida, las invitaciones y los broadcasts siguen siendo cosa del
+  // Dashboard; el aviso de resultado de partida corre en cualquier página que
+  // cargue este script, porque el jugador puede estar en Play Zone o en el hub
+  // cuando su servidor cierre la partida.
   function isDashboardPage() {
     return /\/dashboard(\.html)?(\/|$|\?)/i.test(window.location.pathname || '') ||
       window.location.pathname === '/dashboard';
   }
-  if (!isDashboardPage()) return;
 
   var LOGO_SRC = '/logo-studiosgamesrs.png';
   var BADGE_SRC = '/badges/lealtad-320.png';
   var BADGE_CDN = (SG_CDN || 'https://studiosgamesrs.web.app') + BADGE_SRC;
-  var ASSET_VERSION = '20260727welcome';
+  var ASSET_VERSION = '20260727welcome2';
 
   // Insignia de la campaña de bienvenida. El texto del tooltip se reutiliza en
   // el perfil del dashboard (dashboard-logic.js) para que digan lo mismo.
@@ -434,12 +559,15 @@
   }
 
   var overlayEl = null, canvasEl = null, titleEl = null, textEl = null, btnEl = null,
-    loadingEl = null, backdropEl = null, rewardsEl = null;
+    loadingEl = null, backdropEl = null, rewardsEl = null, photoEl = null;
   var isOpen = false;
   var queue = [];
   var viewer = null;
   var embers = null;
-  var currentPriority = 0; // 0=normal (welcome/invite), 1=broadcast (interrumpe)
+  // Prioridades: 0=invite, 1=broadcast, 2=bienvenida con premios (no la pisa un broadcast viejo).
+  var currentPriority = 0;
+  var welcomeBootDone = false;
+  var pendingBroadcast = null;
 
   /**
    * Brasas que suben, con el mismo lenguaje visual que las del chat de
@@ -454,6 +582,9 @@
     var parts = [];
     var raf = null;
     var running = false;
+    // Núcleo, medio y borde de cada partícula. El tema del desierto reutiliza
+    // el mismo sistema como polvo en suspensión.
+    var palette = ['255, 190, 120', '255, 120, 50', '229, 57, 53'];
 
     function resize() {
       var r = canvas.getBoundingClientRect();
@@ -489,9 +620,9 @@
         if (p.life > p.max || p.y < -14) { parts.splice(i, 1); continue; }
         var alpha = Math.max(0, 0.6 * (1 - p.life / p.max));
         var grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 4);
-        grd.addColorStop(0, 'rgba(255, 190, 120, ' + alpha + ')');
-        grd.addColorStop(0.4, 'rgba(255, 120, 50, ' + (alpha * 0.7) + ')');
-        grd.addColorStop(1, 'rgba(229, 57, 53, 0)');
+        grd.addColorStop(0, 'rgba(' + palette[0] + ', ' + alpha + ')');
+        grd.addColorStop(0.4, 'rgba(' + palette[1] + ', ' + (alpha * 0.7) + ')');
+        grd.addColorStop(1, 'rgba(' + palette[2] + ', 0)');
         ctx.fillStyle = grd;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r * 4, 0, Math.PI * 2);
@@ -502,6 +633,9 @@
     window.addEventListener('resize', function () { if (running) resize(); });
 
     return {
+      setPalette: function (colors) {
+        if (colors && colors.length === 3) palette = colors;
+      },
       start: function () {
         if (running) return;
         running = true;
@@ -548,11 +682,7 @@
     (document.body || document.documentElement).appendChild(overlayEl);
 
     backdropEl = overlayEl.querySelector('.sg-welcome-overlay-backdrop');
-    // La imagen se asigna desde JS (no desde el CSS) porque cuando el CSS se
-    // inyecta como <style>, un url() relativo se resolvería contra el dominio
-    // de la página y no contra el CDN donde vive la imagen.
-    var photoEl = overlayEl.querySelector('#sgWelcomePhoto');
-    if (photoEl) photoEl.style.backgroundImage = "url('" + (SG_CDN || '') + "/overlay-volcano.jpg')";
+    photoEl = overlayEl.querySelector('#sgWelcomePhoto');
     canvasEl = overlayEl.querySelector('#sgWelcomeCanvas');
     titleEl = overlayEl.querySelector('#sgWelcomeTitle');
     textEl = overlayEl.querySelector('#sgWelcomeText');
@@ -583,6 +713,28 @@
     });
 
     return overlayEl;
+  }
+
+  // ---------- Ambientación por personaje ----------
+  // El fondo y la paleta salen de la ficha del personaje (CHARACTERS); un
+  // aviso concreto puede pedir otros devolviendo backdrop/theme en fillContent.
+  var DEFAULT_BACKDROP = '/overlay-volcano.jpg';
+  var EMBER_PALETTES = {
+    ember: ['255, 190, 120', '255, 120, 50', '229, 57, 53'],
+    desert: ['246, 226, 178', '214, 168, 98', '146, 106, 58']
+  };
+
+  function applyAmbience(pick) {
+    var chars = (window.SGCreatureViewer && window.SGCreatureViewer.CHARACTERS) || {};
+    var character = chars[pick && pick.characterId] || null;
+    var backdrop = (pick && pick.backdrop) || (character && character.backdrop) || DEFAULT_BACKDROP;
+    var theme = (pick && pick.theme) || (character && character.theme) || 'ember';
+    // La imagen se asigna desde JS (no desde el CSS) porque cuando el CSS se
+    // inyecta como <style>, un url() relativo se resolvería contra el dominio
+    // de la página y no contra el CDN donde vive la imagen.
+    if (photoEl) photoEl.style.backgroundImage = "url('" + (SG_CDN || '') + backdrop + "')";
+    if (overlayEl) overlayEl.setAttribute('data-sg-theme', theme);
+    if (embers) embers.setPalette(EMBER_PALETTES[theme] || EMBER_PALETTES.ember);
   }
 
   function escapeHtml(s) {
@@ -670,6 +822,37 @@
       btnEl.setAttribute('data-action', 'go-competition-hub');
       return { characterId: 'golem-tortoise', clip: 'roar' };
     }
+    if (mode === 'tournament-result') {
+      // Todo este payload lo escriben los servidores de partida, así que se
+      // recorta y se escapa antes de tocar el HTML.
+      var res = payload || {};
+      var isWin = String(res.result || '').toLowerCase() !== 'loss';
+      var rawTeam = res.teamName ? String(res.teamName).slice(0, 40) : '';
+      var team = escapeHtml(rawTeam);
+      var rival = escapeHtml(res.opponentName ? String(res.opponentName).slice(0, 40) : '');
+      var tour = escapeHtml(res.tournamentName ? String(res.tournamentName).slice(0, 80) : '');
+      var score = escapeHtml(res.score ? String(res.score).slice(0, 16) : '');
+      var mapName = escapeHtml(res.map ? String(res.map).slice(0, 32) : '');
+
+      var detail = '';
+      if (rival) detail += ' ante <strong>' + rival + '</strong>';
+      if (score) detail += ' por <strong>' + score + '</strong>';
+      if (mapName) detail += ' en <strong>' + mapName + '</strong>';
+      var inTournament = tour ? ', en el torneo <strong>' + tour + '</strong>' : '';
+
+      if (isWin) {
+        titleEl.textContent = rawTeam ? '¡Victoria de ' + rawTeam + '!' : '¡Victoria!';
+        textEl.innerHTML = (team ? 'Tu equipo <strong>' + team + '</strong> se llevó la partida' : 'Se llevaron la partida') +
+          detail + inTournament + '. Posición asegurada: sigan así en la próxima ronda.';
+      } else {
+        titleEl.textContent = 'Partida perdida';
+        textEl.innerHTML = (team ? 'Tu equipo <strong>' + team + '</strong> cayó esta vez' : 'Cayeron esta vez') +
+          detail + inTournament + '. Se pierde una partida, no el torneo: revisen el ronda a ronda y vayan a por la siguiente.';
+      }
+      btnEl.textContent = 'Ver torneo';
+      btnEl.setAttribute('data-action', 'go-competition-hub');
+      return { characterId: 'soldier-specops', clip: isWin ? 'rifle_pose' : 'death' };
+    }
     if (mode === 'broadcast') {
       titleEl.textContent = (payload && payload.title) || 'StudiosGamesRS';
       textEl.textContent = (payload && payload.message) || '';
@@ -692,9 +875,10 @@
   function showOverlay(mode, payload, priority) {
     priority = priority || 0;
     if (isOpen) {
+      // La bienvenida con premios (prio 2) no debe ser pisada por un broadcast
+      // de prueba/antiguo (prio 1). En ese caso el broadcast queda en cola.
       if (priority > currentPriority) {
-        // Un broadcast interrumpe lo que se esté mostrando (welcome/invite).
-        queue = []; // no tiene sentido reencolar algo que ya fue interrumpido
+        queue = [];
         openNow(mode, payload, priority);
       } else {
         queue.push({ mode: mode, payload: payload, priority: priority });
@@ -711,6 +895,7 @@
     if (loadingEl) { loadingEl.style.display = ''; loadingEl.textContent = 'Cargando…'; }
     if (canvasEl) canvasEl.style.opacity = '0';
     var pick = fillContent(mode, payload);
+    applyAmbience(pick);
     overlayEl.classList.add('sg-welcome-overlay-visible');
     if (embers) embers.start();
     weFx(overlayEl.querySelector('.sg-welcome-logo'), { opacity: [0, 1], y: [-10, 0] }, { duration: 0.4, ease: 'easeOut' });
@@ -744,13 +929,32 @@
   }
 
   // ---------- Trigger 1: bienvenida + recompensa de campaña ----------
+  function finishWelcomeBoot(opts) {
+    welcomeBootDone = true;
+    // Si acabamos de mostrar la bienvenida con premios, descartar cualquier
+    // broadcast encolado (p.ej. transmisión de prueba vieja en ventana privada).
+    if (opts && opts.dropQueuedBroadcast) {
+      pendingBroadcast = null;
+      return;
+    }
+    if (pendingBroadcast) {
+      var pb = pendingBroadcast;
+      pendingBroadcast = null;
+      showOverlay('broadcast', pb, 1);
+    }
+  }
+
   /** Bienvenida "clásica" (sin recompensa): solo la primera vez. */
   function showPlainWelcome(uid, db, nick) {
     db.ref('users/' + uid + '/welcomeOverlaySeen').once('value').then(function (snap) {
-      if (snap.val() === true) return;
+      if (snap.val() === true) {
+        finishWelcomeBoot();
+        return;
+      }
       db.ref('users/' + uid + '/welcomeOverlaySeen').set(true).catch(function () {});
       showOverlay('welcome', { nick: nick }, 0);
-    }).catch(function () {});
+      finishWelcomeBoot();
+    }).catch(function () { finishWelcomeBoot(); });
   }
 
   /**
@@ -787,18 +991,20 @@
         var data = (res && res.data) || {};
         sgLog('recompensa de bienvenida otorgada', data);
         db.ref('users/' + uid + '/welcomeOverlaySeen').set(true).catch(function () {});
+        // Prioridad 2: por encima de broadcasts, para que el saludo con
+        // premios (boost, tokens, insignia) no lo tape un mensaje de prueba.
         showOverlay('welcome', {
           nick: data.nick || nick,
           rewarded: true,
-          tokens: data.tokens,
-          boostPercent: data.boostPercent,
-          boostDays: 30
-        }, 0);
-        // El perfil ya está pintado en pantalla: se refresca para que la
-        // insignia recién otorgada aparezca sin recargar la página.
+          tokens: data.tokens || 30,
+          boostPercent: data.boostPercent || 15,
+          boostDays: 30,
+          badgeName: WELCOME_BADGE.name
+        }, 2);
         if (typeof window.refreshProfileNexusBadges === 'function') {
           setTimeout(function () { window.refreshProfileNexusBadges(); }, 1200);
         }
+        finishWelcomeBoot({ dropQueuedBroadcast: true });
       }).catch(function (err) {
         // already-exists (dos pestañas a la vez) o campaña cerrada en el
         // servidor: no hay recompensa que anunciar, pero la bienvenida sí.
@@ -807,6 +1013,7 @@
       });
     }).catch(function (e) {
       sgLog('no se pudo leer el estado de la bienvenida:', e && e.message);
+      finishWelcomeBoot();
     });
   }
 
@@ -868,39 +1075,126 @@
       var ts = v.triggeredAt || 0;
       var lastSeen = getLastSeenBroadcastTs();
       if (!ts || ts <= lastSeen) {
-        sgLog('transmisión ya vista (ts ' + ts + ' <= visto ' + lastSeen + '); usa ?sgtest=1 para forzarla');
+        sgLog('transmisión ya vista (ts ' + ts + ' <= visto ' + lastSeen + '); usa ?sgtest=welcome para forzarla');
         return;
       }
-      // Marcar como vista SOLO después de abrirla, para que un fallo no
-      // "queme" el anuncio y lo deje invisible para siempre.
-      showOverlay('broadcast', {
+      var payload = {
         title: v.title, message: v.message, characterId: v.characterId, animation: v.animation
-      }, 1);
+      };
+      // Esperar a que termine el boot de bienvenida/premios para no taparla
+      // con un broadcast viejo (p.ej. en navegador privado sin localStorage).
+      if (!welcomeBootDone) {
+        pendingBroadcast = payload;
+        setLastSeenBroadcastTs(ts);
+        sgLog('broadcast en cola hasta terminar la bienvenida');
+        return;
+      }
+      showOverlay('broadcast', payload, 1);
       setLastSeenBroadcastTs(ts);
     }, function (err) {
       sgLog('ERROR leyendo siteBroadcast (¿reglas de Firebase?):', err && err.message);
     });
   }
 
+  // ---------- Trigger 4: resultado de partida de torneo (lo escribe el servidor) ----------
+  // Los servidores privados escriben en tournamentMatchResults/{uid}/{matchId}
+  // con credenciales de administrador; el cliente solo lee.
+  //
+  // Para no repetir avisos se combinan dos filtros: la marca persistente en
+  // users/{uid}/notificationSeen/tournamentMatchResults/{matchId} (el mismo
+  // sitio donde el resto del sitio guarda lo ya visto, así aguanta cambio de
+  // página, de navegador y de dispositivo) y una ventana de frescura, que
+  // evita que el histórico ya escrito antes de existir este aviso desfile en
+  // pantalla la primera vez. localStorage hace de copia inmediata para que un
+  // F5 rápido no alcance a mostrarlo dos veces si la escritura aún no subió.
+  var MATCH_RESULT_MAX_AGE_MS = 30 * 60 * 1000;
+
+  function getSeenMatchResults(uid) {
+    try {
+      var raw = localStorage.getItem('sgSeenMatchResults_' + uid);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  }
+  function markMatchResultSeen(uid, db, matchId, seen) {
+    seen[matchId] = 1;
+    try { localStorage.setItem('sgSeenMatchResults_' + uid, JSON.stringify(seen)); } catch (e) {}
+    db.ref('users/' + uid + '/notificationSeen/tournamentMatchResults/' + matchId)
+      .set(Date.now()).catch(function () {});
+  }
+
+  function listenForMatchResults(uid, db) {
+    var seen = getSeenMatchResults(uid);
+    db.ref('users/' + uid + '/notificationSeen/tournamentMatchResults').once('value').then(function (snap) {
+      var remote = snap.val() || {};
+      Object.keys(remote).forEach(function (k) { seen[k] = 1; });
+    }).catch(function () {}).then(function () {
+      sgLog('escuchando tournamentMatchResults/' + uid + '…');
+      db.ref('tournamentMatchResults/' + uid).on('child_added', function (snap) {
+        var matchId = snap.key;
+        var v = snap.val() || {};
+        if (!matchId || seen[matchId]) return;
+        markMatchResultSeen(uid, db, matchId, seen);
+        var at = Number(v.at) || 0;
+        if (!at || (Date.now() - at) > MATCH_RESULT_MAX_AGE_MS) {
+          sgLog('resultado ' + matchId + ' es histórico, no se muestra');
+          return;
+        }
+        // Prioridad 1, como el broadcast: nunca por encima de la bienvenida
+        // con premios (prioridad 2), que se muestra una sola vez en la vida.
+        showOverlay('tournament-result', {
+          result: v.result,
+          tournamentName: v.tournamentName,
+          teamName: v.teamName,
+          opponentName: v.opponentName,
+          score: v.score,
+          map: v.map
+        }, 1);
+      }, function (err) {
+        sgLog('ERROR leyendo tournamentMatchResults (¿reglas de Firebase?):', err && err.message);
+      });
+    });
+  }
+
   // ---------- Bootstrap ----------
-  /** /dashboard?sgtest=1 fuerza el overlay sin depender de auth ni de la BD. */
+  /**
+   * Modos de prueba, sin necesidad de que exista nada en la base de datos:
+   *   ?sgtest=welcome  (alias ?sgtest=1) — bienvenida con premios
+   *   ?sgtest=win      — victoria en torneo de CS2
+   *   ?sgtest=lose     (alias ?sgtest=loss) — derrota en torneo de CS2
+   */
   function checkTestFlag() {
     var q = String(window.location.search || '');
-    if (q.indexOf('sgtest=1') === -1) return false;
-    sgLog('modo prueba (?sgtest=1): forzando overlay');
-    showOverlay('broadcast', {
-      title: 'Prueba de transmisión',
-      message: 'Si ves esto y al golem animado, el overlay funciona correctamente en tu navegador.',
-      characterId: 'golem-tortoise',
-      animation: 'roar'
-    }, 1);
+    var wantsWin = q.indexOf('sgtest=win') !== -1;
+    var wantsLoss = q.indexOf('sgtest=lose') !== -1 || q.indexOf('sgtest=loss') !== -1;
+    if (wantsWin || wantsLoss) {
+      sgLog('modo prueba: forzando resultado de torneo (' + (wantsWin ? 'victoria' : 'derrota') + ')');
+      showOverlay('tournament-result', {
+        result: wantsWin ? 'win' : 'loss',
+        tournamentName: 'Studiosgamesrs CS2 Open',
+        teamName: 'Los Pibes',
+        opponentName: 'Rival FC',
+        score: wantsWin ? '16-13' : '13-16',
+        map: 'de_dust2'
+      }, 2);
+      return true;
+    }
+    var wantsWelcome = q.indexOf('sgtest=welcome') !== -1 || q.indexOf('sgtest=1') !== -1;
+    if (!wantsWelcome) return false;
+    sgLog('modo prueba: forzando overlay de bienvenida con premios');
+    showOverlay('welcome', {
+      nick: 'Comandante',
+      rewarded: true,
+      tokens: 30,
+      boostPercent: 15,
+      boostDays: 30
+    }, 2);
     return true;
   }
 
   function bootAuth() {
     sgLog('script cargado en', window.location.host + window.location.pathname);
     ensureStylesheet();
-    checkTestFlag();
+    if (checkTestFlag()) return;
     if (typeof firebase === 'undefined' || !firebase.auth) {
       sgLog('firebase no disponible: no se activan los disparadores');
       return;
@@ -909,16 +1203,17 @@
       if (!user) { sgLog('sin sesión iniciada'); return; }
       sgLog('sesión detectada:', user.uid);
       var db = firebase.database();
+      function startTriggers() {
+        listenForMatchResults(user.uid, db);
+        if (!isDashboardPage()) return;
+        checkWelcomeReward(user.uid, db);
+        listenForTournamentInvites(user.uid, db);
+        listenForBroadcast(db);
+      }
       db.ref('users/' + user.uid + '/blocked').once('value').then(function (snap) {
         if (snap.val() === true) return;
-        checkWelcomeReward(user.uid, db);
-        listenForTournamentInvites(user.uid, db);
-        listenForBroadcast(db);
-      }).catch(function () {
-        checkWelcomeReward(user.uid, db);
-        listenForTournamentInvites(user.uid, db);
-        listenForBroadcast(db);
-      });
+        startTriggers();
+      }).catch(startTriggers);
     });
   }
 
