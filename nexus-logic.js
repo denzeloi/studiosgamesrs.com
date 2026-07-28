@@ -2100,7 +2100,8 @@ class NexusCore {
                 try {
                     const userSnap = await this.db.ref('users/' + uid).once('value');
                     const u = userSnap.val();
-                    if (u && (u.steam || u.steamID)) steamStatus = '<span class="stat-ok"><i class="fab fa-steam"></i> Steam</span>';
+                    const refSteamId = String((u && (u.steamID || (u.steam && u.steam.steamid))) || '').trim();
+                    if (/^\d{17}$/.test(refSteamId)) steamStatus = '<span class="stat-ok"><i class="fab fa-steam"></i> Steam</span>';
                     const xp = xpByUid[uid];
                     userXp = typeof xp === 'number' ? xp.toLocaleString() + ' XP' : '-';
                 } catch (_) {}

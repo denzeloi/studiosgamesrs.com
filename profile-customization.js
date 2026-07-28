@@ -17,6 +17,8 @@
   };
 
   var FRAME_CLASSES = ['profile-frame-default', 'profile-frame-nexus-ember', 'profile-frame-dragon-guard', 'profile-frame-golden-nexus'];
+  // Evita spam de marcos en el chat: 30s entre cambios de marco.
+  var FRAME_EQUIP_COOLDOWN_MS = 30000;
 
   function getCustomization(ud) {
     return (ud && ud.profileCustomization) ? ud.profileCustomization : {};
@@ -121,19 +123,22 @@
   function applyFrameToContainer(container, profileCard, frameId) {
     var overlay = ensureFrameOverlay(container);
     clearFrameClasses(profileCard);
+    clearFrameClasses(container);
     if (overlay) {
       overlay.style.backgroundImage = '';
       clearFrameLayoutClasses(overlay);
     }
     if (container) container.classList.remove('has-profile-frame');
 
-    if (!frameId) return;
+    if (!frameId || frameId === 'default') return;
 
     var resolved = resolveFrameAsset(frameId);
     if (!resolved) return;
 
     if (resolved.type === 'builtin' && resolved.data.cssClass) {
+      // En dashboard la clase va a la card; en chat/mini-perfil al wrap del avatar.
       if (profileCard) profileCard.classList.add(resolved.data.cssClass);
+      if (container) container.classList.add(resolved.data.cssClass);
       return;
     }
     if (resolved.type === 'image' && resolved.data.imageUrl && overlay) {
@@ -141,6 +146,11 @@
       overlay.classList.add(getFrameLayoutClass(resolved.data.frameLayout));
       if (container) container.classList.add('has-profile-frame');
     }
+  }
+
+  function applyFrameId(container, frameId) {
+    if (!container) return;
+    applyFrameToContainer(container, null, frameId);
   }
 
   function getProfileBgElement() {
@@ -315,6 +325,17 @@
     var equipKey = type === 'background' ? 'equippedBackground' : 'equippedFrame';
 
     if (!unlocked) {
+      if (type === 'frame') {
+        var lastBuy = Number(cust.lastFrameEquipAt || 0);
+        var leftBuy = FRAME_EQUIP_COOLDOWN_MS - (Date.now() - lastBuy);
+        if (lastBuy && leftBuy > 0) {
+          var secsBuy = Math.ceil(leftBuy / 1000);
+          var waitBuy = 'Espera ' + secsBuy + 's para cambiar de marco otra vez (anti-abuso del chat).';
+          if (typeof showFloatingMessage === 'function') showFloatingMessage('info', waitBuy);
+          else alert(waitBuy);
+          return;
+        }
+      }
       purchaseViaFunction(type, id).then(function(result) {
         if (!state.userData.profileCustomization) state.userData.profileCustomization = {};
         if (!state.userData.profileCustomization.unlocked) state.userData.profileCustomization.unlocked = {};
@@ -327,8 +348,13 @@
             tv.style.color = state.userData.tokens === 0 ? '#ff2222' : '#58f658';
           }
         }
-        var equipKey = type === 'background' ? 'equippedBackground' : 'equippedFrame';
-        state.userData.profileCustomization[equipKey] = id;
+        var equipKeyBought = type === 'background' ? 'equippedBackground' : 'equippedFrame';
+        state.userData.profileCustomization[equipKeyBought] = id;
+        if (type === 'frame') {
+          state.userData.profileCustomization.lastFrameEquipAt = Date.now();
+          state.db.ref('users/' + state.currentUid + '/profileCustomization/lastFrameEquipAt')
+            .set(state.userData.profileCustomization.lastFrameEquipAt).catch(function() {});
+        }
         applyAppearance(state.userData);
         updateLivePreview(type, id);
         renderModalLists();
@@ -352,13 +378,32 @@
 
   function equipItem(type, id) {
     var key = type === 'background' ? 'equippedBackground' : 'equippedFrame';
-    return state.db.ref('users/' + state.currentUid + '/profileCustomization/' + key).set(id).then(function() {
+    if (type === 'frame') {
+      var last = Number((getCustomization(state.userData).lastFrameEquipAt) || 0);
+      var left = FRAME_EQUIP_COOLDOWN_MS - (Date.now() - last);
+      if (last && left > 0) {
+        var secs = Math.ceil(left / 1000);
+        var msgWait = 'Espera ' + secs + 's para cambiar de marco otra vez (anti-abuso del chat).';
+        if (typeof showFloatingMessage === 'function') showFloatingMessage('info', msgWait);
+        else alert(msgWait);
+        return Promise.resolve();
+      }
+    }
+    var updates = {};
+    updates[key] = id;
+    if (type === 'frame') updates.lastFrameEquipAt = Date.now();
+    return state.db.ref('users/' + state.currentUid + '/profileCustomization').update(updates).then(function() {
       if (!state.userData.profileCustomization) state.userData.profileCustomization = {};
       state.userData.profileCustomization[key] = id;
+      if (type === 'frame') state.userData.profileCustomization.lastFrameEquipAt = updates.lastFrameEquipAt;
       applyAppearance(state.userData);
       updateLivePreview(type, id);
       renderModalLists();
-      if (typeof showFloatingMessage === 'function') showFloatingMessage('success', 'Apariencia actualizada.');
+      if (typeof showFloatingMessage === 'function') {
+        showFloatingMessage('success', type === 'frame'
+          ? 'Marco equipado. Se verá en el chat en unos segundos.'
+          : 'Apariencia actualizada.');
+      }
     }).catch(function(err) {
       var msg = (err && err.message) ? err.message : 'No se pudo equipar el ítem.';
       if (typeof showFloatingMessage === 'function') showFloatingMessage('error', msg);
@@ -444,7 +489,10 @@
     loadAssets: loadAssets,
     applyAppearance: applyAppearance,
     applyAvatarFrame: applyAvatarFrame,
+    applyFrameId: applyFrameId,
+    resolveFrameAsset: resolveFrameAsset,
     getCustomization: getCustomization,
-    getEquippedFrameId: getEquippedFrameId
+    getEquippedFrameId: getEquippedFrameId,
+    FRAME_EQUIP_COOLDOWN_MS: FRAME_EQUIP_COOLDOWN_MS
   };
 })(typeof window !== 'undefined' ? window : this);

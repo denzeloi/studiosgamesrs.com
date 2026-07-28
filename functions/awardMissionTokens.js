@@ -402,6 +402,53 @@ exports.sendMissionInvite = functions.https.onCall(async (data, context) => {
 });
 
 // ============================================================================
+// Expulsar participante (anfitrión / Commander) — Admin SDK, limpia ready/confirm
+// ============================================================================
+exports.kickMissionParticipant = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Debes iniciar sesión.');
+  }
+  const callerUid = context.auth.uid;
+  const missionId = String((data && data.missionId) || '').trim();
+  const targetUid = String((data && data.targetUid) || '').trim();
+  if (!missionId || !targetUid) {
+    throw new functions.https.HttpsError('invalid-argument', 'Faltan missionId o targetUid.');
+  }
+  if (targetUid === callerUid) {
+    throw new functions.https.HttpsError('invalid-argument', 'No puedes expulsarte a ti mismo; usa Abandonar.');
+  }
+
+  const missionRef = admin.database().ref('missions/' + missionId);
+  const [missionSnap, callerSnap] = await Promise.all([
+    missionRef.once('value'),
+    admin.database().ref('users/' + callerUid + '/rango').once('value')
+  ]);
+  const mission = missionSnap.val();
+  if (!mission) {
+    throw new functions.https.HttpsError('not-found', 'La misión ya no existe.');
+  }
+  const isHost = mission.creatorUid === callerUid;
+  const isStaff = isCommanderRango(callerSnap.val());
+  if (!isHost && !isStaff) {
+    throw new functions.https.HttpsError('permission-denied', 'Solo el anfitrión puede expulsar a otro jugador.');
+  }
+  if (targetUid === mission.creatorUid) {
+    throw new functions.https.HttpsError('failed-precondition', 'No se puede expulsar al anfitrión.');
+  }
+  if (!mission.participants || !mission.participants[targetUid]) {
+    throw new functions.https.HttpsError('failed-precondition', 'Ese jugador ya no está en la misión.');
+  }
+
+  const updates = {};
+  updates['participants/' + targetUid] = null;
+  updates['cs2Ready/' + targetUid] = null;
+  updates['completionConfirmations/' + targetUid] = null;
+  await missionRef.update(updates);
+
+  return { ok: true };
+});
+
+// ============================================================================
 // 2) COMPLETAR MISIÓN -> PAGAR A LOS JUGADORES + GUARDAR HISTORIAL
 // ============================================================================
 exports.awardMissionTokens = functions.database

@@ -91,6 +91,84 @@ function pzSanitizeChatImageUrl(url) {
   return null;
 }
 
+// === 3.1 MARCOS DE PERFIL (mismo helper que dashboard y chat de la comunidad) ===
+// El marco equipado vive en users/{uid}/profileCustomization/equippedFrame y se
+// pinta con SGProfileCustomization.applyFrameId (profile-customization.js).
+// Se escucha con on('value') para que un cambio se vea sin recargar la página.
+// Nota: el buscador puede dibujar cientos de tarjetas, así que se limita el
+// número de listeners simultáneos y se sueltan los de avatares ya no visibles.
+var PZ_FRAME_MAX_LISTENERS = 150;
+var pzFrameCache = {};
+var pzFrameRefs = {};
+var pzFrameAssetsPromise = null;
+
+function pzFrameAssets() {
+  var SG = window.SGProfileCustomization;
+  if (!SG || typeof SG.loadAssets !== 'function') return Promise.resolve();
+  if (!pzFrameAssetsPromise) pzFrameAssetsPromise = SG.loadAssets(db).catch(function() {});
+  return pzFrameAssetsPromise;
+}
+
+// Apertura del contenedor que envuelve un avatar destacado; el overlay del marco
+// se inyecta dentro de este wrap (hay que cerrar el </div> en el llamador).
+function pzFrameWrapOpen(uid, extraClass) {
+  return '<div class="pz-avatar-frame' + (extraClass ? ' ' + extraClass : '') +
+    '" data-pz-frame-uid="' + pzEsc(uid || '') + '">';
+}
+
+function pzFramePaint(el, frameId) {
+  var SG = window.SGProfileCustomization;
+  if (!el || !SG || typeof SG.applyFrameId !== 'function') return;
+  pzFrameAssets().then(function() { SG.applyFrameId(el, frameId || null); });
+}
+
+function pzFrameRepaint(uid) {
+  var nodes = document.querySelectorAll('.pz-avatar-frame');
+  for (var i = 0; i < nodes.length; i++) {
+    if (nodes[i].getAttribute('data-pz-frame-uid') === uid) pzFramePaint(nodes[i], pzFrameCache[uid]);
+  }
+}
+
+function pzFrameWatch(uid) {
+  if (!uid || pzFrameRefs[uid]) return;
+  if (Object.keys(pzFrameRefs).length >= PZ_FRAME_MAX_LISTENERS) return;
+  var ref = db.ref('users/' + uid + '/profileCustomization/equippedFrame');
+  pzFrameRefs[uid] = ref;
+  ref.on('value', function(snap) {
+    var id = snap.val();
+    pzFrameCache[uid] = (id && id !== 'default') ? String(id) : null;
+    pzFrameRepaint(uid);
+  }, function() {
+    ref.off();
+    delete pzFrameRefs[uid];
+  });
+}
+
+// Engancha el listener y pinta el marco ya conocido de cada avatar dentro de root.
+function pzFrameApply(root) {
+  if (!root || typeof root.querySelectorAll !== 'function') return;
+  var nodes = root.querySelectorAll('.pz-avatar-frame');
+  for (var i = 0; i < nodes.length; i++) {
+    var uid = nodes[i].getAttribute('data-pz-frame-uid');
+    if (!uid) continue;
+    pzFrameWatch(uid);
+    if (pzFrameCache[uid] !== undefined) pzFramePaint(nodes[i], pzFrameCache[uid]);
+  }
+}
+
+// Suelta los listeners de uids que ya no tienen avatar en pantalla (los listados
+// se redibujan al filtrar, así que sin esto los listeners se acumularían).
+function pzFramePrune() {
+  var alive = {};
+  var nodes = document.querySelectorAll('.pz-avatar-frame');
+  for (var i = 0; i < nodes.length; i++) alive[nodes[i].getAttribute('data-pz-frame-uid')] = true;
+  Object.keys(pzFrameRefs).forEach(function(uid) {
+    if (alive[uid]) return;
+    pzFrameRefs[uid].off();
+    delete pzFrameRefs[uid];
+  });
+}
+
 // Alterna tema rojo (normal) / dorado. Usa la clase CSS ya existente (dashboard-styles.css).
 function toggleTheme() {
   const isGold = document.body.classList.toggle('dashboard-theme-gold');
@@ -309,6 +387,26 @@ async function initializeApp() {
   });
   setupPlayzoneHeaderSearch();
   if (typeof maybeMarkPlayZoneWelcomeSeen === 'function') maybeMarkPlayZoneWelcomeSeen();
+  joinMissionFromUrl();
+}
+
+/**
+ * "Ver misión" en el aviso de invitación desde otra página nos trae aquí con
+ * ?mission=ID; aquí se completa lo que en Play Zone hace el botón directamente.
+ */
+function joinMissionFromUrl() {
+  var missionId = null;
+  try {
+    missionId = new URLSearchParams(window.location.search).get('mission');
+  } catch (e) { return; }
+  if (!missionId) return;
+  // Fuera de la URL antes de unirse, para que un recargado no lo repita.
+  try {
+    var url = new URL(window.location.href);
+    url.searchParams.delete('mission');
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+  } catch (e) {}
+  if (typeof window.joinMission === 'function') window.joinMission(missionId);
 }
 
 function setupPlayzoneHeaderSearch() {
@@ -1555,6 +1653,9 @@ function renderFilteredMissions() {
     if (mainGame && mission.game === mainGame) card.classList.add('mechanics-recommended');
     container.appendChild(card);
   });
+
+  pzFrameApply(container);
+  pzFramePrune();
 }
 
 function renderMissionCard(mission) {
@@ -1597,6 +1698,18 @@ function renderMissionCard(mission) {
   var shortDesc = fullDesc ? escHtml(fullDesc.length > DESC_LIMIT ? fullDesc.slice(0, DESC_LIMIT) + '…' : fullDesc) : '<i>Sin descripción.</i>';
   var showSaberMas = fullDesc && fullDesc.length > DESC_LIMIT;
   
+  // Anfitrión de la misión: avatar destacado, aquí sí lleva marco.
+  var hostUid = mission.creatorUid || '';
+  var hostParticipant = (hostUid && participants[hostUid]) ? participants[hostUid] : null;
+  var hostNick = escHtml(mission.creatorNick || (hostParticipant && hostParticipant.nick) || 'Anfitrión');
+  var hostAvatar = escHtml(pzSanitizeAvatarUrl(mission.creatorAvatar || (hostParticipant && hostParticipant.photoURL)));
+  var hostHTML = hostUid
+    ? '<div class="mission-host-badge" title="Anfitrión: ' + hostNick + '">' +
+      pzFrameWrapOpen(hostUid, 'mission-host-avatar-wrap') +
+      '<img src="' + hostAvatar + '" class="mission-host-avatar" alt=""></div>' +
+      '<span class="mission-host-nick">' + hostNick + '</span></div>'
+    : '';
+
   var cardTitle = escHtml(isCs2FriendsMission(mission) ? (mission.displayTitle || CS2_FRIENDS_DISPLAY_TITLE) : mission.title);
   var safeGame = escHtml(mission.game);
   var safeSkill = escHtml(mission.skill);
@@ -1605,6 +1718,7 @@ function renderMissionCard(mission) {
   card.innerHTML = `
     <div class="card-header" style="background-image: url('${gameImage}');">
       <span class="card-game-tag">${safeGame}</span>
+      ${hostHTML}
     </div>
     <div class="card-body">
       <h3 class="card-title">${cardTitle}</h3>
@@ -1632,6 +1746,14 @@ function renderMissionCard(mission) {
   `;
 
 const joinBtn = card.querySelector(`#join-${mission.id}`);
+
+  var hostBadge = card.querySelector('.mission-host-badge');
+  if (hostBadge && hostUid) {
+    hostBadge.addEventListener('click', function(e) {
+      e.stopPropagation();
+      viewProfile(hostUid);
+    });
+  }
 
   var saberMasBtn = card.querySelector('.card-saber-mas');
   if (saberMasBtn) {
@@ -1861,6 +1983,9 @@ function renderFilteredPlayers() {
   filteredPlayers.forEach(player => {
     container.appendChild(renderPlayerCard(player.uid, player));
   });
+
+  pzFrameApply(container);
+  pzFramePrune();
 }
 
 function renderPlayerCard(uid, user) {
@@ -1886,7 +2011,7 @@ function renderPlayerCard(uid, user) {
 
   card.innerHTML = `
     <div class="player-card-header">
-      <img src="${safeAvatar}" class="player-avatar">
+      ${pzFrameWrapOpen(uid, 'player-avatar-wrap')}<img src="${safeAvatar}" class="player-avatar"></div>
       <div class="player-info">
         <h3 class="player-nick">${safeNick}</h3>
         <span class="player-rank">${safeRango}</span>
@@ -2348,6 +2473,8 @@ function listenForFriendRequests() {
         } else {
             renderHeaderFriendRequests(snapshot);
         }
+        // Toasts en vivo los maneja SGNotifications en todas las páginas.
+        if (window.SGNotifications && window.SGNotifications.handlesLiveToasts) return;
         var currentKeys = {};
         snapshot.forEach(function(child) {
             var senderUid = child.key;
@@ -2520,6 +2647,8 @@ async function acceptFriendRequest(requestData) {
 
 function listenForMissionInvites() {
     if (!currentUser) return;
+    // Panel + toasts unificados en SGNotifications (todas las páginas).
+    if (window.SGNotifications && window.SGNotifications.handlesLiveToasts) return;
     db.ref('missionInvites/' + currentUser.uid).on('child_added', function(snapshot) {
         var data = snapshot.val();
         var missionId = snapshot.key;
@@ -2710,7 +2839,14 @@ function renderHubPlayerSlots(mission) {
             var isHost = uid === mission.creatorUid;
             var isPartner = uid !== currentUser.uid && hubFriendsByUid[uid];
             slot.className = 'hub-player-slot filled' + (isHost ? ' is-leader' : '') + (isPartner ? ' is-partner' : '');
+            // Perfil primero; botones absolutos DESPUÉS en el DOM + z-index alto
+            // para que no los tape el hit de perfil (antes el click abría el perfil).
             slot.innerHTML =
+                '<div class="hub-slot-profile-hit">' +
+                '<img src="' + pzEsc(p.photoURL || 'dragon_profile_studiosgamesrs.png') + '" class="hub-slot-avatar" alt="">' +
+                '<span class="hub-slot-nick">' + pzEsc(p.nick || 'Usuario') + '</span>' +
+                '<span class="hub-slot-rank">' + pzEsc(p.rank || 'Tribal Warrior') + '</span>' +
+                '</div>' +
                 (isHost ? '<span class="hub-slot-leader-badge" title="Anfitrión"><i class="fas fa-crown"></i></span>' : '') +
                 (isPartner ? '<span class="hub-slot-partner-badge" title="Partner de PlayZone"><i class="fas fa-handshake"></i> Partner</span>' : '') +
                 (uid !== currentUser.uid
@@ -2718,12 +2854,7 @@ function renderHubPlayerSlots(mission) {
                     : '') +
                 (isLeader && uid !== currentUser.uid
                     ? '<button type="button" class="hub-slot-kick-btn" title="Expulsar jugador" aria-label="Expulsar jugador"><i class="fas fa-user-times"></i></button>'
-                    : '') +
-                '<div class="hub-slot-profile-hit">' +
-                '<img src="' + pzEsc(p.photoURL || 'dragon_profile_studiosgamesrs.png') + '" class="hub-slot-avatar" alt="">' +
-                '<span class="hub-slot-nick">' + pzEsc(p.nick || 'Usuario') + '</span>' +
-                '<span class="hub-slot-rank">' + pzEsc(p.rank || 'Tribal Warrior') + '</span>' +
-                '</div>';
+                    : '');
 
             (function(slotUid, slotP) {
                 var profileHit = slot.querySelector('.hub-slot-profile-hit');
@@ -2731,6 +2862,7 @@ function renderHubPlayerSlots(mission) {
                 var msgBtn = slot.querySelector('.hub-slot-msg-btn');
                 if (msgBtn) {
                     msgBtn.onclick = function(e) {
+                        e.preventDefault();
                         e.stopPropagation();
                         handleHubPlayerMsgClick(slotUid, slotP.nick || 'Usuario', slotP.photoURL || 'dragon_profile_studiosgamesrs.png');
                     };
@@ -2738,6 +2870,7 @@ function renderHubPlayerSlots(mission) {
                 var kickBtn = slot.querySelector('.hub-slot-kick-btn');
                 if (kickBtn) {
                     kickBtn.onclick = function(e) {
+                        e.preventDefault();
                         e.stopPropagation();
                         kickPlayerFromMission(currentMissionId, slotUid, slotP.nick || 'Usuario');
                     };
@@ -3079,25 +3212,59 @@ async function leaveMission(missionId) {
 
 async function kickPlayerFromMission(missionId, targetUid, targetNick) {
     if (!missionId || !targetUid || !currentUser) return;
+    if (targetUid === currentUser.uid) return;
     try {
         var snap = await db.ref('missions/' + missionId).once('value');
         var mission = snap.val();
-        if (!mission || mission.creatorUid !== currentUser.uid) {
+        if (!mission) {
+            showFloatingMessage('error', 'La misión ya no existe.');
+            return;
+        }
+        if (mission.creatorUid !== currentUser.uid) {
             showFloatingMessage('error', 'Solo el anfitrión puede expulsar a otro jugador.');
             return;
         }
-        if (targetUid === currentUser.uid) return;
+        if (targetUid === mission.creatorUid) {
+            showFloatingMessage('error', 'No se puede expulsar al anfitrión.');
+            return;
+        }
         if (!mission.participants || !mission.participants[targetUid]) {
             showFloatingMessage('info', 'Ese jugador ya no está en la misión.');
             return;
         }
         if (!confirm('¿Expulsar a ' + (targetNick || 'este jugador') + ' de la misión?')) return;
+
+        // Preferir Cloud Function (Admin SDK) para no depender de reglas/cliente.
+        if (typeof firebase !== 'undefined' && firebase.functions) {
+            try {
+                var kickFn = firebase.functions().httpsCallable('kickMissionParticipant');
+                await kickFn({ missionId: missionId, targetUid: targetUid });
+                showFloatingMessage('success', (targetNick || 'Jugador') + ' fue expulsado de la misión.');
+                return;
+            } catch (cfErr) {
+                console.warn('kickMissionParticipant CF falló, intentando borrado directo:', cfErr);
+                // Si la CF aún no está desplegada, caer al borrado directo.
+                var cfCode = (cfErr && (cfErr.code || (cfErr.details && cfErr.details.code))) || '';
+                if (String(cfCode).indexOf('not-found') === -1 && String(cfCode).indexOf('unimplemented') === -1) {
+                    var cfMsg = (cfErr && cfErr.message) ? String(cfErr.message) : 'No se pudo expulsar al jugador.';
+                    showFloatingMessage('error', cfMsg.replace(/^.*?:\s*/, '') || 'No se pudo expulsar al jugador.');
+                    return;
+                }
+            }
+        }
+
         await db.ref('missions/' + missionId + '/participants/' + targetUid).remove();
         try { await db.ref('missions/' + missionId + '/cs2Ready/' + targetUid).remove(); } catch (e) {}
+        try { await db.ref('missions/' + missionId + '/completionConfirmations/' + targetUid).remove(); } catch (e) {}
         showFloatingMessage('success', (targetNick || 'Jugador') + ' fue expulsado de la misión.');
     } catch (e) {
         console.error(e);
-        showFloatingMessage('error', 'No se pudo expulsar al jugador.');
+        var errMsg = (e && e.message) ? String(e.message) : '';
+        if (/PERMISSION_DENIED/i.test(errMsg)) {
+            showFloatingMessage('error', 'Permiso denegado al expulsar. Recarga la página e inténtalo de nuevo.');
+        } else {
+            showFloatingMessage('error', 'No se pudo expulsar al jugador.');
+        }
     }
 }
 
@@ -3107,8 +3274,8 @@ function handleMissionDeleted() {
 }
 
 function handleKickedFromMission() {
-    showFloatingMessage('info', 'Has salido de la misión.');
-    exitHubLogic(); // <-- Asegúrate de que esta línea esté aquí
+    showFloatingMessage('info', 'Has sido expulsado de la misión.');
+    exitHubLogic();
 }
 
 function exitHubLogic() {
@@ -3437,6 +3604,8 @@ async function handleChatRequestSubmit(e, targetUid, targetNick) {
 
 function listenForChatRequests() {
   if (!currentUser) return;
+  // Panel + toasts unificados en SGNotifications (todas las páginas).
+  if (window.SGNotifications && window.SGNotifications.handlesLiveToasts) return;
   const requestsRef = db.ref(`privateChatRequests/${currentUser.uid}`);
   
   requestsRef.on('child_added', (snapshot) => {
@@ -3547,6 +3716,11 @@ function openPrivateChat(partnerUid, partnerNick, partnerPhotoURL) {
   const minimizedTab = document.getElementById(`minimized-chat-${partnerUid}`);
   if (minimizedTab) minimizedTab.style.display = 'none';
 
+  if (window.SGNotifications && typeof window.SGNotifications.markPrivateChatRead === 'function') {
+    window.SGNotifications.markPrivateChatRead(partnerUid);
+    window.SGNotifications.setActivePrivateChat(partnerUid);
+  }
+
   loadPrivateChatMessages(currentPrivateChatRoomID);
 }
 
@@ -3647,6 +3821,9 @@ function minimizePrivateChat() {
       activeChats[partnerUid].isMinimized = true;
       renderMinimizedChatTab(activeChats[partnerUid]);
   }
+  if (window.SGNotifications && typeof window.SGNotifications.setActivePrivateChat === 'function') {
+      window.SGNotifications.setActivePrivateChat(null);
+  }
   chatWindow.classList.remove('visible');
   setTimeout(() => chatWindow.style.display = 'none', 300);
 }
@@ -3673,7 +3850,10 @@ function renderMinimizedChatTab(chatData) {
 
 window.closePrivateChatCompletely = (partnerUid) => {
     const chatData = activeChats[partnerUid];
-    if (!chatData) return; 
+    if (!chatData) return;
+    if (window.SGNotifications && typeof window.SGNotifications.setActivePrivateChat === 'function') {
+        window.SGNotifications.setActivePrivateChat(null);
+    }
     
     const chatWindow = document.getElementById('privateChatWindow');
     if (chatData.chatRoomID === currentPrivateChatRoomID && chatWindow.classList.contains('visible')) {

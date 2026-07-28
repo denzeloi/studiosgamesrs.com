@@ -2117,6 +2117,11 @@ header .back-button:hover {
   overflow: hidden;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
+.hub-player-slot.filled {
+  /* Los botones absolutos (msg/expulsar) deben poder recibir el click
+     por encima del hit de perfil; overflow visible evita recortes raros. */
+  overflow: visible;
+}
 .hub-player-slot.empty {
   display: flex;
   flex-direction: column;
@@ -2157,6 +2162,7 @@ header .back-button:hover {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  overflow: visible;
 }
 .hub-player-slot.filled.is-leader {
   border-color: rgba(255, 202, 58, 0.55);
@@ -2229,6 +2235,7 @@ header .back-button:hover {
   position: absolute;
   top: 6px;
   right: 6px;
+  z-index: 5;
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -2241,6 +2248,7 @@ header .back-button:hover {
   justify-content: center;
   font-size: 0.75rem;
   transition: all 0.2s ease;
+  pointer-events: auto;
 }
 .hub-slot-msg-btn:hover {
   background: rgba(75, 223, 255, 0.18);
@@ -2254,6 +2262,10 @@ header .back-button:hover {
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
+  z-index: 1;
+  /* No captura clicks de los botones absolutos hermanos (msg/kick). */
+  isolation: isolate;
 }
 
 /* --- CS2 hub card --- */
@@ -2550,18 +2562,20 @@ header .back-button:hover {
   position: absolute;
   bottom: 6px;
   right: 6px;
-  width: 26px;
-  height: 26px;
+  z-index: 5;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: 1px solid rgba(255, 138, 128, 0.45);
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.55);
   color: #ff8a80;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   transition: all 0.2s ease;
+  pointer-events: auto;
 }
 .hub-slot-kick-btn:hover {
   background: rgba(229, 57, 53, 0.2);
@@ -2625,4 +2639,104 @@ header .back-button:hover {
     border-color: transparent;
     box-shadow: 0 6px 22px rgba(var(--pz-rgb), 0.45);
     transform: translateY(-3px);
+}
+
+/* === MARCOS DE PERFIL EN AVATARES DESTACADOS ===
+   El overlay .profile-photo-frame-overlay y .has-profile-frame los aporta
+   dashboard-styles.css; aquí solo se ajusta el encaje sobre avatares chicos.
+   Los slots de participantes del hub (.hub-slot-avatar) y los avatares de
+   listas pequeñas NO usan este wrap a propósito: quedan sin marco. */
+.pz-avatar-frame {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.pz-avatar-frame img {
+  display: block;
+}
+
+.pz-avatar-frame .profile-photo-frame-overlay {
+  width: calc(100% * var(--frame-outer-ratio, 1.30));
+  height: calc(100% * var(--frame-outer-ratio, 1.30));
+  z-index: 3;
+}
+
+.pz-avatar-frame .profile-photo-frame-overlay.frame-layout-standard { --frame-outer-ratio: 1.24; }
+.pz-avatar-frame .profile-photo-frame-overlay.frame-layout-wide { --frame-outer-ratio: 1.30; }
+.pz-avatar-frame .profile-photo-frame-overlay.frame-layout-ornate { --frame-outer-ratio: 1.36; }
+
+.pz-avatar-frame.has-profile-frame img {
+  clip-path: circle(42% at 50% 50%);
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Marcos built-in: solo añaden su clase al wrap, el brillo va sobre la foto. */
+.pz-avatar-frame.profile-frame-nexus-ember img {
+  border-color: rgba(229, 57, 53, 0.75);
+  box-shadow: 0 0 10px rgba(229, 57, 53, 0.45);
+}
+.pz-avatar-frame.profile-frame-dragon-guard img {
+  border-color: rgba(255, 152, 0, 0.8);
+  box-shadow: 0 0 12px rgba(255, 152, 0, 0.4);
+}
+.pz-avatar-frame.profile-frame-golden-nexus img {
+  border-color: rgba(255, 193, 7, 0.85);
+  box-shadow: 0 0 14px rgba(255, 193, 7, 0.45);
+}
+
+.pz-avatar-frame.player-avatar-wrap {
+  width: 60px;
+  height: 60px;
+}
+
+.pz-avatar-frame.player-avatar-wrap .player-avatar {
+  width: 100%;
+  height: 100%;
+}
+
+/* Anfitrión de la misión sobre la portada de la tarjeta (búsqueda de misiones) */
+.mission-host-badge {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: calc(100% - 1.4rem);
+  padding: 0.25rem 0.65rem 0.25rem 0.3rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.mission-host-badge:hover {
+  background: rgba(0, 0, 0, 0.78);
+  border-color: var(--pz-border-strong);
+}
+
+.pz-avatar-frame.mission-host-avatar-wrap {
+  width: 40px;
+  height: 40px;
+}
+
+.mission-host-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  object-fit: cover;
+}
+
+.mission-host-nick {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

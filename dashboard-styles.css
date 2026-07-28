@@ -3354,7 +3354,10 @@ img.profile-customization-item-preview {
   transform: none;
 }
 
-.profile-action-badge--recommended {
+/* "Ya son amigos" comparte el mismo tratamiento que "Ya recomendaste": ambos
+   son acciones ya cumplidas que quedan desactivadas. */
+.profile-action-badge--recommended,
+.profile-action-badge--friend {
   background: rgba(76, 175, 80, 0.18);
   border-color: rgba(129, 199, 132, 0.45);
   color: #a5d6a7;
@@ -3364,12 +3367,6 @@ img.profile-customization-item-preview {
   background: rgba(255, 202, 58, 0.12);
   border-color: rgba(255, 202, 58, 0.35);
   color: #ffca3a;
-}
-
-.profile-action-badge--friend {
-  background: rgba(76, 175, 80, 0.15);
-  border-color: rgba(129, 199, 132, 0.4);
-  color: #81c784;
 }
 
 .profile-action-badge--chat {

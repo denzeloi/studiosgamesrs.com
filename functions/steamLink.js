@@ -93,12 +93,28 @@ exports.syncSteamIdIndex = functions.database
       const prev = change.before.exists() ? (change.before.val() || {}) : null;
       const prevId = prev && prev.steamid ? String(prev.steamid) : '';
       await userRef.child('steamID').remove();
-      if (prevId) await admin.database().ref('steamIndex/' + prevId).remove();
+      if (prevId) {
+        // El índice solo se borra si apuntaba a esta cuenta: si el SteamID
+        // estaba duplicado en dos perfiles, limpiar el duplicado no puede
+        // dejar sin login al dueño real.
+        const ownerSnap = await admin.database().ref('steamIndex/' + prevId).once('value');
+        if (ownerSnap.val() === uid) await admin.database().ref('steamIndex/' + prevId).remove();
+      }
+      return null;
+    }
+
+    // Un SteamID64 pertenece a una sola cuenta: si ya está indexado en otra, no
+    // se reasigna ni se marca este perfil como vinculado.
+    const indexRef = admin.database().ref('steamIndex/' + steamId);
+    const currentOwner = (await indexRef.once('value')).val();
+    if (currentOwner && currentOwner !== uid) {
+      console.warn('syncSteamIdIndex: steamID ' + steamId + ' ya pertenece a ' + currentOwner + ', se ignora en ' + uid);
+      await userRef.child('steamID').remove();
       return null;
     }
 
     await userRef.update({ steamID: steamId });
-    await admin.database().ref('steamIndex/' + steamId).set(uid);
+    await indexRef.set(uid);
     return null;
   });
 

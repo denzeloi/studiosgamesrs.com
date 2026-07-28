@@ -2634,15 +2634,19 @@ function initPlayerCardGenerator() {
 }
 
 function initNotificationsToggle() {
-    const btn = document.getElementById('notificationsToggleBtn');
-    if (!btn) return;
+    // La campanita del header es de SGNotifications (panel unificado).
+    // El permiso del navegador se pide desde un control aparte si existe.
+    const btn = document.getElementById('browserNotificationsBtn')
+      || document.getElementById('enableBrowserNotificationsBtn');
+    if (!btn || btn.dataset.sgBound === '1') return;
+    btn.dataset.sgBound = '1';
     btn.addEventListener('click', () => {
         if (!('Notification' in window)) { showNotification('Tu navegador no soporta notificaciones', 'error'); return; }
         if (Notification.permission === 'granted') { showNotification('Las notificaciones ya están activas', 'info'); return; }
         Notification.requestPermission().then((p) => {
             if (p === 'granted') {
-                showNotification('Notificaciones activadas. Próximamente: avisos de torneos y mensajes.', 'success');
-                new Notification('El Nexo', { body: '¡Rugido activado! Te avisaremos de torneos y mensajes.' });
+                showNotification('Notificaciones del navegador activadas.', 'success');
+                try { new Notification('StudiosGamesRS', { body: 'Te avisaremos de eventos importantes.' }); } catch (e) {}
             } else { showNotification('Notificaciones bloqueadas', 'info'); }
         });
     });

@@ -32,6 +32,7 @@ const REQUIRED_FILES = [
   { file: 'welcome-overlay.js', minKB: 20 },
   { file: 'welcome-overlay.css', minKB: 4 },
   { file: 'overlay-volcano.jpg', minKB: 60 },
+  { file: 'overlay-cs2-desert.jpg', minKB: 100 },
   { file: 'logo-studiosgamesrs.png', minKB: 100 },
   { file: 'badges/lealtad-320.png', minKB: 60 },
   { file: 'badges/lealtad-512.png', minKB: 150 },
@@ -43,7 +44,17 @@ const REQUIRED_FILES = [
   { file: 'models/golem-tortoise/golem-roar.glb', minKB: 4000 },
   { file: 'models/golem-tortoise/golem-walk.glb', minKB: 4000 },
   { file: 'models/golem-tortoise/golem-hurt.glb', minKB: 4000 },
-  { file: 'models/golem-tortoise/golem-faint.glb', minKB: 4000 }
+  { file: 'models/golem-tortoise/golem-faint.glb', minKB: 4000 },
+  // El soldado se exportó con Draco + texturas WebP: pesa la mitad que el
+  // golem, de ahí el mínimo distinto.
+  { file: 'models/soldier-specops/soldier-idle.glb', minKB: 1800 },
+  { file: 'models/soldier-specops/soldier-rifle-pose.glb', minKB: 1800 },
+  { file: 'models/soldier-specops/soldier-talk.glb', minKB: 1800 },
+  { file: 'models/soldier-specops/soldier-walk.glb', minKB: 1800 },
+  { file: 'models/soldier-specops/soldier-run.glb', minKB: 1800 },
+  { file: 'models/soldier-specops/soldier-jump.glb', minKB: 1800 },
+  { file: 'models/soldier-specops/soldier-crouch-walk.glb', minKB: 1800 },
+  { file: 'models/soldier-specops/soldier-death.glb', minKB: 1800 }
 ];
 
 /**

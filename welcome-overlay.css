@@ -394,3 +394,70 @@
   .sg-welcome-stage { height: 38vh; min-height: 180px; }
   .sg-welcome-logo { height: 62px; }
 }
+
+/* ============================================================
+   Tema "desierto" (soldado SpecOps / partidas de CS2)
+   Mismo overlay, misma estructura: solo cambia la ambientación de
+   lava por arenisca a contraluz. El tema lo pone welcome-overlay.js
+   en data-sg-theme según el personaje del aviso.
+   ============================================================ */
+.sg-welcome-overlay[data-sg-theme="desert"] .sg-welcome-overlay-backdrop {
+  background:
+    radial-gradient(ellipse 85% 55% at 50% 100%, rgba(196, 142, 68, 0.28) 0%, transparent 62%),
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(48, 38, 26, 0.52) 0%, transparent 60%),
+    rgba(8, 7, 6, 0.56);
+}
+
+/* La foto del desierto ya viene encuadrada con el centro-abajo libre para el
+   personaje, así que no necesita el zoom que recorta el letrero del volcán. */
+.sg-welcome-overlay[data-sg-theme="desert"] .sg-welcome-overlay-photo {
+  transform: scale(1.12);
+  transform-origin: 50% 45%;
+  opacity: 0.46;
+}
+
+.sg-welcome-overlay[data-sg-theme="desert"] .sg-welcome-overlay-ember {
+  background: radial-gradient(ellipse 50% 60% at 50% 100%, rgba(226, 178, 96, 0.26) 0%, rgba(140, 100, 48, 0.12) 45%, transparent 72%);
+}
+
+.sg-welcome-overlay[data-sg-theme="desert"] .sg-welcome-overlay-box {
+  background: linear-gradient(180deg, rgba(34, 26, 16, 0.54) 0%, rgba(14, 11, 8, 0.74) 45%, rgba(6, 5, 4, 0.88) 100%);
+  border-color: rgba(226, 178, 96, 0.34);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 20px 90px rgba(0, 0, 0, 0.7),
+    0 0 140px rgba(190, 140, 60, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.sg-welcome-overlay[data-sg-theme="desert"] .sg-welcome-logo {
+  filter: drop-shadow(0 0 20px rgba(226, 178, 96, 0.5));
+  animation: none;
+}
+
+.sg-welcome-overlay[data-sg-theme="desert"] .sg-welcome-stage-glow {
+  background: radial-gradient(ellipse 60% 55% at 50% 68%, rgba(240, 196, 118, 0.26) 0%, rgba(120, 88, 40, 0.10) 45%, transparent 72%);
+}
+
+.sg-welcome-overlay[data-sg-theme="desert"] .sg-welcome-title {
+  background: linear-gradient(180deg, #fff6e6 0%, #e8bd6e 52%, #a9701f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-shadow: 0 0 30px rgba(196, 142, 68, 0.35);
+}
+
+.sg-welcome-overlay[data-sg-theme="desert"] .sg-welcome-text strong {
+  color: #f0c98a;
+}
+
+.sg-welcome-overlay[data-sg-theme="desert"] .sg-welcome-btn {
+  background: linear-gradient(145deg, #d9a44a 0%, #96631c 100%);
+  box-shadow: 0 6px 24px rgba(190, 140, 60, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.sg-welcome-overlay[data-sg-theme="desert"] .sg-welcome-btn:hover {
+  box-shadow: 0 10px 32px rgba(190, 140, 60, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.sg-welcome-overlay[data-sg-theme="desert"] .sg-welcome-close-x:hover {
+  background: rgba(200, 150, 66, 0.32);
+}

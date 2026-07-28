@@ -134,6 +134,11 @@
 
   var MOD_RANGOS = ['commander', 'divisional_commander', 'boss_of_the_state'];
 
+  // Marcos en el chat: el cambio se refleja en vivo, pero con retraso para
+  // que nadie pueda spamear cambios de marco y distraer el campamento.
+  var FRAME_CHAT_DELAY_MS = 30000;
+  var frameCache = {}; // uid -> { applied, pending, timer, listening }
+
   // ============================================================
   // 2. Estado
   // ============================================================
@@ -416,6 +421,8 @@
     openChannel('general', true);
     restoreDraft();
     maybeDeepLink();
+    ensureChatFrameAssets();
+    if (myUid()) ensureFrameListener(myUid());
   }
 
   function cacheDom() {
@@ -793,6 +800,87 @@
     return d.userPhoto || d.photoURL || fallbackAvatar();
   }
 
+  function ensureChatFrameAssets() {
+    var SG = window.SGProfileCustomization;
+    if (!SG || typeof SG.loadAssets !== 'function' || typeof firebase === 'undefined') return Promise.resolve();
+    return SG.loadAssets(firebase.database()).catch(function () {});
+  }
+
+  function applyChatFrame(wrap, frameId) {
+    if (!wrap) return;
+    var SG = window.SGProfileCustomization;
+    if (!SG || typeof SG.applyFrameId !== 'function') return;
+    ensureChatFrameAssets().then(function () {
+      SG.applyFrameId(wrap, frameId || null);
+    });
+  }
+
+  function paintFramesForUid(uid, frameId) {
+    if (!uid || !D.stream) return;
+    var nodes = D.stream.querySelectorAll('.cf-msg[data-cf-uid="' + uid + '"] .cf-avatar-wrap');
+    for (var i = 0; i < nodes.length; i += 1) applyChatFrame(nodes[i], frameId);
+    if (S.hoverUid === uid && S.hoverCard) {
+      var cardWrap = S.hoverCard.querySelector('.cf-user-card-avatar-wrap');
+      if (cardWrap) applyChatFrame(cardWrap, frameId);
+    }
+    if (S.profileCache && S.profileCache[uid]) S.profileCache[uid].frameId = frameId;
+  }
+
+  function effectiveChatFrame(uid, msgData) {
+    var entry = frameCache[uid];
+    if (entry && entry.applied !== undefined) return entry.applied;
+    return (msgData && (msgData.equippedFrame || msgData.frameId)) || null;
+  }
+
+  function onRemoteFrameChange(uid, rawFrameId) {
+    var next = rawFrameId && rawFrameId !== 'default' ? String(rawFrameId) : null;
+    var entry = frameCache[uid] || (frameCache[uid] = {});
+    if (entry.applied === undefined) {
+      // Primera lectura: se pinta ya, sin delay (carga inicial del chat).
+      entry.applied = next;
+      paintFramesForUid(uid, next);
+      return;
+    }
+    if (next === entry.applied) {
+      if (entry.timer) { clearTimeout(entry.timer); entry.timer = null; }
+      entry.pending = null;
+      return;
+    }
+    // Cambio detectado: se aplica al chat solo tras el delay anti-abuso.
+    entry.pending = next;
+    if (entry.timer) clearTimeout(entry.timer);
+    entry.timer = setTimeout(function () {
+      entry.applied = entry.pending;
+      entry.pending = null;
+      entry.timer = null;
+      paintFramesForUid(uid, entry.applied);
+    }, FRAME_CHAT_DELAY_MS);
+  }
+
+  function ensureFrameListener(uid) {
+    if (!uid || uid === BOT_UID) return;
+    var entry = frameCache[uid] || (frameCache[uid] = {});
+    if (entry.listening) return;
+    entry.listening = true;
+    try {
+      var ref = db().ref('users/' + uid + '/profileCustomization/equippedFrame');
+      track(ref, 'value', function (snap) {
+        onRemoteFrameChange(uid, snap.val());
+      });
+    } catch (e) {
+      entry.listening = false;
+    }
+  }
+
+  function myEquippedFrame() {
+    var entry = frameCache[myUid()];
+    if (entry && entry.applied !== undefined) return entry.applied;
+    var p = prof();
+    var cust = (p && p.profileCustomization) || {};
+    var id = cust.equippedFrame || cust.equippedFrameId || cust.frameId || null;
+    return id && id !== 'default' ? id : null;
+  }
+
   function buildMessage(id, d) {
     var el = document.createElement('div');
     var isBot = d.type === 'bot' || d.userId === BOT_UID;
@@ -817,7 +905,9 @@
     if (mine) tier = honorTierOf(prof().communityHonor);
     if (tier !== 'none') el.setAttribute('data-cf-tier', tier);
 
-    // Avatar
+    // Avatar + marco (wrap para poder colocar el overlay encima)
+    var wrap = document.createElement('div');
+    wrap.className = 'cf-avatar-wrap';
     var av = document.createElement('img');
     av.className = 'message-avatar' + (isBot ? '' : ' community-user-link');
     av.alt = '';
@@ -828,8 +918,13 @@
       av.setAttribute('data-community-uid', d.userId || '');
       av.setAttribute('data-community-nick', nick);
       bindAvatarHover(av, d.userId || '', nick, photoOf(d));
+      if (d.userId) {
+        ensureFrameListener(d.userId);
+        applyChatFrame(wrap, effectiveChatFrame(d.userId, d));
+      }
     }
-    el.appendChild(av);
+    wrap.appendChild(av);
+    el.appendChild(wrap);
 
     var col = document.createElement('div');
     col.className = 'cf-msg-col';
@@ -1648,6 +1743,8 @@
     if (honor) msg.honor = honor;
     var streak = Number((S.chatStats || {}).streak || 0);
     if (streak > 1) msg.streak = streak;
+    var frameId = myEquippedFrame();
+    if (frameId) msg.equippedFrame = String(frameId).slice(0, 64);
     return msg;
   }
 
@@ -3106,6 +3203,8 @@
     ]).then(function (res) {
       var d = (res[0] && res[0].val()) || {};
       var cust = d.profileCustomization || {};
+      var frameId = cust.equippedFrame || cust.equippedFrameId || cust.frameId || null;
+      if (frameId === 'default') frameId = null;
       var data = {
         uid: uid,
         nick: d.nick || d.nickname || 'Jugador',
@@ -3117,6 +3216,7 @@
         country: d.country || d.pais || '',
         status: (presence()[uid] && presence()[uid].status) || d.status || '',
         bgUrl: resolveBackgroundUrl(cust),
+        frameId: frameId,
         _at: Date.now()
       };
       S.profileCache[uid] = data;
@@ -3146,7 +3246,9 @@
         '<div class="cf-user-card-bg" style="' + bgStyle + '"></div>' +
         '<div class="cf-user-card-inner">' +
           '<div class="cf-user-card-top">' +
-            '<img class="cf-user-card-avatar" src="' + esc(p.photo || photoHint || fallbackAvatar()) + '" alt="" onerror="this.src=\'' + fallbackAvatar() + '\'">' +
+            '<div class="cf-user-card-avatar-wrap">' +
+              '<img class="cf-user-card-avatar" src="' + esc(p.photo || photoHint || fallbackAvatar()) + '" alt="" onerror="this.src=\'' + fallbackAvatar() + '\'">' +
+            '</div>' +
             '<div class="cf-user-card-id">' +
               '<p class="cf-user-card-nick">' + esc(p.nick || nickHint || 'Jugador') + '</p>' +
               '<p class="cf-user-card-rank">' + esc(rankLabelOf(p.rango)) + (online ? ' · ' + esc(statusLabel) : '') + '</p>' +
@@ -3161,6 +3263,13 @@
           '<div class="cf-user-card-hint">Clic en la foto para abrir el perfil</div>' +
         '</div>';
       positionUserCard(anchor);
+
+      // Marco del perfil en el popup (misma fuente que el chat en vivo).
+      var cardWrap = card.querySelector('.cf-user-card-avatar-wrap');
+      if (cardWrap) {
+        ensureFrameListener(uid);
+        applyChatFrame(cardWrap, effectiveChatFrame(uid, { equippedFrame: p.frameId }));
+      }
 
       card.onclick = function (e) {
         e.preventDefault();
