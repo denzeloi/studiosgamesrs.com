@@ -7,11 +7,18 @@
 .header-notifications-wrap {
   position: relative;
   display: inline-flex;
+  overflow: visible !important;
+}
+.header-notifications-wrap .icon-btn,
+#notificationsToggleBtn {
+  position: relative !important;
+  overflow: visible !important;
 }
 .header-notif-badge {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: -3px;
+  right: -3px;
+  z-index: 6;
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
@@ -20,10 +27,41 @@
   border-radius: 999px;
   font-size: 0.65rem;
   font-weight: 700;
-  display: inline-flex;
+  display: none;
   align-items: center;
   justify-content: center;
   line-height: 1;
+  border: 2px solid #1a1c20;
+  box-shadow: 0 0 0 1px rgba(229, 57, 53, 0.35), 0 0 10px rgba(229, 57, 53, 0.55);
+  pointer-events: none;
+}
+.header-notif-badge.is-on {
+  display: block !important;
+}
+.header-notif-badge.is-dot {
+  min-width: 11px;
+  width: 11px;
+  height: 11px;
+  padding: 0;
+  font-size: 0;
+  color: transparent;
+  top: -2px;
+  right: -2px;
+  animation: sgNotifDotPulse 1.5s ease-in-out infinite;
+}
+#notificationsToggleBtn.has-notif-alert i,
+.header-notifications-wrap.has-notif-alert .icon-btn i {
+  filter: drop-shadow(0 0 4px rgba(229, 57, 53, 0.45));
+}
+@keyframes sgNotifDotPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 1px rgba(229, 57, 53, 0.35), 0 0 8px rgba(229, 57, 53, 0.55);
+  }
+  50% {
+    transform: scale(1.18);
+    box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.25), 0 0 14px rgba(229, 57, 53, 0.85);
+  }
 }
 .header-notifications-panel {
   position: absolute;
@@ -176,4 +214,326 @@
 .header-notif-btn.accept:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
+}
+
+.header-notif-emoji {
+  display: inline-block;
+  margin-right: 2px;
+  font-style: normal;
+}
+
+/* Toasts unificados (cualquier pgina) */
+.sg-notif-toast-host {
+  position: fixed;
+  top: 72px;
+  right: 16px;
+  z-index: 12080;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(340px, calc(100vw - 24px));
+  pointer-events: none;
+}
+
+.sg-notif-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 12px 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(165deg, rgba(22, 27, 34, 0.98), rgba(14, 17, 22, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
+  color: #e6edf3;
+  opacity: 0;
+  transform: translateX(18px) scale(0.98);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  cursor: pointer;
+}
+
+.sg-notif-toast.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+.sg-notif-toast.is-out {
+  opacity: 0;
+  transform: translateX(14px);
+}
+
+.sg-notif-toast-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(229, 57, 53, 0.18);
+  color: #ff8a80;
+}
+
+.sg-notif-toast.is-social .sg-notif-toast-icon { background: rgba(88, 166, 255, 0.18); color: #58a6ff; }
+.sg-notif-toast.is-chat .sg-notif-toast-icon { background: rgba(63, 185, 80, 0.18); color: #3fb950; }
+.sg-notif-toast.is-mission .sg-notif-toast-icon { background: rgba(227, 179, 65, 0.18); color: #e3b341; }
+.sg-notif-toast.is-success .sg-notif-toast-icon { background: rgba(63, 185, 80, 0.18); color: #3fb950; }
+.sg-notif-toast.is-error .sg-notif-toast-icon { background: rgba(248, 81, 73, 0.18); color: #f85149; }
+
+.sg-notif-toast-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.sg-notif-toast-body strong {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.sg-notif-toast-body p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #b1bac4;
+}
+
+.sg-notif-toast-close {
+  border: none;
+  background: transparent;
+  color: #8b949e;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+
+.sg-notif-toast-close:hover { color: #fff; background: rgba(255,255,255,0.08); }
+
+.sg-notif-toast-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  justify-content: flex-end;
+}
+.sg-notif-toast-action {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.sg-notif-toast-action.is-primary {
+  background: #4caf50;
+  color: #fff;
+}
+.sg-notif-toast-action.is-primary:hover { background: #66bb6a; }
+.sg-notif-toast-action.is-ghost {
+  background: #444;
+  color: #ccc;
+}
+.sg-notif-toast-action.is-ghost:hover { background: #555; color: #fff; }
+
+#notificationsToggleBtn.notif-bell-pulse i {
+  animation: sgNotifBellShake 0.7s ease;
+}
+@keyframes sgNotifBellShake {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(14deg); }
+  40% { transform: rotate(-12deg); }
+  60% { transform: rotate(8deg); }
+  80% { transform: rotate(-6deg); }
+}
+
+@media (max-width: 520px) {
+  .sg-notif-toast-host {
+    top: auto;
+    bottom: 16px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Invitación a misión: copia del aviso de Play Zone (#privateChatNotificationContainer
+   + .notification-item.success) para que se vea igual en todas las páginas.
+   Nombres propios porque cada página define .notification-item a su manera.
+   --------------------------------------------------------------------------- */
+#sgMissionInviteHost {
+  position: fixed;
+  top: 6rem;
+  right: 1rem;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.sg-mission-invite {
+  pointer-events: auto;
+  width: 350px;
+  box-sizing: border-box;
+  background-color: #2a4a3a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 5px solid #4caf50;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  color: #fff;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  animation: sgMissionInviteIn 0.5s forwards;
+}
+
+@keyframes sgMissionInviteIn {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.sg-mission-invite.is-out {
+  animation: sgMissionInviteOut 0.35s ease forwards;
+}
+
+@keyframes sgMissionInviteOut {
+  to { opacity: 0; transform: translateX(100%); }
+}
+
+.sg-mission-invite > i {
+  color: #ffd873;
+  font-size: 1.3em;
+  line-height: 1.2;
+}
+
+.sg-mission-invite-body { flex: 1; }
+
+.sg-mission-invite-body p {
+  margin: 5px 0 10px;
+  opacity: 0.9;
+}
+
+.sg-mission-invite-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.sg-mission-invite-actions button {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sg-mission-invite-accept {
+  background-color: #4caf50;
+  color: #fff;
+}
+.sg-mission-invite-accept:hover { background-color: #66bb6a; }
+
+.sg-mission-invite-dismiss {
+  background-color: #444;
+  color: #ccc;
+}
+.sg-mission-invite-dismiss:hover { background-color: #555; color: #fff; }
+
+@media (max-width: 520px) {
+  #sgMissionInviteHost {
+    top: auto;
+    bottom: 16px;
+    right: 12px;
+    left: 12px;
+  }
+  .sg-mission-invite { width: auto; }
+}
+
+/* ---------------------------------------------------------------------------
+   Mensaje privado nuevo: mismo hueco y misma animacion que el aviso de mision,
+   con el azul que el sitio usa para el chat en vez del verde de mision.
+   --------------------------------------------------------------------------- */
+.sg-pm-toast {
+  pointer-events: auto;
+  width: 350px;
+  box-sizing: border-box;
+  background-color: #232c44;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 5px solid #58a6ff;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  color: #fff;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  animation: sgMissionInviteIn 0.5s forwards;
+}
+
+.sg-pm-toast.is-out {
+  animation: sgMissionInviteOut 0.35s ease forwards;
+}
+
+.sg-pm-toast-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(88, 166, 255, 0.55);
+  flex-shrink: 0;
+  background: #0d1117;
+}
+
+.sg-pm-toast-body { flex: 1; min-width: 0; }
+
+.sg-pm-toast-body strong { color: #9ecbff; }
+
+.sg-pm-toast-body p {
+  margin: 5px 0 10px;
+  opacity: 0.9;
+  overflow-wrap: anywhere;
+}
+
+.sg-pm-toast-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.sg-pm-toast-actions button {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sg-pm-toast-open {
+  background-color: #3b82f6;
+  color: #fff;
+}
+.sg-pm-toast-open:hover { background-color: #60a5fa; }
+
+.sg-pm-toast-dismiss {
+  background-color: #444;
+  color: #ccc;
+}
+.sg-pm-toast-dismiss:hover { background-color: #555; color: #fff; }
+
+@media (max-width: 520px) {
+  .sg-pm-toast { width: auto; }
 }
