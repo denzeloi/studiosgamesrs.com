@@ -1,5 +1,5 @@
 #!/bin/bash
-# CS2 Nexus — fast boot from Hetzner snapshot (CS2 already installed on disk)
+# CS2 Nexus — fast boot from golden cloud snapshot (CS2 already installed on disk)
 set -euo pipefail
 
 LOG="/var/log/cs2-nexus-install.log"
@@ -29,6 +29,11 @@ if [ -x /root/install-plugins.sh ]; then
   if [ ! -f "$CS2_DIR/addons/metamod.vdf" ]; then
     echo "[snapshot] Metamod missing — installing plugins"
     bash /root/install-plugins.sh "$CS2_DIR" "$CS2_USER" "$RCON_PASS" || true
+  elif [ -d /root/matchzy-cfg ]; then
+    echo "[snapshot] Refreshing MatchZy tournament configs"
+    mkdir -p "$CS2_DIR/cfg/MatchZy"
+    cp -a /root/matchzy-cfg/. "$CS2_DIR/cfg/MatchZy/"
+    chown -R "$CS2_USER:$CS2_USER" "$CS2_DIR/cfg/MatchZy"
   fi
 fi
 
@@ -44,6 +49,47 @@ if command -v ufw >/dev/null 2>&1; then
   echo "[snapshot] ufw enabled (27015 udp/tcp open)"
 fi
 
+# CS2 clients use UDP 27015 — ensure iptables allows it even if ufw state is stale.
+open_cs2_ports() {
+  iptables -C INPUT -p udp --dport 27015 -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport 27015 -j ACCEPT
+  iptables -C INPUT -p tcp --dport 27015 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 27015 -j ACCEPT
+  iptables -C INPUT -p udp --dport 27020 -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport 27020 -j ACCEPT
+}
+open_cs2_ports
+
+cat > /usr/local/bin/open-cs2-ports.sh << 'FWEOF'
+#!/bin/bash
+set -euo pipefail
+if command -v ufw >/dev/null 2>&1; then
+  ufw allow 27015/udp >/dev/null 2>&1 || true
+  ufw allow 27015/tcp >/dev/null 2>&1 || true
+  ufw allow 27020/udp >/dev/null 2>&1 || true
+fi
+iptables -C INPUT -p udp --dport 27015 -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport 27015 -j ACCEPT
+iptables -C INPUT -p tcp --dport 27015 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 27015 -j ACCEPT
+iptables -C INPUT -p udp --dport 27020 -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport 27020 -j ACCEPT
+FWEOF
+chmod +x /usr/local/bin/open-cs2-ports.sh
+
+cat > /etc/systemd/system/cs2-firewall.service << 'FWSVC'
+[Unit]
+Description=Open CS2 UDP/TCP ports for player connections
+Before=cs2-server.service
+After=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/open-cs2-ports.sh
+
+[Install]
+WantedBy=multi-user.target
+FWSVC
+
+systemctl daemon-reload
+systemctl enable cs2-firewall.service 2>/dev/null || true
+systemctl start cs2-firewall.service 2>/dev/null || true
+
 cat > "$CS2_DIR/cfg/server.cfg" << 'CFGEOF'
 hostname "Studiosgamesrs | Nexus Tournament"
 sv_password ""
@@ -54,7 +100,11 @@ game_type 0
 game_mode 1
 mp_autoteambalance 0
 mp_limitteams 0
+mp_maxrounds 24
+tv_enable 1
+tv_delay 105
 log on
+sv_hibernate_when_empty 0
 CFGEOF
 
 cat > /etc/cs2-nexus/bridge.env << ENVEOF
@@ -71,6 +121,7 @@ chmod 600 "$RCON_TXT"
 
 STEAM32="${CS2_HOME}/steamcmd/linux32/steamclient.so"
 STEAM64="${CS2_HOME}/steamcmd/linux64/steamclient.so"
+BIN_DIR="${CS2_ROOT}/game/bin/linuxsteamrt64"
 if [ ! -f "$STEAM64" ]; then
   runuser -u "$CS2_USER" -- "${CS2_HOME}/steamcmd/steamcmd.sh" \
     +@sSteamCmdForcePlatformType linux +login anonymous +quit || true
@@ -80,14 +131,17 @@ if [ ! -f "$STEAM64" ] && [ -f "$STEAM32" ]; then
   cp -a "$STEAM32" "$STEAM64"
 fi
 if [ -f "$STEAM64" ]; then
+  mkdir -p "${CS2_ROOT}/linux64" "${CS2_ROOT}/linuxsteamrt64" "${BIN_DIR}"
   mkdir -p "${CS2_HOME}/.steam/sdk64" "${CS2_HOME}/.steam/sdk32"
   cp -a "$STEAM64" "${CS2_HOME}/.steam/sdk64/steamclient.so"
-  ln -sfn "$STEAM64" "${CS2_ROOT}/linux64/steamclient.so" 2>/dev/null || mkdir -p "${CS2_ROOT}/linux64" && ln -sfn "$STEAM64" "${CS2_ROOT}/linux64/steamclient.so"
+  ln -sfn "$STEAM64" "${CS2_ROOT}/linux64/steamclient.so"
+  ln -sfn "$STEAM64" "${CS2_ROOT}/linuxsteamrt64/steamclient.so"
+  ln -sfn "$STEAM64" "${BIN_DIR}/steamclient.so"
   [ -f "$STEAM32" ] && cp -a "$STEAM32" "${CS2_HOME}/.steam/sdk32/steamclient.so"
   chown -R "$CS2_USER:$CS2_USER" "${CS2_HOME}/.steam"
+  echo "[snapshot] steamclient.so linked for linuxsteamrt64"
 fi
 CSGO_BIN="${CS2_DIR}/bin/linuxsteamrt64"
-BIN_DIR="${CS2_ROOT}/game/bin/linuxsteamrt64"
 mkdir -p "$CSGO_BIN"
 for lib in "$BIN_DIR"/libv8*.so; do
   [ -f "$lib" ] || continue
@@ -108,7 +162,7 @@ User=${CS2_USER}
 WorkingDirectory=${CS2_ROOT}/game
 EnvironmentFile=/etc/cs2-nexus/bridge.env
 Environment=DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true
-ExecStart=${CS2_SH} -dedicated -usercon -fakercon +ip 0.0.0.0 -port 27015 +map de_mirage +exec server.cfg +tv_port 27020
+ExecStart=${CS2_SH} -dedicated -usercon -fakercon +ip 0.0.0.0 -port 27015 +sv_setsteamaccount __GSLT_TOKEN__ +map de_mirage +exec server.cfg +tv_port 27020
 Restart=on-failure
 RestartSec=15
 

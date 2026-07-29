@@ -1,6 +1,6 @@
 # Studiosgamesrs — CS2 Nexus (Phase 1)
 
-Firebase-hosted tournament platform with on-demand **Hetzner CS2** servers, live scoreboard via **NexusBridge**, and integration with the existing Nexus site.
+Firebase-hosted tournament platform with on-demand **Vultr Miami CS2** servers, live scoreboard via **NexusBridge**, and integration with the existing Nexus site.
 
 **Production:** [studiosgamesrs.web.app](https://studiosgamesrs.web.app)
 
@@ -20,9 +20,10 @@ Firebase-hosted tournament platform with on-demand **Hetzner CS2** servers, live
 ```bash
 # 1. Secrets (never commit)
 cp functions/.env.example functions/.env
-# Fill HETZNER_API_TOKEN, RCON_PASSWORD, GSLT_SERVER_*, HETZNER_SNAPSHOT_ID
+# Fill VULTR_API_TOKEN, RCON_PASSWORD, GSLT_SERVER_*, optional VULTR_SNAPSHOT_ID
 
-# 2. Deploy everything
+# 2. Sync deploy package env and deploy
+cp functions/.env functions/cs2-nexus/.env
 npm run deploy:all
 ```
 
@@ -40,16 +41,16 @@ Hosting uses **`firebase.json` rewrites** (`/login` → `login.html`) — no dup
 ## CS2 tournament flow
 
 1. Commander creates a tournament in **Competition Hub** or **Commander Panel**
-2. Open **Tournament Details** → **Provision Server** (Hetzner VM from snapshot, ~5–8 min)
+2. Open **Tournament Details** → **Provision Server** (Vultr VM from snapshot — often **~30–50 min** total including Vultr disk restore)
 3. Teams register; admin **Launch Match** when ready
 4. Players connect: `connect <IP>:27015` in CS2 console
-5. **Shutdown Server** when done (stops Hetzner billing)
+5. **Shutdown Server** when done (stops cloud billing)
 
 ## Secrets policy
 
 These files must stay **local only** (see `.gitignore`):
 
-- `functions/.env` — Hetzner, RCON, GSLT, webhook
+- `functions/.env` and `functions/cs2-nexus/.env` — Vultr, RCON, GSLT, webhook
 - `serviceAccountKey.json` — PHP Steam login on cPanel
 - `steam_login.php`, `steam-config.php` — production PHP (cPanel)
 
@@ -61,7 +62,8 @@ Start at [docs/README.md](./docs/README.md):
 
 - [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — system design
 - [DEPLOYMENT.md](./docs/DEPLOYMENT.md) — ops checklist
-- [SNAPSHOT.md](./docs/SNAPSHOT.md) — golden Hetzner image
+- [SNAPSHOT.md](./docs/SNAPSHOT.md) — golden Vultr image
+- [LOCATION.md](./docs/LOCATION.md) — Miami vs legacy Hetzner
 
 ## Branch note
 

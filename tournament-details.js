@@ -19,17 +19,24 @@
   var buttonDefaults = {};
   var loadingButtonId = null;
   var statusPollTimer = null;
+  var pollInFlight = false;
+  var pollStarted = false;
   var ipSeenAt = null;
   var pollCount = 0;
   var provisionMode = (global.CS2_BRIDGE && global.CS2_BRIDGE.provisionMode) || 'full';
-  var BOOT_GRACE_MS = 4 * 60 * 1000;
+  var BOOT_GRACE_MS_SNAPSHOT = 4 * 60 * 1000;
+  var BOOT_GRACE_MS_FULL = 25 * 60 * 1000;
+
+  function getBootGraceMs() {
+    return provisionMode === 'snapshot' ? BOOT_GRACE_MS_SNAPSHOT : BOOT_GRACE_MS_FULL;
+  }
 
   function $(id) { return document.getElementById(id); }
 
   function getBootWaitMsg() {
     return provisionMode === 'snapshot'
-      ? 'CS2 is starting on the cloud server (usually 5–8 min with snapshot).'
-      : 'CS2 is installing on the cloud server (first install usually 15–45 min).';
+      ? 'Vultr is restoring the snapshot disk, then CS2 starts (often 25–45 min total on first boot from snapshot).'
+      : 'CS2 is installing on the cloud server (first install usually 30–45 min).';
   }
 
   function setAdminMsg(msg, isError) {
@@ -80,32 +87,131 @@
   }
 
   function isServerReady() {
-    return !!getServerIp();
+    var ip = getServerIp();
+    return !!(ip && /^\d{1,3}(\.\d{1,3}){3}$/.test(String(ip).trim()));
+  }
+
+  function getConnectCommand() {
+    if (!isServerReady()) return null;
+    return 'connect ' + getServerIp() + ':' + getServerPort();
+  }
+
+  function getSteamConnectUrl() {
+    if (!isServerReady()) return null;
+    return 'steam://connect/' + getServerIp() + ':' + getServerPort();
+  }
+
+  function shouldShowConnectPanel() {
+    return isMatchLive() && isServerReady();
+  }
+
+  function copyConnectCommand() {
+    var cmd = getConnectCommand();
+    if (!cmd) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(cmd).then(function () {
+        setAdminMsg('Copied to clipboard. Paste in CS2 console (~) and press Enter.');
+      }).catch(function () {
+        window.prompt('Copy this command (Ctrl+C), then paste in CS2 console (~):', cmd);
+      });
+    } else {
+      window.prompt('Copy this command (Ctrl+C), then paste in CS2 console (~):', cmd);
+    }
+  }
+
+  function renderConnectPanel() {
+    var conn = $('tdConnectInfo');
+    if (!conn) return;
+
+    if (!isServerReady()) {
+      conn.style.display = 'none';
+      conn.innerHTML = '';
+      return;
+    }
+
+    if (!shouldShowConnectPanel()) {
+      conn.style.display = 'block';
+      conn.innerHTML =
+        '<div class="td-connect-wait"><i class="fas fa-hourglass-half"></i> ' +
+        'Server is online. Waiting for the Commander to <strong>Launch Match</strong> before players can join.</div>';
+      return;
+    }
+
+    var cmd = getConnectCommand();
+    var steamUrl = getSteamConnectUrl();
+    var udpBlocked = activeGameServer && activeGameServer.gameUdpOk === false;
+    conn.style.display = 'block';
+    conn.innerHTML =
+      (udpBlocked
+        ? '<div class="td-connect-warn" style="margin-bottom:10px;"><strong>Cannot connect yet:</strong> ' +
+          'The game port (UDP 27015) is blocked on this server. Tell the Commander to click ' +
+          '<strong>Shutdown Server</strong> then <strong>Provision Server</strong> again.</div>'
+        : '') +
+      '<div style="font-size:0.75rem;color:#888;margin-bottom:6px;">Tournament server (remote — not local)</div>' +
+      '<div class="td-connect" id="tdConnectCmd">' + cmd + '</div>' +
+      '<div class="td-connect-actions">' +
+      '<button type="button" class="td-connect-btn" id="tdBtnCopyConnect"><i class="fas fa-copy"></i> Copy command</button>' +
+      (steamUrl ? '<a class="td-connect-btn" id="tdBtnSteamConnect" href="' + steamUrl + '" style="text-decoration:none;display:inline-block;">' +
+        '<i class="fab fa-steam"></i> Open in Steam</a>' : '') +
+      '</div>' +
+      '<div class="td-connect-steps">' +
+      '<strong>How to join (required):</strong><ol style="margin:8px 0 0 18px;padding:0;">' +
+      '<li>In CS2: <strong>Settings → Game → Enable Developer Console (~)</strong></li>' +
+      '<li>From the main menu, press <strong>~</strong> (tilde key, top-left of keyboard)</li>' +
+      '<li>Click <strong>Copy command</strong> above, paste in the console, press <strong>Enter</strong></li>' +
+      '<li>Do <strong>not</strong> use Play → Offline, Practice, or Community Server browser</li>' +
+      '</ol></div>' +
+      '<div class="td-connect-warn">' +
+      '<strong>Wrong connection?</strong> If the console says <code>loopback</code> or Map is <code>&lt;empty&gt;</code>, ' +
+      'you are on a <strong>local</strong> server — not the tournament. Close CS2, reopen from the main menu, and use the command above.' +
+      '</div>';
+
+    var copyBtn = $('tdBtnCopyConnect');
+    if (copyBtn) {
+      copyBtn.onclick = function (e) {
+        e.preventDefault();
+        copyConnectCommand();
+      };
+    }
   }
 
   function hydrateActiveServerFromTournament() {
-    if (activeGameServer || !tournamentData || !tournamentData.activeServerId) return;
-    activeGameServer = {
-      id: String(tournamentData.activeServerId),
-      ip: tournamentData.serverIp || null,
-      port: tournamentData.serverPort || 27015,
-      status: 'booting',
-      error: null,
-      createdAt: tournamentData.serverCreatedAt || null,
-    };
-    activeServerId = String(tournamentData.activeServerId);
+    if (!tournamentData || !tournamentData.activeServerId) return;
+    if (!activeGameServer) {
+      activeGameServer = {
+        id: String(tournamentData.activeServerId),
+        ip: tournamentData.serverIp || null,
+        port: tournamentData.serverPort || 27015,
+        status: 'booting',
+        error: null,
+        createdAt: tournamentData.serverCreatedAt || null,
+      };
+      activeServerId = String(tournamentData.activeServerId);
+      return;
+    }
+    if (!activeGameServer.ip && tournamentData.serverIp) {
+      activeGameServer.ip = tournamentData.serverIp;
+    }
+    if (!activeGameServer.port && tournamentData.serverPort) {
+      activeGameServer.port = tournamentData.serverPort;
+    }
+    if (!activeGameServer.id) {
+      activeGameServer.id = String(tournamentData.activeServerId);
+    }
+    activeServerId = String(activeGameServer.id || tournamentData.activeServerId);
   }
 
-  function applyServerApiResult(result) {
+  function applyServerApiResult(result, opts) {
     if (!result) return;
+    opts = opts || {};
     var sid = String(result.serverId || activeServerId || (tournamentData && tournamentData.activeServerId) || '');
     if (!sid) return;
     activeServerId = sid;
     if (!activeGameServer) {
       activeGameServer = {
         id: sid,
-        ip: null,
-        port: 27015,
+        ip: (tournamentData && tournamentData.serverIp) || null,
+        port: (tournamentData && tournamentData.serverPort) || 27015,
         status: 'booting',
         error: null,
         rconReady: false,
@@ -124,7 +230,11 @@
     if (result.status) activeGameServer.status = result.status;
     if (result.rconOk === true) activeGameServer.rconReady = true;
     if (result.portReady === true || result.status === 'online') activeGameServer.portReady = true;
-    syncServerStateFromRegistry();
+    if (result.gameUdpOk === true) activeGameServer.gameUdpOk = true;
+    if (result.gameUdpOk === false) activeGameServer.gameUdpOk = false;
+    if (result.playerConnectOk === true) activeGameServer.gameUdpOk = true;
+    if (result.playerConnectOk === false) activeGameServer.gameUdpOk = false;
+    syncServerStateFromRegistry({ skipPollRestart: !!opts.skipPollRestart });
   }
 
   function noteIpSeen() {
@@ -133,56 +243,55 @@
 
   function isBootGraceReady() {
     if (!isServerReady()) return false;
+    var graceMs = getBootGraceMs();
     if (activeGameServer && activeGameServer.createdAt) {
-      if (Date.now() - Number(activeGameServer.createdAt) >= BOOT_GRACE_MS) return true;
+      if (Date.now() - Number(activeGameServer.createdAt) >= graceMs) return true;
     }
-    return !!(ipSeenAt && (Date.now() - ipSeenAt) >= BOOT_GRACE_MS);
+    return !!(ipSeenAt && (Date.now() - ipSeenAt) >= graceMs);
   }
 
   function isLaunchReady() {
     if (isMatchLive()) return false;
     if (!isServerReady()) return false;
     if (!activeGameServer) hydrateActiveServerFromTournament();
-    if (activeGameServer && (activeGameServer.status === 'online' || activeGameServer.portReady === true)) {
-      return true;
-    }
-    return isBootGraceReady();
+    if (!activeGameServer) return false;
+    if (activeGameServer.status === 'online' || activeGameServer.rconReady === true) return true;
+    if (activeGameServer.portReady === true && activeGameServer.status !== 'error') return true;
+    return false;
   }
 
   function isMatchLive() {
     if (!tournamentData) return false;
-    if (tournamentData.status === 'en_vivo') return true;
-    return !!tournamentData.activeMatchId;
+    return tournamentData.status === 'en_vivo';
   }
 
   function stopServerStatusPoll() {
+    pollStarted = false;
+    pollInFlight = false;
     if (statusPollTimer) {
       clearInterval(statusPollTimer);
       statusPollTimer = null;
     }
   }
 
+  function ensureServerStatusPoll() {
+    if (pollStarted || statusPollTimer) return;
+    startServerStatusPoll();
+  }
+
   function startServerStatusPoll() {
-    stopServerStatusPoll();
     if (!isAdmin || !activeServerId || !tournamentId) return;
-    hydrateActiveServerFromTournament();
+    if (pollStarted || statusPollTimer) return;
     if (activeGameServer && (activeGameServer.status === 'online' || activeGameServer.status === 'error')) {
       return;
     }
 
+    pollStarted = true;
+    hydrateActiveServerFromTournament();
+
     async function pollOnce() {
+      if (pollInFlight) return;
       if (!activeServerId || !tournamentId) {
-        stopServerStatusPoll();
-        return;
-      }
-      noteIpSeen();
-      if (isBootGraceReady()) {
-        if (activeGameServer) {
-          activeGameServer.status = 'online';
-          activeGameServer.portReady = true;
-        }
-        setAdminMsg('Server at ' + getServerIp() + ':' + getServerPort() + ' — ready (boot grace). Click Launch Match.');
-        syncServerStateFromRegistry();
         stopServerStatusPoll();
         return;
       }
@@ -190,28 +299,39 @@
         stopServerStatusPoll();
         return;
       }
+
+      pollInFlight = true;
       pollCount += 1;
       try {
-        var result = await TournamentSystem.checkServer(tournamentId, activeServerId);
-        applyServerApiResult(result);
+        noteIpSeen();
+        var result = await TournamentSystem.checkServer(tournamentId, activeServerId, { quick: true });
+        applyServerApiResult(result, { skipPollRestart: true });
         if (result && (result.status === 'online' || result.rconOk || result.portReady)) {
-          setAdminMsg('Server ready at ' + result.ip + ':' + (result.port || 27015) + '. Click Launch Match.');
+          setAdminMsg('Server ready at ' + getServerIp() + ':' + getServerPort() + '. Click Launch Match.');
           stopServerStatusPoll();
           return;
         }
-        if (result && result.ip) {
+        if (result && (result.ip || isServerReady())) {
+          var displayIp = result.ip || getServerIp();
+          var displayPort = result.port || getServerPort();
           var mins = ipSeenAt ? Math.floor((Date.now() - ipSeenAt) / 60000) : 0;
-          if (mins >= 4) {
-            setAdminMsg('Server at ' + result.ip + ':' + (result.port || 27015) + ' — should be ready. Click Launch Match.');
+          var readyMins = Math.ceil(getBootGraceMs() / 60000);
+          if (mins >= readyMins) {
+            setAdminMsg('Server at ' + displayIp + ':' + displayPort + ' — waiting for CS2 port. Click Check Readiness, then Launch Match.');
           } else {
-            setAdminMsg('Server at ' + result.ip + ':' + (result.port || 27015) + ' — CS2 starting (~' + Math.max(0, 4 - mins) + ' min). Checking again...');
+            setAdminMsg('Server at ' + displayIp + ':' + displayPort + ' — ' + getBootWaitMsg() + ' Next check in ~20s...');
           }
         }
       } catch (e) {
-        if (!isServerReady()) {
+        hydrateActiveServerFromTournament();
+        if (isServerReady()) {
+          var waitMins = ipSeenAt ? Math.floor((Date.now() - ipSeenAt) / 60000) : 0;
+          setAdminMsg('Server at ' + getServerIp() + ':' + getServerPort() + ' — ' + getBootWaitMsg() +
+            (waitMins > 0 ? ' (' + waitMins + ' min elapsed)' : '') + ' Next check in ~20s...');
+        } else if (!isServerReady()) {
           try {
             var resumed = await TournamentSystem.resumeProvision(tournamentId, activeServerId);
-            applyServerApiResult(resumed);
+            applyServerApiResult(resumed, { skipPollRestart: true });
             if (resumed && resumed.ip) {
               noteIpSeen();
               setAdminMsg('Server at ' + resumed.ip + ':27015 — CS2 starting. Checking automatically...');
@@ -220,8 +340,10 @@
             /* keep polling */
           }
         }
+      } finally {
+        pollInFlight = false;
       }
-      if (pollCount >= 20) stopServerStatusPoll();
+      if (pollCount >= 30) stopServerStatusPoll();
     }
 
     pollOnce();
@@ -236,27 +358,34 @@
     btn.style.display = show ? 'inline-block' : 'none';
   }
 
-  function syncServerStateFromRegistry() {
+  function syncServerStateFromRegistry(opts) {
+    opts = opts || {};
     if (!tournamentData) return;
     if (!activeGameServer) {
       hydrateActiveServerFromTournament();
     }
     if (!activeGameServer) {
       renderHeader(tournamentData);
-      updateServerStatus(tournamentData);
+      updateServerStatus(tournamentData, opts);
       updateActionButtons(tournamentData);
       updateCheckButton();
       return;
+    }
+    if (!activeGameServer.ip && tournamentData.serverIp) {
+      activeGameServer.ip = tournamentData.serverIp;
+    }
+    if (!activeGameServer.port && tournamentData.serverPort) {
+      activeGameServer.port = tournamentData.serverPort;
     }
     tournamentData.serverIp = activeGameServer.ip || tournamentData.serverIp || null;
     tournamentData.serverPort = activeGameServer.port || 27015;
     tournamentData.activeServerId = activeGameServer.id;
     noteIpSeen();
     renderHeader(tournamentData);
-    updateServerStatus(tournamentData);
+    updateServerStatus(tournamentData, opts);
     updateActionButtons(tournamentData);
     updateCheckButton();
-    if (activeGameServer.status === 'online') {
+    if (activeGameServer.status === 'online' || activeGameServer.status === 'udp_blocked') {
       stopServerStatusPoll();
     }
   }
@@ -307,7 +436,8 @@
     syncServerStateFromRegistry();
   }
 
-  function updateServerStatus(t) {
+  function updateServerStatus(t, opts) {
+    opts = opts || {};
     if (!t || loadingButtonId) return;
     if (isMatchLive()) return;
     if (activeGameServer && activeGameServer.status === 'error') {
@@ -318,31 +448,42 @@
       var ip = getServerIp();
       var port = getServerPort();
       if (activeGameServer && activeGameServer.status === 'online') {
-        if (activeGameServer.rconReady === false) {
+        if (activeGameServer.gameUdpOk === false) {
+          setAdminMsg('RCON works but UDP 27015 is blocked — players cannot connect. Shutdown and Provision a new server.', true);
+        } else if (activeGameServer.rconReady === false) {
           setAdminMsg('Server online at ' + ip + ':' + port + ' — CS2 is up. Click Launch Match (RCON will connect on launch).');
         } else {
           setAdminMsg('Server ready at ' + ip + ':' + port + '. Click Launch Match.');
         }
         return;
       }
+      if (activeGameServer && activeGameServer.status === 'udp_blocked') {
+        setAdminMsg('Game port UDP 27015 blocked on ' + ip + '. Shutdown → Provision again to fix firewall.', true);
+        return;
+      }
       if (activeGameServer && activeGameServer.status === 'booting') {
         setAdminMsg('Server at ' + ip + ':' + port + ' — ' + getBootWaitMsg() + ' Checking automatically every 20s...');
-        startServerStatusPoll();
+        if (!opts.skipPollRestart) ensureServerStatusPoll();
         return;
       }
       if (activeGameServer && activeGameServer.status === 'rcon_timeout') {
-        setAdminMsg('Server at ' + ip + ':' + port + ' — CS2 install is taking longer than usual. You can try Launch, or wait a few more minutes.');
+        setAdminMsg('Server at ' + ip + ':' + port + ' — CS2 install is taking longer than usual. Use Check Readiness when ready.');
         return;
       }
-      setAdminMsg('Server at ' + ip + ':' + port + ' — ' + getBootWaitMsg() + ' Checking automatically...');
-      startServerStatusPoll();
+      setAdminMsg('Server at ' + ip + ':' + port + ' — ' + getBootWaitMsg() + ' Checking automatically every 20s...');
+      if (!opts.skipPollRestart) ensureServerStatusPoll();
       return;
     }
     if (hasActiveServer()) {
-      setAdminMsg('Server provisioning in progress (ID: ' + activeGameServer.id + '). Waiting for IP address (usually 2–5 minutes)...');
+      var sid = (activeGameServer && activeGameServer.id) ||
+        activeServerId ||
+        (t && t.activeServerId) ||
+        'unknown';
+      setAdminMsg('Server provisioning in progress (ID: ' + sid + '). Waiting for IP address (usually 2–5 minutes)...');
       return;
     }
-    if (t.serverIp && !activeGameServer) {
+    // Stale IP left after shutdown — activeServerId is cleared in Firebase on shutdown.
+    if (t.serverIp && !t.activeServerId) {
       setAdminMsg('Previous server was shut down. Click Provision Server to start a new one.');
       return;
     }
@@ -417,20 +558,8 @@
     st.className = 'td-status ' + (t.status === 'en_vivo' ? 'live' : t.status === 'finalizado' ? 'finished' : 'pending');
 
     var conn = $('tdConnectInfo');
-    if (isServerReady() && conn) {
-      conn.style.display = 'block';
-      var line = 'connect ' + getServerIp() + ':' + getServerPort();
-      conn.innerHTML =
-        '<div style="margin-bottom:8px;">' + line + '</div>' +
-        '<div style="font-size:0.8rem;color:#aaa;line-height:1.5;">' +
-        '1. Open CS2 → press <strong>~</strong> (console)<br>' +
-        '2. Paste the line above and press Enter<br>' +
-        '3. Do not use Community Server browser — direct connect only<br>' +
-        '4. Both players need a Steam account with CS2 installed' +
-        '</div>';
-    } else if (conn) {
-      conn.style.display = 'none';
-      conn.textContent = '';
+    if (conn) {
+      renderConnectPanel();
     }
 
     activeServerId = activeGameServer
@@ -493,10 +622,13 @@
       renderMeta(tournamentData);
       hydrateActiveServerFromTournament();
       syncServerStateFromRegistry();
-      if (isBootGraceReady() && !isMatchLive()) {
+      if (tournamentData.activeServerId && tournamentData.serverIp && !isMatchLive()) {
+        ensureServerStatusPoll();
+      }
+      if (isBootGraceReady() && !isMatchLive() && isLaunchReady()) {
         setAdminMsg('Server at ' + getServerIp() + ':' + getServerPort() + ' — ready. Click Launch Match.');
       }
-      if (tournamentData.activeMatchId) {
+      if (tournamentData.status === 'en_vivo' && tournamentData.activeMatchId) {
         attachLiveListener(tournamentData.activeMatchId);
       }
     });
@@ -515,6 +647,7 @@
             error: s.error || null,
             rconReady: s.rconReady === true,
             portReady: !!s.portReady,
+            gameUdpOk: s.gameUdpOk,
             createdAt: s.createdAt || null,
             provisionMode: s.provisionMode || provisionMode,
           };
@@ -522,7 +655,12 @@
         }
       });
       if (matched) {
-        activeGameServer = matched;
+        activeGameServer = Object.assign({}, activeGameServer || {}, matched, {
+          ip: matched.ip || (activeGameServer && activeGameServer.ip) ||
+            (tournamentData && tournamentData.serverIp) || null,
+          port: matched.port || (activeGameServer && activeGameServer.port) ||
+            (tournamentData && tournamentData.serverPort) || 27015,
+        });
         activeServerId = matched.id;
         syncServerStateFromRegistry();
       }
@@ -549,8 +687,18 @@
       try {
         var result = await TournamentSystem.checkServer(tournamentId, activeServerId);
         applyServerApiResult(result);
-        if (result.rconOk || result.status === 'online' || result.portReady || result.readyByAge) {
-          setAdminMsg('Server ready at ' + result.ip + ':' + (result.port || 27015) + '. Click Launch Match.');
+        if (result.stillInstalling) {
+          var elapsed = result.bootAgeMs ? Math.floor(result.bootAgeMs / 60000) : 0;
+          setAdminMsg(
+            'CS2 is still installing or starting at ' + result.ip + ':' + (result.port || 27015) +
+            ' (~' + elapsed + ' min elapsed). Wait for install to finish on the server, then check again.'
+          );
+        } else if (result.connectHint && (result.gameUdpOk === false || result.playerConnectOk === false)) {
+          setAdminMsg(result.connectHint, true);
+        } else if (result.rconOk || result.status === 'online' || result.portReady || result.readyByAge) {
+          var udpNote = (result.gameUdpOk === false) ? ' Warning: UDP game port not reachable for players.' : '';
+          setAdminMsg('Server ready at ' + result.ip + ':' + (result.port || 27015) + '. Click Launch Match.' + udpNote,
+            result.gameUdpOk === false);
         } else if (isBootGraceReady()) {
           if (activeGameServer) {
             activeGameServer.status = 'online';
@@ -578,7 +726,7 @@
         return;
       }
       setButtonLoading('tdBtnProvision', true);
-      setAdminMsg('Creating Hetzner server (IP usually in 1–3 min, CS2 ready in 5–8 min)...');
+      setAdminMsg('Creating Vultr server in Miami (IP in ~1–3 min; snapshot restore + CS2 often 25–45 min)...');
       try {
         var matchId = getMatchId();
         var result = await TournamentSystem.provisionServer(tournamentId, matchId, 0);
@@ -587,18 +735,18 @@
         if (result.error) {
           if (result.ip) {
             setAdminMsg('Server at ' + result.ip + ':' + (result.port || 27015) + ' — CS2 starting. (Recovered from backend warning: ' + result.error + ')');
-            startServerStatusPoll();
+            ensureServerStatusPoll();
           } else {
             setAdminMsg('Provisioning failed: ' + result.error, true);
           }
         } else if (result.status === 'online' && result.ip) {
           setAdminMsg('Server ready at ' + result.ip + ':27015. Click Launch Match.');
         } else if (result.ip) {
-          setAdminMsg('Server at ' + result.ip + ':27015 — CS2 starting (5–8 min). Checking automatically...');
-          startServerStatusPoll();
+          setAdminMsg('Server at ' + result.ip + ':27015 — snapshot restoring / CS2 starting. Keep this page open...');
+          ensureServerStatusPoll();
         } else {
           setAdminMsg('Server created (ID: ' + result.serverId + '). Waiting for IP...');
-          startServerStatusPoll();
+          ensureServerStatusPoll();
         }
       } catch (e) {
         var msg = (e && e.message) ? e.message : String(e);
@@ -607,15 +755,15 @@
           activeServerId = String(tournamentData.activeServerId);
         }
         if (/timed out|504|gateway timeout|aborted/i.test(msg) && (hasActiveServer() || activeServerId)) {
-          setAdminMsg('Provision still running on Hetzner — keep this page open. Checking every 20s...');
-          startServerStatusPoll();
+          setAdminMsg('Provision still running on Vultr — keep this page open. Checking every 20s...');
+          ensureServerStatusPoll();
         } else if (hasActiveServer() && activeServerId && !getServerIp()) {
           setAdminMsg('Still waiting for IP — trying to resume provisioning...');
           try {
             var resumed = await TournamentSystem.resumeProvision(tournamentId, activeServerId);
             if (resumed.ip) {
               setAdminMsg('Server at ' + resumed.ip + ':27015 — CS2 starting. Checking automatically...');
-              startServerStatusPoll();
+              ensureServerStatusPoll();
             } else {
               setAdminMsg(msg, true);
             }
@@ -639,12 +787,17 @@
         setAdminMsg('Provision a server first and wait until the IP appears.', true);
         return;
       }
+      if (!isLaunchReady()) {
+        setAdminMsg('Server is not ready yet. Wait until Check Readiness passes, then Launch Match.', true);
+        return;
+      }
       if (isMatchLive()) {
-        setAdminMsg('Match is already live. Connect: ' + getServerIp() + ':' + getServerPort());
+        setAdminMsg('Match is already live. Use the connect panel above or: ' + getConnectCommand());
         return;
       }
       setButtonLoading('tdBtnLaunch', true);
-      setAdminMsg('Launching match on ' + activeGameServer.ip + '...');
+      hydrateActiveServerFromTournament();
+      setAdminMsg('Launching match on ' + getServerIp() + ':' + getServerPort() + '...');
       try {
         var map = $('tdMapSelect').value;
         var matchId = getMatchId();
@@ -652,22 +805,26 @@
         var result = await TournamentSystem.launchMatch(
           tournamentId, matchId, map, activeServerId || tournamentData.activeServerId, teamIds
         );
-        var msg = 'Match launched. Connect in CS2 console (~): connect ' + result.serverIp + ':' + (result.port || 27015);
-        if (result.manualConnect || result.rconOk === false) {
-          msg += ' (Map may need a minute to load if RCON timed out — try connect anyway.)';
-        }
-        if (result.manualConnect || result.rconOk === false) {
-          msg += '. RCON could not load the map from the cloud — join the server and run: changelevel ' + map;
+        var msg;
+        if (result.rconOk) {
+          msg = 'Match launched. Players: use the green connect box above (or CS2 console: ' + getConnectCommand() + ').';
+        } else {
+          msg = 'Launch failed — CS2 did not respond over RCON. Wait for the server to finish starting, click Check Readiness, then try again.';
           if (result.rconError) msg += ' (' + result.rconError + ')';
         }
-        setAdminMsg(msg);
-        if (tournamentData) {
+        if (result.connectWarning) {
+          msg += ' ' + result.connectWarning;
+        }
+        setAdminMsg(msg, !result.rconOk || !!result.connectWarning);
+        if (tournamentData && result.rconOk) {
           tournamentData.status = 'en_vivo';
           tournamentData.activeMatchId = matchId;
           tournamentData.activeMap = map;
+          renderHeader(tournamentData);
+          attachLiveListener(matchId);
+        } else {
+          renderHeader(tournamentData);
         }
-        renderHeader(tournamentData);
-        attachLiveListener(matchId);
       } catch (e) {
         setAdminMsg((e && e.message) ? e.message : String(e), true);
       } finally {
@@ -681,7 +838,7 @@
         setAdminMsg('No active server to shut down. Provision a server first.', true);
         return;
       }
-      if (!window.confirm('Shut down the Hetzner server? This stops billing for this instance.')) return;
+      if (!window.confirm('Shut down the cloud server? This stops billing for this instance.')) return;
       setButtonLoading('tdBtnShutdown', true);
       setAdminMsg('Shutting down server...');
       try {

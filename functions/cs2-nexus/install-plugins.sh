@@ -103,6 +103,24 @@ else
   echo "[plugins] WARN: NexusBridgePlugin.cs not found — skipping NexusBridge build"
 fi
 
+echo "[plugins] Installing MatchZy tournament configs..."
+MATCHZY_CFG_DST="$CS2_DIR/cfg/MatchZy"
+mkdir -p "$MATCHZY_CFG_DST"
+if [ -d /root/matchzy-cfg ]; then
+  cp -a /root/matchzy-cfg/. "$MATCHZY_CFG_DST/"
+  echo "[plugins] MatchZy configs copied from /root/matchzy-cfg"
+fi
+# Fallback embedded defaults if pack missing
+if [ ! -f "$MATCHZY_CFG_DST/config.cfg" ]; then
+  cat > "$MATCHZY_CFG_DST/config.cfg" << 'MZCFG'
+matchzy_knife_enabled_default 1
+matchzy_minimum_ready_required 2
+matchzy_demo_path MatchZy
+matchzy_whitelist_enabled_default 0
+matchzy_hostname_format "Studiosgamesrs | {TEAM1} vs {TEAM2}"
+MZCFG
+fi
+
 chown -R "$CS2_USER:$CS2_USER" "/home/$CS2_USER/cs2-server"
 echo "=== CS2 plugin install finished $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
 exit 0

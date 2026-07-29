@@ -1,6 +1,6 @@
 # CS2 Nexus — Architecture
 
-Phase 1 connects on-demand Hetzner CS2 servers to the Studiosgamesrs Nexus web platform.
+Phase 1 connects on-demand **Vultr Miami** CS2 servers to the Studiosgamesrs Nexus web platform.
 
 ## Components
 
@@ -28,19 +28,22 @@ Firebase Cloud Functions codebase **`cs2-nexus`** (separate from the default `fu
 | `cs2NexusApi` | `?op=provision\|launch\|shutdown\|check\|resume` | Tournament server lifecycle |
 | `cs2MatchWebhook` | POST | NexusBridge plugin events → RTDB |
 
-Libraries in `functions/cs2-nexus/lib/`: Hetzner API, RCON, bracket builder, RTDB helpers, net probe.
+Libraries in `functions/cs2-nexus/lib/`: Vultr provider (default), Hetzner (legacy), RCON, MatchZy match JSON, bracket builder, RTDB helpers, net probe.
 
 Boot scripts (bundled with the deploy package):
 
 - `cloud-init-snapshot.sh` — fast boot from golden image
 - `cloud-init.sh` — full install fallback
 - `install-plugins.sh` — Metamod, Fake RCON, CounterStrikeSharp, MatchZy, NexusBridge
+- `cs2-server/cfg/MatchZy/` — tournament warmup/knife/live configs
 
-Environment: `functions/.env` (never commit — see `functions/.env.example`). Firebase CLI loads it on deploy.
+Match launch uses MatchZy `matchzy_loadmatch_url` (teams + Steam IDs) when available; otherwise pug `css_match`.
 
-### CS2 servers (Hetzner)
+Environment: `functions/.env` (never commit — see `functions/.env.example`). Default provider is **Vultr Miami** (`CS2_CLOUD_PROVIDER=vultr`).
 
-Created on demand from snapshot **`HETZNER_SNAPSHOT_ID`**.
+### CS2 servers (Vultr)
+
+Created on demand in **Miami (`mia`)** from snapshot **`VULTR_SNAPSHOT_ID`** when set, otherwise full Ubuntu install.
 
 Plugin source (read at provision time): `cs2-server/plugins/NexusBridge/`.
 
@@ -51,7 +54,7 @@ Plugin source (read at provision time): `cs2-server/plugins/NexusBridge/`.
 | `tournaments/{id}` | UI, Functions | Metadata, bracket, server IP, status |
 | `tournaments/{id}/registeredTeams/` | Team captains | Registration |
 | `partida_en_vivo/{matchId}` | Webhook | Live scores, kills, MVPs |
-| `gameServers/{hetznerId}` | Functions | Server status, IP, provision mode |
+| `gameServers/{cloudServerId}` | Functions | Server status, IP, provision mode, provider |
 
 ### Hybrid: Steam authentication
 
@@ -65,6 +68,7 @@ Do not treat cPanel as the primary deploy target for CS2 tournament pages.
 
 ```bash
 cd repo
+cp functions/.env functions/cs2-nexus/.env
 npm run deploy:all
 ```
 
@@ -78,3 +82,4 @@ See [SNAPSHOT.md](./SNAPSHOT.md) and [MANUAL-SNAPSHOT.md](./MANUAL-SNAPSHOT.md).
 
 - [DEPLOYMENT.md](./DEPLOYMENT.md) — Operations checklist
 - [DEPLOY_FUNCTIONS.md](./DEPLOY_FUNCTIONS.md) — IAM troubleshooting (if needed)
+- [LOCATION.md](./LOCATION.md) — Miami vs legacy Hetzner

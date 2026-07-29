@@ -3,12 +3,13 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
-const hetzner = require('./lib/hetzner');
+const provider = require('./lib/provider');
 const rcon = require('./lib/rcon');
-const { tcpProbe, probePortOpen } = require('./lib/net-probe');
+const { tcpProbe, probePortOpen, probeGamePortOpen, udpGameProbe } = require('./lib/net-probe');
 const rtdb = require('./lib/firebase-rtdb');
 const bracket = require('./lib/bracket');
 const webhook = require('./lib/webhook');
+const matchzy = require('./lib/matchzy');
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -86,7 +87,7 @@ async function isProvisionActive(serverId, tournamentId) {
 }
 
 function snapshotBootGraceMs(gs) {
-  const snapshotMode = (gs && gs.provisionMode === 'snapshot') || hetzner.usesSnapshot();
+  const snapshotMode = (gs && gs.provisionMode === 'snapshot') || provider.usesSnapshot();
   return snapshotMode ? 4 * 60 * 1000 : 25 * 60 * 1000;
 }
 
@@ -103,6 +104,7 @@ async function assessLaunchReadiness(ip, port, gs) {
   const ping = await rcon.ping(ip, port, process.env.RCON_PASSWORD, 5000);
   let rconOk = ping.ok;
   let portOpen = ping.ok || await probePortOpen(ip, port, 3);
+  let gameUdpOk = await probeGamePortOpen(ip, port, 2);
   const bootGrace = isBootGraceEligible(gs);
   const markedReady = gs.status === 'online' || gs.portReady === true;
 
@@ -117,13 +119,26 @@ async function assessLaunchReadiness(ip, port, gs) {
     }
   }
 
-  const canLaunch = rconOk || portOpen || bootGrace || markedReady;
-  return { canLaunch, rconOk, portOpen, bootGrace, markedReady, pingError: ping.error || null };
+  if (!gameUdpOk && (rconOk || portOpen)) {
+    gameUdpOk = await probeGamePortOpen(ip, port, 3);
+  }
+
+  const canLaunch = rconOk || portOpen;
+  return {
+    canLaunch,
+    rconOk,
+    portOpen,
+    gameUdpOk,
+    bootGrace,
+    markedReady,
+    pingError: ping.error || null,
+    playerConnectOk: gameUdpOk,
+  };
 }
 
 async function pollRconUntilReady(serverId, tournamentId, ip) {
   const password = process.env.RCON_PASSWORD;
-  const snapshot = hetzner.usesSnapshot();
+  const snapshot = provider.usesSnapshot();
   const maxAttempts = snapshot ? 54 : 90;
   let consecutivePortOpen = 0;
   let metamodGraceDone = false;
@@ -141,12 +156,14 @@ async function pollRconUntilReady(serverId, tournamentId, ip) {
       }
 
       const ping = await rcon.ping(ip, CS2_GAME_PORT, password, snapshot ? 4000 : 5000);
+      const gameUdpOk = await udpGameProbe(ip, CS2_GAME_PORT, 4000);
       if (ping.ok) {
         if (!(await isProvisionActive(serverId, tournamentId))) return;
         await rtdb.writeGameServer(String(serverId), {
           status: 'online',
           rconReady: true,
           portReady: true,
+          gameUdpOk: !!gameUdpOk,
         });
         return;
       }
@@ -154,9 +171,10 @@ async function pollRconUntilReady(serverId, tournamentId, ip) {
       if (snapshot && consecutivePortOpen >= 12) {
         if (!(await isProvisionActive(serverId, tournamentId))) return;
         await rtdb.writeGameServer(String(serverId), {
-          status: 'online',
+          status: gameUdpOk ? 'online' : 'udp_blocked',
           rconReady: false,
           portReady: true,
+          gameUdpOk: !!gameUdpOk,
         });
         return;
       }
@@ -176,7 +194,7 @@ async function finishProvision(serverId, tournamentId, matchId) {
   try {
     if (!(await isProvisionActive(serverId, tournamentId))) return;
 
-    const { ip } = await hetzner.waitForServerIp(serverId);
+    const { ip } = await provider.waitForServerIp(serverId);
     if (!(await isProvisionActive(serverId, tournamentId))) return;
 
     await rtdb.writeGameServer(String(serverId), {
@@ -186,8 +204,9 @@ async function finishProvision(serverId, tournamentId, matchId) {
       error: null,
       tournamentId,
       matchId,
-      hetznerId: serverId,
-      provisionMode: hetzner.usesSnapshot() ? 'snapshot' : 'full',
+      cloudServerId: serverId,
+      hetznerId: serverId, // legacy RTDB field name
+      provisionMode: provider.usesSnapshot() ? 'snapshot' : 'full',
     });
     await rtdb.writeTournament(tournamentId, {
       activeServerId: String(serverId),
@@ -207,7 +226,7 @@ async function finishProvision(serverId, tournamentId, matchId) {
   }
 }
 
-async function checkServerCore({ serverId, tournamentId }) {
+async function checkServerCore({ serverId, tournamentId, quick }) {
   if (!serverId) throw new HttpsError('invalid-argument', 'serverId required');
 
   try {
@@ -221,30 +240,55 @@ async function checkServerCore({ serverId, tournamentId }) {
       throw new HttpsError('permission-denied', 'Server belongs to another tournament.');
     }
 
+    const ageMs = Date.now() - Number(gs.createdAt || 0);
+    const snapshotMode = gs.provisionMode === 'snapshot' || provider.usesSnapshot();
+    const bootGraceMs = snapshotMode ? 4 * 60 * 1000 : 25 * 60 * 1000;
+
     if (!gs.ip) {
       return {
         ok: true,
         serverId: String(serverId),
         status: gs.status || 'provisioning',
         rconOk: false,
+        portReady: false,
+        bootAgeMs: ageMs,
       };
     }
 
     const ip = String(gs.ip || '').trim();
     const port = gs.port || 27015;
-    const ping = await rcon.ping(ip, port, process.env.RCON_PASSWORD, 5000);
-    const portOpen = ping.ok ? true : await probePortOpen(ip, port, 3);
+
+    // UI polling while CS2 installs — return RTDB state only (must finish in <12s).
+    if (quick) {
+      return {
+        ok: true,
+        serverId: String(serverId),
+        ip,
+        port,
+        status: gs.status || 'booting',
+        rconOk: gs.rconReady === true,
+        portReady: gs.portReady === true || gs.status === 'online' || gs.status === 'udp_blocked',
+        gameUdpOk: gs.gameUdpOk,
+        playerConnectOk: gs.gameUdpOk,
+        bootAgeMs: ageMs,
+      };
+    }
+
+    const pwd = process.env.RCON_PASSWORD;
+    const [ping, portOpen, gameUdpOk] = await Promise.all([
+      rcon.ping(ip, port, pwd, 4000),
+      tcpProbe(ip, port, 3000),
+      udpGameProbe(ip, port, 3500),
+    ]);
     let status = gs.status || 'booting';
-    const snapshotMode = gs.provisionMode === 'snapshot' || hetzner.usesSnapshot();
-    const ageMs = Date.now() - Number(gs.createdAt || 0);
-    const bootGraceMs = snapshotMode ? 4 * 60 * 1000 : 25 * 60 * 1000;
 
     async function markOnline(rconReady, reason) {
-      status = 'online';
+      status = gameUdpOk ? 'online' : 'udp_blocked';
       await rtdb.writeGameServer(String(serverId), {
-        status: 'online',
+        status,
         rconReady: !!rconReady,
         portReady: true,
+        gameUdpOk: !!gameUdpOk,
         readyReason: reason || null,
       });
     }
@@ -253,10 +297,10 @@ async function checkServerCore({ serverId, tournamentId }) {
       await markOnline(true, 'rcon');
     } else if (portOpen) {
       await markOnline(false, 'port');
-      console.log('[checkServer]', serverId, ip, 'port open');
+      console.log('[checkServer]', serverId, ip, 'port open udp=', gameUdpOk);
     } else if (ageMs >= bootGraceMs) {
       await markOnline(false, 'boot_grace');
-      console.log('[checkServer]', serverId, ip, 'boot grace elapsed', ageMs, 'ms');
+      console.log('[checkServer]', serverId, ip, 'boot grace elapsed', ageMs, 'ms udp=', gameUdpOk);
     } else {
       const timeoutMs = snapshotMode ? 12 * 60 * 1000 : 45 * 60 * 1000;
       if (ageMs > timeoutMs && status !== 'online') {
@@ -265,18 +309,31 @@ async function checkServerCore({ serverId, tournamentId }) {
       }
     }
 
-    const isReady = status === 'online';
+    const isReady = status === 'online' || status === 'udp_blocked';
+    const stillInstalling = ageMs < bootGraceMs && !ping.ok && !portOpen;
+    let connectHint = null;
+    if (!gameUdpOk && !stillInstalling) {
+      connectHint =
+        'CS2 game port (UDP 27015) is not reachable from the internet. ' +
+        'If CS2 is running on the server, run: bash /usr/local/bin/open-cs2-ports.sh as root, ' +
+        'or Shutdown → Provision again (firewall opens automatically on new servers).';
+    }
+
     return {
       ok: true,
       serverId: String(serverId),
       ip,
       port,
-      status,
+      status: stillInstalling ? (gs.status || 'booting') : status,
       rconOk: ping.ok,
       portReady: isReady || portOpen || ping.ok,
+      gameUdpOk,
+      playerConnectOk: gameUdpOk,
       readyByAge: isReady && !ping.ok && !portOpen,
       bootAgeMs: ageMs,
+      stillInstalling,
       rconError: ping.ok ? null : ping.error,
+      connectHint,
     };
   } catch (err) {
     if (err instanceof HttpsError) throw err;
@@ -312,26 +369,45 @@ async function resumeProvisionCore({ serverId, tournamentId }) {
   };
 }
 
-async function provisionServerCore({ tournamentId, matchId, gsltIndex = 0 }) {
+async function provisionServerCore({ tournamentId, matchId, gsltIndex = 0, location }) {
   if (!tournamentId || !matchId) {
     throw new HttpsError('invalid-argument', 'tournamentId and matchId required');
   }
 
-  const name = hetzner.sanitizeServerName(
+  const gsltKey = gsltIndex === 1 ? 'GSLT_SERVER_2' : 'GSLT_SERVER_1';
+  const gslt = process.env[gsltKey] || process.env.GSLT_SERVER_1 || '';
+  if (!String(gslt).trim()) {
+    throw new HttpsError(
+      'failed-precondition',
+      gsltKey + ' is not set in functions/.env. Create a CS2 token at steamcommunity.com/dev/managegameservers (App ID 730), redeploy functions, then provision again.'
+    );
+  }
+
+  try {
+    provider.assertConfigured();
+  } catch (err) {
+    throw new HttpsError('failed-precondition', err.message);
+  }
+
+  const name = provider.sanitizeServerName(
     `cs2-${String(tournamentId).slice(0, 8)}-${matchId}`
   );
-  const server = await hetzner.createServer({
+  const cloudProvider = provider.activeProviderName();
+  const server = await provider.createServer({
     name,
     labels: { tournamentId, matchId, gslt: String(gsltIndex) },
+    location: location || undefined,
   });
 
   await rtdb.writeGameServer(String(server.id), {
     status: 'provisioning',
     tournamentId,
     matchId,
-    provider: 'hetzner',
-    hetznerId: server.id,
-    provisionMode: server.provisionMode || (hetzner.usesSnapshot() ? 'snapshot' : 'full'),
+    provider: cloudProvider,
+    region: server.region || location || null,
+    cloudServerId: server.id,
+    hetznerId: server.id, // legacy RTDB field name
+    provisionMode: server.provisionMode || (provider.usesSnapshot() ? 'snapshot' : 'full'),
     createdAt: Date.now(),
   });
   await rtdb.writeTournament(tournamentId, {
@@ -352,7 +428,9 @@ async function provisionServerCore({ tournamentId, matchId, gsltIndex = 0 }) {
     error: gs.error || null,
     rconReady: gs.rconReady === true,
     portReady: gs.portReady === true,
-    provisionMode: server.provisionMode || (hetzner.usesSnapshot() ? 'snapshot' : 'full'),
+    provider: cloudProvider,
+    region: server.region || null,
+    provisionMode: server.provisionMode || (provider.usesSnapshot() ? 'snapshot' : 'full'),
   };
 }
 
@@ -363,9 +441,9 @@ async function launchMatchCore({ tournamentId, matchId, map = 'de_mirage', serve
 
   const tournament = await rtdb.getTournament(tournamentId);
   let ip = tournament?.serverIp;
-  const hetznerId = serverId || tournament?.activeServerId;
+  const cloudServerId = serverId || tournament?.activeServerId;
 
-  if (!hetznerId || !(await rtdb.gameServerExists(String(hetznerId)))) {
+  if (!cloudServerId || !(await rtdb.gameServerExists(String(cloudServerId)))) {
     if (tournamentId) await rtdb.clearTournamentServerFields(tournamentId);
     throw new HttpsError(
       'failed-precondition',
@@ -373,30 +451,51 @@ async function launchMatchCore({ tournamentId, matchId, map = 'de_mirage', serve
     );
   }
 
-  if (hetznerId && !ip) {
+  const gsSnapEarly = await admin.database().ref(`gameServers/${cloudServerId}`).once('value');
+  const gsEarly = gsSnapEarly.val() || {};
+  const gsProviderHint = gsEarly.provider || provider.activeProviderName();
+
+  if (cloudServerId && !ip) {
     try {
-      const server = await hetzner.getServer(hetznerId);
+      const server = await provider.getServer(cloudServerId, gsProviderHint);
       ip = server.public_net?.ipv4?.ip;
     } catch (err) {
-      throw new HttpsError('failed-precondition', 'Could not reach Hetzner server. It may have been deleted.');
+      throw new HttpsError('failed-precondition', 'Could not reach cloud server. It may have been deleted.');
     }
+  }
+
+  try {
+    const cloud = await provider.getServer(cloudServerId, gsProviderHint);
+    const cloudStatus = String(cloud.status || '').toLowerCase();
+    if (cloudStatus && cloudStatus !== 'running' && cloudStatus !== 'active') {
+      throw new HttpsError(
+        'failed-precondition',
+        'Cloud server is not running (status: ' + cloudStatus + '). Wait for provision to finish or provision again.'
+      );
+    }
+    if (cloud.public_net?.ipv4?.ip) {
+      ip = cloud.public_net.ipv4.ip;
+    }
+  } catch (err) {
+    if (err instanceof HttpsError) throw err;
+    throw new HttpsError('failed-precondition', 'Could not verify cloud server status.');
   }
 
   if (!ip) {
     throw new HttpsError('failed-precondition', 'No server IP. Provision a server first.');
   }
 
-  const gsSnap = await admin.database().ref(`gameServers/${hetznerId}`).once('value');
-  const gs = gsSnap.val() || {};
+  const gsSnap = await admin.database().ref(`gameServers/${cloudServerId}`).once('value');
+  const gs = gsSnap.val() || gsEarly;
   const port = Number(gs.port) || 27015;
   if (!ip && gs.ip) ip = String(gs.ip).trim();
 
   const readiness = await assessLaunchReadiness(ip, port, gs);
   if (!readiness.canLaunch) {
-    const snapshotMode = gs.provisionMode === 'snapshot' || hetzner.usesSnapshot();
+    const snapshotMode = gs.provisionMode === 'snapshot' || provider.usesSnapshot();
     const waitHint = snapshotMode
-      ? 'CS2 is still starting (usually 5–8 min with snapshot). Wait for status Online, then Launch.'
-      : 'CS2 may still be installing (first boot usually 15–45 min). Use Check Readiness, then try Launch again.';
+      ? 'Vultr may still be restoring the snapshot disk (often 20–40 min), then CS2 starts (~5–10 min). Wait for Check Readiness to pass.'
+      : 'CS2 may still be installing (first boot usually 30–45 min). Use Check Readiness, then try Launch again.';
     throw new HttpsError(
       'failed-precondition',
       'Game server is not reachable yet. ' + waitHint
@@ -408,29 +507,54 @@ async function launchMatchCore({ tournamentId, matchId, map = 'de_mirage', serve
     await rtdb.writeTournament(tournamentId, {
       bracket: bracketData,
       currentMatchId: bracketData.currentMatchId,
-      status: 'en_vivo',
     });
   }
 
+  const matchBuild = await matchzy.buildMatchConfig({
+    tournamentId,
+    matchId,
+    map,
+    teamIds: teamIds || [],
+  });
+  if (matchBuild.ok && matchBuild.config) {
+    await matchzy.storeMatchConfig(tournamentId, matchId, matchBuild.config);
+  }
+
+  const matchToken = process.env.WEBHOOK_SECRET || process.env.MATCH_CONFIG_TOKEN || '';
+  const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'studiosgamesrs';
+  const matchConfigUrl =
+    'https://us-central1-' + projectId + '.cloudfunctions.net/cs2MatchConfig'
+    + '?tournamentId=' + encodeURIComponent(tournamentId)
+    + '&matchId=' + encodeURIComponent(matchId);
+
   let rconOk = readiness.rconOk;
   let rconError = readiness.pingError;
+  let launchMode = null;
   try {
-    await rcon.withTimeout(
-      rcon.startMatch(ip, port, process.env.RCON_PASSWORD, { map, tournamentId, matchId }),
+    const started = await rcon.withTimeout(
+      rcon.startMatch(ip, port, process.env.RCON_PASSWORD, {
+        map,
+        tournamentId,
+        matchId,
+        matchConfigUrl: matchBuild.ok ? matchConfigUrl : null,
+        matchToken,
+        hasSteamRosters: !!(matchBuild.ok && matchBuild.hasSteamRosters),
+      }),
       25000,
-      'RCON commands timed out. Match data was saved — connect manually and changelevel.'
+      'RCON commands timed out. Match data was saved — connect manually.'
     );
     rconOk = true;
     rconError = null;
+    launchMode = started && started.mode;
   } catch (err) {
     rconOk = false;
     rconError = err.message;
   }
 
   await rtdb.writeTournament(tournamentId, {
-    status: 'en_vivo',
-    activeMatchId: matchId,
-    activeMap: map,
+    status: rconOk ? 'en_vivo' : 'pendiente',
+    activeMatchId: rconOk ? matchId : null,
+    activeMap: rconOk ? map : null,
   });
 
   await rtdb.writeMatchLive(matchId, {
@@ -442,6 +566,9 @@ async function launchMatchCore({ tournamentId, matchId, map = 'de_mirage', serve
     startedAt: Date.now(),
     rconOk,
     rconError,
+    launchMode,
+    matchzy: matchBuild.ok,
+    matchzyHint: matchBuild.reason || null,
   });
 
   return {
@@ -452,13 +579,25 @@ async function launchMatchCore({ tournamentId, matchId, map = 'de_mirage', serve
     map,
     rconOk,
     rconError,
+    launchMode,
+    matchzy: matchBuild.ok,
+    matchzyHint: matchBuild.reason || null,
+    gameUdpOk: readiness.gameUdpOk,
+    playerConnectOk: readiness.playerConnectOk,
     manualConnect: !rconOk,
     bootGrace: readiness.bootGrace && !readiness.portOpen && !readiness.rconOk,
+    connectWarning: readiness.playerConnectOk
+      ? null
+      : 'Players cannot connect yet — UDP 27015 is blocked or CS2 is not responding. Try Check Readiness, or shutdown and reprovision the server.',
   };
 }
 
 async function shutdownServerCore({ serverId, tournamentId }) {
   if (!serverId) throw new HttpsError('invalid-argument', 'serverId required');
+
+  const gsSnap = await admin.database().ref(`gameServers/${serverId}`).once('value');
+  const gs = gsSnap.val() || {};
+  const providerHint = gs.provider || provider.activeProviderName();
 
   if (tournamentId) {
     await rtdb.clearTournamentServerFields(tournamentId);
@@ -466,11 +605,11 @@ async function shutdownServerCore({ serverId, tournamentId }) {
   await rtdb.removeGameServer(String(serverId));
 
   try {
-    await hetzner.deleteServer(serverId);
+    await provider.deleteServer(serverId, providerHint);
   } catch (err) {
     const msg = err && err.message ? String(err.message) : '';
     if (!/not found|404/i.test(msg)) {
-      throw new HttpsError('failed-precondition', 'Could not delete Hetzner server: ' + msg);
+      throw new HttpsError('failed-precondition', 'Could not delete cloud server: ' + msg);
     }
   }
 
@@ -606,12 +745,70 @@ exports.cs2MatchWebhook = onRequest(
   }
 );
 
+/**
+ * Public GET for MatchZy matchzy_loadmatch_url.
+ * Optional header X-Match-Token must match WEBHOOK_SECRET when that secret is set.
+ */
+exports.cs2MatchConfig = onRequest(
+  { timeoutSeconds: 30, memory: '256MiB', invoker: 'public', cors: true },
+  async (req, res) => {
+    applyCors(req, res);
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+    if (req.method !== 'GET') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    const expected = process.env.WEBHOOK_SECRET || process.env.MATCH_CONFIG_TOKEN || '';
+    if (expected) {
+      const headerToken = req.get('X-Match-Token') || req.get('x-match-token') || '';
+      const queryToken = req.query.token || '';
+      if (headerToken !== expected && queryToken !== expected) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+    }
+
+    const tournamentId = String(req.query.tournamentId || '');
+    const matchId = String(req.query.matchId || '');
+    if (!tournamentId || !matchId) {
+      res.status(400).json({ error: 'tournamentId and matchId required' });
+      return;
+    }
+
+    try {
+      let config = await matchzy.getStoredMatchConfig(tournamentId, matchId);
+      if (!config) {
+        const built = await matchzy.buildMatchConfig({
+          tournamentId,
+          matchId,
+          map: req.query.map || 'de_mirage',
+          teamIds: [],
+        });
+        if (!built.ok || !built.config) {
+          res.status(404).json({ error: built.reason || 'Match config not found' });
+          return;
+        }
+        config = built.config;
+      }
+      res.set('Cache-Control', 'no-store');
+      res.status(200).json(config);
+    } catch (err) {
+      console.error('[cs2MatchConfig]', err);
+      res.status(500).json({ error: err.message || 'Failed to load match config' });
+    }
+  }
+);
+
 exports.cs2ListServers = onCall(
   { timeoutSeconds: 30, memory: '256MiB', invoker: 'public', cors: true },
   async (request) => {
     try {
       await assertCommander(request);
-      const servers = await hetzner.listProjectServers();
+      const servers = await provider.listProjectServers();
       return { servers };
     } catch (err) {
       toHttpsError(err);

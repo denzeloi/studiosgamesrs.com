@@ -49,22 +49,45 @@ async function sendCommand(host, port, password, command, timeoutMs) {
   }, timeoutMs);
 }
 
-async function startMatch(host, port, password, { map = 'de_mirage', tournamentId, matchId } = {}) {
-  const commands = [
-    'hostname "Studiosgamesrs | Nexus Tournament"',
-    'changelevel ' + map,
-    'mp_warmup_end',
-  ];
-  if (tournamentId && matchId) {
-    commands.push('css_nexus_setcontext ' + tournamentId + ' ' + matchId);
-  }
+/**
+ * Start a tournament match via MatchZy (preferred) or pug fallback.
+ * Do NOT send mp_warmup_end — that fights MatchZy's warmup/ready/knife flow.
+ */
+async function startMatch(host, port, password, opts) {
+  const options = opts || {};
+  const map = options.map || 'de_mirage';
+  const tournamentId = options.tournamentId;
+  const matchId = options.matchId;
+  const matchConfigUrl = options.matchConfigUrl;
+  const matchToken = options.matchToken || process.env.WEBHOOK_SECRET || '';
+  const useMatchZyLoad = !!matchConfigUrl && options.hasSteamRosters === true;
 
   return withRcon(host, port, password, async function (client) {
-    for (var i = 0; i < commands.length; i += 1) {
-      await client.send(commands[i]);
+    if (tournamentId && matchId) {
+      await client.send('css_nexus_setcontext ' + tournamentId + ' ' + matchId);
     }
-    return { ok: true, map };
-  }, 8000);
+    await client.send('hostname "Studiosgamesrs | Nexus Tournament"');
+    await client.send('tv_enable 1');
+
+    if (useMatchZyLoad) {
+      // MatchZy fetches JSON and runs knife → live (no mp_warmup_end)
+      var loadCmd = 'matchzy_loadmatch_url "' + matchConfigUrl + '"';
+      if (matchToken) {
+        loadCmd += ' "X-Match-Token" "' + matchToken + '"';
+      }
+      await client.send(loadCmd);
+      return { ok: true, map: map, mode: 'matchzy_loadmatch_url' };
+    }
+
+    // Pug / practice match mode when Steam rosters are incomplete
+    await client.send('changelevel ' + map);
+    try {
+      await client.send('css_match');
+    } catch (e) {
+      /* MatchZy may be loading after map change */
+    }
+    return { ok: true, map: map, mode: 'css_match_fallback' };
+  }, 12000);
 }
 
 async function ping(host, port, password, timeoutMs) {

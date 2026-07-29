@@ -295,15 +295,28 @@
         return;
       }
       snap.forEach(function(child) {
-        var s = child.val();
+        var s = child.val() || {};
+        var sid = child.key;
         var row = document.createElement('div');
         row.className = 'telemetry-server-row';
         row.innerHTML =
-          '<span class="srv-name">' + (s.ip || child.key) + '</span>' +
+          '<span class="srv-name">' + (s.ip || sid) + '</span>' +
           '<span class="srv-status srv-online">' + (s.status || 'unknown') + '</span>' +
-          '<span class="srv-meta">' + (s.tournamentId || '') + '</span>';
+          '<span class="srv-meta">' + (s.tournamentId || '') + '</span>' +
+          '<button type="button" class="td-btn td-btn-danger cmd-srv-shutdown" data-server-id="' + sid + '" data-tournament-id="' + (s.tournamentId || '') + '" style="margin-left:8px;padding:4px 10px;font-size:0.75rem;">Shutdown</button>';
         list.appendChild(row);
-        if (s.status === 'online' || s.status === 'booting') cmdActiveServerId = child.key;
+        if (s.status === 'online' || s.status === 'booting' || s.status === 'provisioning' || s.status === 'udp_blocked') {
+          cmdActiveServerId = sid;
+        }
+      });
+      list.querySelectorAll('.cmd-srv-shutdown').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var sid = btn.getAttribute('data-server-id');
+          var tid = btn.getAttribute('data-tournament-id') || (select && select.value) || null;
+          if (!sid) return;
+          if (!window.confirm('Shut down server ' + sid + '? This stops cloud billing for that VM.')) return;
+          doShutdown(sid, tid || null);
+        });
       });
     });
 
@@ -315,7 +328,7 @@
       btnProvision.addEventListener('click', function() {
         var tid = select.value;
         if (!tid) { setCmdTournamentMsg('Select a tournament first.', true); return; }
-        setCmdTournamentMsg('Provisioning Hetzner server...');
+        setCmdTournamentMsg('Provisioning Vultr server (Miami)...');
         db.ref('tournaments/' + tid + '/currentMatchId').once('value').then(function(snap) {
           var matchId = snap.val() || 'r1_m1';
           return TournamentSystem.provisionServer(tid, matchId, 0);
@@ -344,7 +357,11 @@
           var teamIds = Object.keys(t.registeredTeams || {});
           return TournamentSystem.launchMatch(tid, matchId, map, cmdActiveServerId || t.activeServerId, teamIds);
         }).then(function(res) {
-          setCmdTournamentMsg('Match live on ' + res.serverIp + ':' + res.port);
+          var connectCmd = 'connect ' + res.serverIp + ':' + (res.port || 27015);
+          setCmdTournamentMsg(
+            'Match live. Tell players to open Tournament Details, or paste in CS2 console (~): ' + connectCmd +
+            ' — NOT offline/practice (loopback = wrong server).'
+          );
           attachCmdLiveFeed(tid);
         }).catch(function(err) {
           setCmdTournamentMsg(err.message || String(err), true);
@@ -354,14 +371,38 @@
 
     if (btnShutdown && typeof TournamentSystem !== 'undefined') {
       btnShutdown.addEventListener('click', function() {
-        if (!cmdActiveServerId) { setCmdTournamentMsg('No active server to shutdown.', true); return; }
-        setCmdTournamentMsg('Shutting down server...');
-        TournamentSystem.shutdownServer(cmdActiveServerId, tid).then(function() {
-          setCmdTournamentMsg('Server shutdown requested.');
-          cmdActiveServerId = null;
-        }).catch(function(err) {
-          setCmdTournamentMsg(err.message || String(err), true);
-        });
+        var tid = select.value;
+        var serverId = cmdActiveServerId;
+        if (!serverId && tid) {
+          // Fall back to tournament's active server if list state was lost
+          db.ref('tournaments/' + tid + '/activeServerId').once('value').then(function(snap) {
+            serverId = snap.val();
+            if (!serverId) {
+              setCmdTournamentMsg('No active server to shutdown. Select the tournament or use Tournament Details.', true);
+              return;
+            }
+            return doShutdown(serverId, tid);
+          }).catch(function(err) {
+            setCmdTournamentMsg(err.message || String(err), true);
+          });
+          return;
+        }
+        if (!serverId) {
+          setCmdTournamentMsg('No active server to shutdown. Select a tournament first.', true);
+          return;
+        }
+        doShutdown(serverId, tid || null);
+      });
+    }
+
+    function doShutdown(serverId, tournamentId) {
+      if (!window.confirm('Shut down server ' + serverId + '? This stops cloud billing for that VM.')) return;
+      setCmdTournamentMsg('Shutting down server ' + serverId + '...');
+      TournamentSystem.shutdownServer(serverId, tournamentId).then(function() {
+        setCmdTournamentMsg('Server shut down. Cloud billing for that VM should stop.');
+        cmdActiveServerId = null;
+      }).catch(function(err) {
+        setCmdTournamentMsg(err.message || String(err), true);
       });
     }
   }
