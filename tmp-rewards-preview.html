@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recompensas | StudiosGamesRS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      background: #111;
+    }
+
+    .gradient-box {
+      width: min(460px, 100%);
+      background:
+        radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.18), transparent 32%),
+        radial-gradient(circle at 88% 82%, rgba(255, 255, 255, 0.12), transparent 36%),
+        linear-gradient(45deg, #1e3a8a, #dc2626, #7c3aed);
+      padding: 18px 16px 14px;
+      border-radius: 12px;
+      color: #fff;
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 0.84em;
+      box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.18) inset;
+      text-align: center;
+      line-height: 1.35;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .gradient-box::before {
+      content: "";
+      position: absolute;
+      top: -40%;
+      left: -20%;
+      width: 60%;
+      height: 80%;
+      background: linear-gradient(120deg, rgba(255, 255, 255, 0.18), transparent 60%);
+      transform: rotate(18deg);
+      pointer-events: none;
+    }
+
+    .gradient-box > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-bottom: 8px;
+      padding: 3px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-radius: 999px;
+      font-size: 0.72em;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .gradient-box h2 {
+      margin: 0 0 6px;
+      font-size: 1.28em;
+      color: #fff;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+    }
+
+    .gradient-box .lead {
+      margin: 0 0 12px;
+      font-size: 0.96em;
+      color: #fff;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .stat {
+      padding: 7px 4px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: rgba(0, 0, 0, 0.18);
+      color: #fff;
+    }
+
+    .stat b {
+      display: block;
+      font-size: 1.05em;
+      margin-bottom: 1px;
+    }
+
+    .stat span {
+      display: block;
+      font-size: 0.72em;
+      letter-spacing: 0.03em;
+    }
+
+    .gradient-box ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      text-align: left;
+    }
+
+    .gradient-box li {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 8px;
+      align-items: start;
+      padding: 7px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.24);
+      color: #fff;
+    }
+
+    .ico {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      font-size: 0.85em;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .gradient-box li strong {
+      display: block;
+      margin-bottom: 1px;
+      font-size: 0.98em;
+      color: #fff;
+    }
+
+    .gradient-box li span {
+      display: block;
+      font-size: 0.88em;
+      line-height: 1.3;
+      color: #fff;
+    }
+
+    .gradient-box .close {
+      margin: 10px 0 0;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.32);
+      font-size: 0.92em;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="gradient-box">
+    <div class="badge">StudiosGamesRS · Recompensas</div>
+    <h2>Tu progreso tiene premio</h2>
+    <p class="lead">Tu actividad se convierte en valor real dentro de la plataforma.</p>
+
+    <div class="stats" aria-hidden="true">
+      <div class="stat"><b>XP</b><span>Niveles</span></div>
+      <div class="stat"><b>$$$</b><span>Tokens</span></div>
+      <div class="stat"><b>VIP</b><span>Beneficios</span></div>
+    </div>
+
+    <ul>
+      <li>
+        <div class="ico">◆</div>
+        <div>
+          <strong>Tokens</strong>
+          <span>Gánalos en Play Zone. Personaliza tu perfil con marcos y fondos.</span>
+        </div>
+      </li>
+      <li>
+        <div class="ico">★</div>
+        <div>
+          <strong>Nexus XP y niveles</strong>
+          <span>Misiones, rachas, logros y referidos. Sube y reclama recompensas.</span>
+        </div>
+      </li>
+      <li>
+        <div class="ico">◈</div>
+        <div>
+          <strong>Insignias y marcos</strong>
+          <span>Desde bienvenida hasta Dragon Guard y Golden Nexus.</span>
+        </div>
+      </li>
+      <li>
+        <div class="ico">▣</div>
+        <div>
+          <strong>Creator Market</strong>
+          <span>Publica en la comunidad SGRS y gana según tu rendimiento.</span>
+        </div>
+      </li>
+      <li>
+        <div class="ico">♛</div>
+        <div>
+          <strong>Beneficios exclusivos</strong>
+          <span>Beta, soporte prioritario, eventos, kit creador y sala VIP.</span>
+        </div>
+      </li>
+    </ul>
+
+    <p class="close">Juegas. Creas. Invitas. Avanzas. Todo suma recompensas.</p>
+  </div>
+</body>
+</html>

@@ -258,9 +258,6 @@ function renderCompetitiveWidget(data) {
         matchTimeDiv.textContent = data.match.time || "N/A";
         matchTimeDiv.classList.add("competitive-match-time-active");
         matchDetailsDiv.classList.remove("competitive-match-warning");
-        if (window.StudiosGamesRS && typeof window.StudiosGamesRS.playAmbientForLiveMatch === 'function') {
-            window.StudiosGamesRS.playAmbientForLiveMatch();
-        }
     } else {
         matchDetailsDiv.textContent = "No hay partidas próximas.";
         matchDetailsDiv.classList.add("competitive-match-warning");
@@ -456,6 +453,70 @@ function listenForCompetitiveData(userId) {
     // --- FIN: Listener 2 ---
 }
 // ======== FIN DE LÓGICA DEL WIDGET COMPETITIVO ========
+/* ============================================================
+   NIVEL NEXUS DEL PERFIL (insignia del recuadro Rango)
+   ============================================================ */
+
+/**
+ * Nivel real de un nodo de stats. Manda la EXP: hay cuentas antiguas con un
+ * `level` congelado (1–5) que el espejo todavía no ha reescrito, así que el
+ * número guardado solo se usa si va por delante de la tabla.
+ */
+function resolveLevelFromStats(stats) {
+  const data = stats || {};
+  const stored = Math.max(1, Math.floor(Number(data.level) || 0) || 1);
+  const SGL = window.SGLevels;
+  if (!SGL || typeof SGL.levelFromXp !== 'function') return stored;
+  return Math.max(stored, SGL.levelFromXp(Number(data.xp) || 0));
+}
+
+let profileLevelBadgeUid = null;
+let profileLevelBadgeShown = 0;
+let profileLevelStatsRef = null;
+
+/**
+ * Pinta la insignia del perfil. El perfil propio recibe datos de dos sitios
+ * (nexus/stats en directo y el espejo público users/stats, que va un pelín por
+ * detrás), así que nunca se baja el nivel ya mostrado para el mismo usuario.
+ */
+function paintProfileLevelBadge(stats) {
+  const host = document.getElementById('profileLevelDisplay');
+  if (!host) return;
+
+  const level = Math.max(profileLevelBadgeShown, resolveLevelFromStats(stats));
+  const xp = Number(stats && stats.xp) || 0;
+  profileLevelBadgeShown = level;
+  host.classList.remove('is-loading');
+  host.removeAttribute('aria-label');
+
+  if (window.SGLevelBadge) {
+    window.SGLevelBadge.render(host, { xp: xp, level: level, size: 'sm', showTier: false });
+  } else {
+    host.textContent = 'LVL ' + level;
+  }
+}
+
+/**
+ * Nivel del perfil que se está mirando, en vivo. users/{uid}/stats es el espejo
+ * público que el servidor reescribe en la misma operación que suma EXP, así que
+ * vale igual para el perfil propio que para el de un amigo.
+ */
+function watchProfileLevel(profileUid) {
+  if (!profileUid || typeof firebase === 'undefined' || !firebase.database) return;
+  if (profileLevelBadgeUid === profileUid) return;
+
+  if (profileLevelStatsRef) profileLevelStatsRef.off();
+  profileLevelBadgeUid = profileUid;
+  profileLevelBadgeShown = 0;
+  profileLevelStatsRef = firebase.database().ref('users/' + profileUid + '/stats');
+  profileLevelStatsRef.on('value', function(snap) {
+    paintProfileLevelBadge(snap.val());
+  }, function() {
+    // Sin permiso o sin nodo: al menos se quita el estado de carga.
+    paintProfileLevelBadge(null);
+  });
+}
+
 /**
  * NEXUS DASHBOARD WIDGET - INTEGRACIÓN CON CREATOR NEXUS
  * Sincroniza datos con Firebase/localStorage y muestra info del jugador
@@ -470,10 +531,15 @@ class NexusDashboardWidget {
             referrals: 0,
             badges: 0,
             totalBadges: 10,
-            nextRank: 'APRENDIZ',
+            nextRank: 'CREADOR',
             xpNeeded: 500,
-            rankColor: '#ff3b3b',
-            badgesListData: []
+            rankColor: '#58a6ff',
+            levelFloorXp: 0,
+            progressPct: 0,
+            badgesListData: [],
+            // Hasta que no llega el nodo de stats no se pinta el nivel: el 1 por
+            // defecto se quedaba minutos en pantalla y parecía un nivel real.
+            statsLoaded: false
         };
         
         this.badgesList = [
@@ -507,6 +573,44 @@ class NexusDashboardWidget {
         
         // Configurar eventos
         this.initEvents();
+
+        // Nivel en tiempo real: el nodo de stats de Nexus es el que el servidor
+        // actualiza en la misma transacción que suma la EXP.
+        this.watchStats();
+    }
+
+    /**
+     * Suscripción viva a nexus/users/{uid}/stats. Es idempotente y se reintenta
+     * cuando llega la sesión, porque el widget arranca en DOMContentLoaded y ahí
+     * puede no haber usuario todavía.
+     */
+    watchStats() {
+        if (this.statsRef || typeof firebase === 'undefined' || !firebase.database) return;
+
+        const bind = (uid) => {
+            if (!uid || this.statsRef) return;
+            this.statsRef = firebase.database().ref(`nexus/users/${uid}/stats`);
+            this.statsRef.on('value', (snap) => {
+                const stats = snap.val();
+                if (!stats) return;
+                if (typeof stats.xp === 'number') this.state.xp = stats.xp;
+                if (typeof stats.level === 'number') this.state.level = stats.level;
+                if (typeof stats.verifiedReferrals === 'number') this.state.referrals = stats.verifiedReferrals;
+                this.state.statsLoaded = true;
+                this.calculateRank();
+                this.updateUI();
+            }, () => {
+                // Si las reglas rechazan la lectura se suelta y queda la carga inicial.
+                this.statsRef = null;
+            });
+        };
+
+        bind(firebase.auth && firebase.auth().currentUser ? firebase.auth().currentUser.uid : null);
+        if (!this.statsRef && firebase.auth) {
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) bind(user.uid);
+            });
+        }
     }
     
     loadFromLocalStorage() {
@@ -529,6 +633,7 @@ class NexusDashboardWidget {
                 this.state.xp = stats.xp || this.state.xp;
                 this.state.level = stats.level || this.state.level;
                 this.state.referrals = stats.verifiedReferrals || this.state.referrals;
+                this.state.statsLoaded = true;
                 this.calculateRank();
             }
             const userSnap = await firebase.database().ref(`users/${userId}/achievements`).once('value');
@@ -552,36 +657,36 @@ class NexusDashboardWidget {
         }
     }
     
+    /** Tramo, nivel y progreso salen de sg-levels.js: aquí no hay tabla propia. */
     calculateRank() {
-        const ranks = [
-            { level: 1, name: 'NOVATO', xp: 0, color: '#ff3b3b', next: 'APRENDIZ' },
-            { level: 2, name: 'APRENDIZ', xp: 500, color: '#ff4d4d', next: 'EXPLORADOR' },
-            { level: 3, name: 'EXPLORADOR', xp: 1500, color: '#ff6666', next: 'GUERRERO' },
-            { level: 4, name: 'GUERRERO', xp: 3000, color: '#ff8080', next: 'CAMPEÓN' },
-            { level: 5, name: 'CAMPEÓN', xp: 6000, color: '#ff9999', next: 'MAESTRO' },
-            { level: 6, name: 'MAESTRO', xp: 10000, color: '#ffb3b3', next: 'LEYENDA' },
-            { level: 7, name: 'LEYENDA', xp: 20000, color: '#ffcccc', next: 'MAX' }
-        ];
-        
-        let currentRank = ranks[0];
-        let nextRank = ranks[1];
-        
-        for (let i = ranks.length - 1; i >= 0; i--) {
-            if (this.state.xp >= ranks[i].xp) {
-                currentRank = ranks[i];
-                nextRank = ranks[i + 1] || ranks[i];
-                break;
-            }
+        const SGL = window.SGLevels;
+        if (!SGL || typeof SGL.progress !== 'function') {
+            // Sin la tabla nos quedamos con lo que dio el servidor y ocultamos
+            // el progreso, en vez de inventar umbrales.
+            this.state.progressPct = 0;
+            this.state.levelFloorXp = 0;
+            return;
         }
-        
-        this.state.rank = currentRank.name;
-        this.state.rankColor = currentRank.color;
-        this.state.nextRank = nextRank.name;
-        this.state.xpNeeded = nextRank.xp;
-        
-        if (nextRank === currentRank) {
-            this.state.nextRank = 'RANGO MÁXIMO';
-            this.state.xpNeeded = currentRank.xp;
+
+        const prog = SGL.progress(this.state.xp);
+        const level = Math.max(prog.level, Number(this.state.level) || 1);
+        const tier = SGL.tierForLevel(level);
+
+        this.state.level = level;
+        this.state.rank = tier.name;
+        this.state.rankColor = tier.color;
+        this.state.levelFloorXp = SGL.xpForLevel(level);
+        this.state.progressPct = prog.pct;
+
+        if (prog.maxed) {
+            this.state.nextRank = 'NIVEL MÁXIMO';
+            this.state.xpNeeded = this.state.xp;
+        } else {
+            const nextTier = SGL.tierForLevel(prog.nextLevel);
+            this.state.nextRank = nextTier.index !== tier.index
+                ? nextTier.name
+                : 'Nivel ' + prog.nextLevel;
+            this.state.xpNeeded = prog.nextLevelXp;
         }
     }
     
@@ -590,9 +695,9 @@ class NexusDashboardWidget {
         const rankBadge = document.getElementById('nexus-widget-rank');
         if (rankBadge) {
             rankBadge.textContent = this.state.rank;
-            rankBadge.style.background = `rgba(255, 59, 59, 0.2)`;
-            rankBadge.style.borderColor = `rgba(255, 59, 59, 0.3)`;
-            rankBadge.style.color = `#ff3b3b`;
+            const color = this.state.rankColor || '#ff3b3b';
+            rankBadge.style.borderColor = color;
+            rankBadge.style.color = color;
         }
         
         // Stats principales
@@ -600,21 +705,18 @@ class NexusDashboardWidget {
         this.updateElement('nexus-widget-referrals', this.state.referrals);
         this.updateElement('nexus-widget-badges', `${this.state.badges}/${this.state.totalBadges}`);
 
-        const profileLevelDisplay = document.getElementById('profileLevelDisplay');
-        if (profileLevelDisplay) {
-            profileLevelDisplay.textContent = `LEVEL (${this.state.level})`;
-        }
+        this.renderLevelBadges();
         
-        // XP y progreso
+        // XP y progreso. Estos dos contenedores todavía no existen en
+        // dashboard.html, así que se comprueban antes de tocarlos.
         const xpElement = document.getElementById('nexus-widget-xp');
         if (xpElement) {
-            xpElement.textContent = `${this.state.xp.toLocaleString()} / ${this.state.xpNeeded.toLocaleString()} XP`;
+            xpElement.textContent = `${this.state.xp.toLocaleString()} / ${(this.state.xpNeeded || 0).toLocaleString()} EXP`;
         }
         
-        const progress = ((this.state.xp - this.getRankXp()) / (this.state.xpNeeded - this.getRankXp())) * 100;
         const progressBar = document.getElementById('nexus-widget-progress');
         if (progressBar) {
-            progressBar.style.width = `${Math.min(progress, 100)}%`;
+            progressBar.style.width = `${Math.min(this.state.progressPct || 0, 100)}%`;
         }
         
         const nextRank = document.getElementById('nexus-widget-next-rank');
@@ -643,9 +745,20 @@ class NexusDashboardWidget {
         }
     }
     
+    /** XP acumulada con la que empieza el nivel actual. */
     getRankXp() {
-        const ranks = [0, 500, 1500, 3000, 6000, 10000, 20000];
-        return ranks[this.state.level - 1] || 0;
+        return this.state.levelFloorXp || 0;
+    }
+
+    /**
+     * Insignia de nivel del perfil. Solo se pinta con datos ya cargados y solo
+     * en el perfil propio: en el de otro usuario manda su propio nodo de stats,
+     * no el del visitante.
+     */
+    renderLevelBadges() {
+        if (!this.state.statsLoaded) return;
+        if (typeof isViewingOwnProfile !== 'undefined' && !isViewingOwnProfile) return;
+        paintProfileLevelBadge({ xp: this.state.xp, level: this.state.level });
     }
     
     renderBadges() {
@@ -751,11 +864,12 @@ class NexusDashboardWidget {
             }
         });
         
-        // Actualizar cada 30 segundos
+        // Antes había un refresco cada 30 s que pintaba la UI antes de que
+        // llegaran los datos: el nivel ya viene por el listener de watchStats().
+        // Las insignias (que no son tiempo real) se releen cada cinco minutos.
         setInterval(() => {
-            this.loadFromFirebase();
-            this.updateUI();
-        }, 30000);
+            this.loadFromFirebase().then(() => this.updateUI());
+        }, 300000);
     }
 }
 
@@ -2353,6 +2467,9 @@ const DASHBOARD_RANK_SORT = {
 let dashboardFriendsCache = [];
 let dashboardFriendsPage = 0;
 let dashboardFriendsListenerBound = false;
+let dashboardFriendsListRef = null;
+let dashboardFriendStatsRefs = {};
+let dashboardFriendsRenderTimer = null;
 let dashboardFriendRequestsCache = {};
 let dashboardFriendRequestsRef = null;
 let dashboardFriendRequestsListener = null;
@@ -2366,8 +2483,8 @@ function getDashboardRankSortScore(rango) {
 
 function getDashboardFriendLevel(userData) {
   if (!userData) return 1;
-  if (userData.stats && typeof userData.stats.level === 'number') return userData.stats.level;
-  if (typeof userData.level === 'number') return userData.level;
+  if (userData.stats) return resolveLevelFromStats(userData.stats);
+  if (typeof userData.level === 'number') return Math.max(1, userData.level);
   return 1;
 }
 
@@ -2767,48 +2884,110 @@ function bindDashboardFriendsPager() {
   dashboardFriendsListenerBound = true;
 }
 
-async function loadDashboardFriendsList(uid) {
+function sortDashboardFriendsCache() {
+  dashboardFriendsCache.sort(function(a, b) {
+    if (b.rankScore !== a.rankScore) return b.rankScore - a.rankScore;
+    if (b.level !== a.level) return b.level - a.level;
+    return String(a.nick).localeCompare(String(b.nick), 'es', { sensitivity: 'base' });
+  });
+}
+
+/** Agrupa los repintados: varios listeners pueden disparar en la misma ráfaga. */
+function scheduleDashboardFriendsRender() {
+  if (dashboardFriendsRenderTimer) return;
+  dashboardFriendsRenderTimer = setTimeout(function() {
+    dashboardFriendsRenderTimer = null;
+    sortDashboardFriendsCache();
+    renderDashboardFriendsPage();
+  }, 80);
+}
+
+function buildDashboardFriendEntry(friendUid, data) {
+  const info = data || {};
+  const rango = info.rango || 'tribal_warrior';
+  return {
+    uid: friendUid,
+    nick: info.nick || info.nickname || 'Jugador',
+    photo: info.photoURL || '/dragon_profile_studiosgamesrs.png',
+    rango: rango,
+    rankLabel: getDashboardFriendRankLabel(rango),
+    rankScore: getDashboardRankSortScore(rango),
+    level: getDashboardFriendLevel(info)
+  };
+}
+
+/**
+ * Un listener por amigo sobre users/{uid}/stats (el espejo público que escribe
+ * el servidor al dar EXP), para que el nivel de la tarjeta cambie en el momento
+ * en vez de quedarse con el que había al abrir el dashboard.
+ */
+function syncDashboardFriendStatsWatchers(uids) {
+  const wanted = {};
+  uids.forEach(function(friendUid) { wanted[friendUid] = true; });
+
+  Object.keys(dashboardFriendStatsRefs).forEach(function(friendUid) {
+    if (wanted[friendUid]) return;
+    dashboardFriendStatsRefs[friendUid].off();
+    delete dashboardFriendStatsRefs[friendUid];
+  });
+
+  uids.forEach(function(friendUid) {
+    if (dashboardFriendStatsRefs[friendUid]) return;
+    const ref = firebase.database().ref('users/' + friendUid + '/stats');
+    dashboardFriendStatsRefs[friendUid] = ref;
+    ref.on('value', function(snap) {
+      const level = resolveLevelFromStats(snap.val());
+      const entry = dashboardFriendsCache.find(function(friend) { return friend.uid === friendUid; });
+      if (!entry || entry.level === level) return;
+      entry.level = level;
+      scheduleDashboardFriendsRender();
+    }, function() { /* sin permiso: se queda el nivel del perfil */ });
+  });
+}
+
+async function refreshDashboardFriends(uids) {
+  const grid = document.getElementById('dashboardFriendsGrid');
+  syncDashboardFriendStatsWatchers(uids);
+
+  if (!uids.length) {
+    dashboardFriendsCache = [];
+    dashboardFriendsPage = 0;
+    renderDashboardFriendsPage();
+    return;
+  }
+
+  try {
+    const profiles = await Promise.all(uids.map(async function(friendUid) {
+      const userSnap = await firebase.database().ref('users/' + friendUid).once('value');
+      return buildDashboardFriendEntry(friendUid, userSnap.val());
+    }));
+
+    dashboardFriendsCache = profiles;
+    sortDashboardFriendsCache();
+    if (dashboardFriendsPage * DASHBOARD_FRIENDS_PER_PAGE >= profiles.length) dashboardFriendsPage = 0;
+    renderDashboardFriendsPage();
+  } catch (err) {
+    console.error('refreshDashboardFriends:', err);
+    if (grid && !dashboardFriendsCache.length) {
+      grid.innerHTML = '<p class="dashboard-friends-empty">No se pudo cargar la lista de amigos.</p>';
+    }
+  }
+}
+
+function loadDashboardFriendsList(uid) {
   const grid = document.getElementById('dashboardFriendsGrid');
   if (!grid || !uid) return;
   bindDashboardFriendsPager();
   grid.innerHTML = '<p class="dashboard-friends-empty">Cargando amigos…</p>';
 
-  try {
-    const snap = await firebase.database().ref('sgFriends/' + uid).once('value');
-    if (!snap.exists()) {
-      dashboardFriendsCache = [];
-      dashboardFriendsPage = 0;
-      renderDashboardFriendsPage();
-      return;
-    }
-
-    const uids = Object.keys(snap.val() || {});
-    const profiles = await Promise.all(uids.map(async function(friendUid) {
-      const userSnap = await firebase.database().ref('users/' + friendUid).once('value');
-      const data = userSnap.val() || {};
-      const rango = data.rango || 'tribal_warrior';
-      return {
-        uid: friendUid,
-        nick: data.nick || data.nickname || 'Jugador',
-        photo: data.photoURL || '/dragon_profile_studiosgamesrs.png',
-        rango: rango,
-        rankLabel: getDashboardFriendRankLabel(rango),
-        rankScore: getDashboardRankSortScore(rango),
-        level: getDashboardFriendLevel(data)
-      };
-    }));
-
-    dashboardFriendsCache = profiles.sort(function(a, b) {
-      if (b.rankScore !== a.rankScore) return b.rankScore - a.rankScore;
-      if (b.level !== a.level) return b.level - a.level;
-      return String(a.nick).localeCompare(String(b.nick), 'es', { sensitivity: 'base' });
-    });
-    dashboardFriendsPage = 0;
-    renderDashboardFriendsPage();
-  } catch (err) {
+  if (dashboardFriendsListRef) dashboardFriendsListRef.off();
+  dashboardFriendsListRef = firebase.database().ref('sgFriends/' + uid);
+  dashboardFriendsListRef.on('value', function(snap) {
+    refreshDashboardFriends(Object.keys(snap.val() || {}));
+  }, function(err) {
     console.error('loadDashboardFriendsList:', err);
     grid.innerHTML = '<p class="dashboard-friends-empty">No se pudo cargar la lista de amigos.</p>';
-  }
+  });
 }
 
 function loadWidgetContent(permissions) { // <-- CAMBIO: Acepta permisos
@@ -3659,6 +3838,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const profileUserId = viewingUserId || user.uid;
       isViewingOwnProfile = profileUserId === user.uid;
+      // Antes de cualquier await: la insignia de nivel es de las primeras cosas
+      // que se miran y no debe esperar a que cargue el resto del perfil.
+      watchProfileLevel(profileUserId);
       updateProfileViewMode();
       const competitiveWidget = document.getElementById('competitiveWidget');
       const dashboardSideModules = document.getElementById('dashboardSideModules');

@@ -1,13 +1,10 @@
 /* ============================================================
    SHARED HEADER - StudiosGamesRS
-   Furia, Streamer, Audio, Carta de Jugador, Bandeja de Notificaciones
+   Furia, Streamer, Bandeja de Notificaciones
    ============================================================ */
 
 (function() {
     'use strict';
-
-    const DEFAULT_AVATAR = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIyMCIgZmlsbD0iIzMzMyIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMTUiIHI9IjYiIGZpbGw9IiM2NjYiLz48Y2lyY2xlIGN4PSIyMCIgY3k9IjMwIiByPSI5IiBmaWxsPSIjNjY2Ii8+PC9zdmc+';
-    const RANK_LABELS = { commander: 'Commander', divisional_commander: 'Comandante Divisional', tribal_warrior: 'Guerrero Tribal', tribal: 'Tribal' };
 
     function showToast(msg, type) {
         if (typeof showNotification === 'function') showNotification(msg, type || 'info');
@@ -25,11 +22,15 @@
         return null;
     }
 
+    /* El modo se aplica en TODAS las páginas, tengan o no el interruptor en su
+       HTML: si no, la cabecera salía roja en unas páginas y normal en otras
+       dentro de la misma sesión. El interruptor solo se engancha si existe. */
     function initThemeFury() {
+        const on = localStorage.getItem('nexusThemeFury') === 'true';
+        document.body.classList.toggle('theme-fury', on);
         const toggle = document.getElementById('themeFuryToggle');
         if (!toggle) return;
-        toggle.checked = localStorage.getItem('nexusThemeFury') === 'true';
-        document.body.classList.toggle('theme-fury', toggle.checked);
+        toggle.checked = on;
         toggle.addEventListener('change', function() {
             document.body.classList.toggle('theme-fury', this.checked);
             localStorage.setItem('nexusThemeFury', this.checked ? 'true' : 'false');
@@ -38,269 +39,15 @@
     }
 
     function initStreamerMode() {
+        const on = localStorage.getItem('nexusStreamerMode') === 'true';
+        document.body.classList.toggle('streamer-mode', on);
         const toggle = document.getElementById('streamerModeToggle');
         if (!toggle) return;
-        toggle.checked = localStorage.getItem('nexusStreamerMode') === 'true';
-        document.body.classList.toggle('streamer-mode', toggle.checked);
+        toggle.checked = on;
         toggle.addEventListener('change', function() {
             document.body.classList.toggle('streamer-mode', this.checked);
             localStorage.setItem('nexusStreamerMode', this.checked ? 'true' : 'false');
             showToast(this.checked ? 'Modo Streamer: datos sensibles ocultos' : 'Modo normal', 'info');
-        });
-    }
-
-    /* Pistas de música: nombre del archivo sin extensión (se prueba .mp3 y .ogg) */
-    var AMBIENT_TRACKS = {
-        default: 'deuslower-medieval-ambient-236809',   /* Música de página + partida en vivo */
-        liveMatch: 'deuslower-medieval-ambient-236809', /* Cuando el usuario entra a jugar partida en vivo */
-        track2: 'track2',   /* Segunda pista (añadir archivo track2.mp3 / track2.ogg) */
-        track3: 'track3'    /* Tercera pista (añadir archivo track3.mp3 / track3.ogg) */
-    };
-    var ambientAudio = null;
-    var ambientCtx = null, ambientNodes = [], ambientMelodyInterval = null;
-    var useFile = true;
-    var currentTrackId = 'default';
-    var ambientPlaying = false;
-    var ambientBtnRef = null;
-
-    function getTrackFilename(trackId) {
-        var base = AMBIENT_TRACKS[trackId] || AMBIENT_TRACKS.default;
-        return 'audio/' + base;
-    }
-
-    function initAudioAmbient() {
-        var btn = document.getElementById('audioAmbientToggle');
-        if (!btn) return;
-        ambientBtnRef = btn;
-        var playing = false;
-        var stored = localStorage.getItem('nexusAudioAmbient') === 'true';
-
-        function stop() {
-            if (ambientAudio) {
-                try { ambientAudio.pause(); ambientAudio.currentTime = 0; } catch (e) {}
-            }
-            ambientNodes.forEach(function(n) {
-                try { if (n.osc) n.osc.stop(); } catch (e) {}
-            });
-            ambientNodes = [];
-            if (ambientMelodyInterval) clearInterval(ambientMelodyInterval);
-            ambientMelodyInterval = null;
-            playing = false;
-            ambientPlaying = false;
-            btn.classList.remove('audio-playing');
-        }
-
-        function startSynthesized() {
-            try {
-                var Ctx = window.AudioContext || window.webkitAudioContext;
-                if (!Ctx) return;
-                ambientCtx = ambientCtx || new Ctx();
-                if (ambientCtx.state === 'suspended') ambientCtx.resume();
-                var droneGain = ambientCtx.createGain();
-                droneGain.gain.setValueAtTime(0.018, ambientCtx.currentTime);
-                droneGain.connect(ambientCtx.destination);
-                var d2 = ambientCtx.createOscillator();
-                d2.type = 'sine';
-                d2.frequency.setValueAtTime(73.42, ambientCtx.currentTime);
-                d2.connect(droneGain);
-                d2.start();
-                ambientNodes.push({ osc: d2 });
-                var a2 = ambientCtx.createOscillator();
-                a2.type = 'sine';
-                a2.frequency.setValueAtTime(110, ambientCtx.currentTime);
-                a2.connect(droneGain);
-                a2.start();
-                ambientNodes.push({ osc: a2 });
-                var dorian = [293.66, 329.63, 349.23, 392, 440, 392, 349.23, 329.63];
-                var step = 0;
-                function playNextNote() {
-                    if (!playing || !ambientCtx) return;
-                    var osc = ambientCtx.createOscillator();
-                    var g = ambientCtx.createGain();
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(dorian[step % dorian.length], ambientCtx.currentTime);
-                    osc.connect(g);
-                    g.connect(ambientCtx.destination);
-                    var t = ambientCtx.currentTime;
-                    g.gain.setValueAtTime(0, t);
-                    g.gain.linearRampToValueAtTime(0.04, t + 0.15);
-                    g.gain.linearRampToValueAtTime(0.02, t + 0.8);
-                    g.gain.linearRampToValueAtTime(0, t + 1.5);
-                    osc.start(t);
-                    osc.stop(t + 1.6);
-                    step++;
-                }
-                playNextNote();
-                ambientMelodyInterval = setInterval(playNextNote, 2800);
-            } catch (e) {}
-        }
-
-        function loadAndPlayTrack(trackId) {
-            currentTrackId = trackId in AMBIENT_TRACKS ? trackId : 'default';
-            var base = getTrackFilename(currentTrackId).replace('audio/', '');
-            if (!ambientAudio) {
-                ambientAudio = new Audio();
-                ambientAudio.loop = true;
-                ambientAudio.volume = 0.35;
-                var triedOgg = false;
-                ambientAudio.addEventListener('error', function err() {
-                    if (!triedOgg) {
-                        triedOgg = true;
-                        ambientAudio.src = 'audio/' + base + '.ogg';
-                    } else {
-                        useFile = false;
-                        startSynthesized();
-                    }
-                });
-                ambientAudio.addEventListener('canplaythrough', function onReady() {
-                    ambientAudio.removeEventListener('canplaythrough', onReady);
-                    try { ambientAudio.play(); } catch (e) { useFile = false; startSynthesized(); }
-                });
-            }
-            ambientAudio.src = 'audio/' + base + '.mp3';
-            try { ambientAudio.play(); } catch (e) {}
-        }
-
-        function start(trackId) {
-            stop();
-            var t = trackId != null ? trackId : currentTrackId;
-            if (useFile) {
-                loadAndPlayTrack(t);
-            } else {
-                startSynthesized();
-            }
-            playing = true;
-            ambientPlaying = true;
-            btn.classList.add('audio-playing');
-        }
-
-        if (stored) start();
-        btn.addEventListener('click', function() {
-            if (playing) stop(); else start();
-            localStorage.setItem('nexusAudioAmbient', playing ? 'true' : 'false');
-        });
-
-        window.StudiosGamesRS = window.StudiosGamesRS || {};
-        window.StudiosGamesRS.setAmbientTrack = function(trackId) {
-            currentTrackId = trackId in AMBIENT_TRACKS ? trackId : 'default';
-            if (ambientPlaying && ambientAudio && useFile) {
-                var base = getTrackFilename(currentTrackId).replace('audio/', '');
-                ambientAudio.src = 'audio/' + base + '.mp3';
-                ambientAudio.addEventListener('error', function tryOgg() {
-                    ambientAudio.removeEventListener('error', tryOgg);
-                    ambientAudio.src = 'audio/' + base + '.ogg';
-                });
-                try { ambientAudio.play(); } catch (e) {}
-            }
-        };
-        window.StudiosGamesRS.playAmbientForLiveMatch = function() {
-            if (localStorage.getItem('nexusAudioAmbient') !== 'true') return;
-            currentTrackId = 'liveMatch';
-            if (ambientBtnRef && ambientPlaying === false) start('liveMatch');
-            else if (ambientPlaying && ambientAudio && useFile) {
-                var base = AMBIENT_TRACKS.liveMatch;
-                ambientAudio.src = 'audio/' + base + '.mp3';
-                ambientAudio.onerror = function() { ambientAudio.src = 'audio/' + base + '.ogg'; };
-                try { ambientAudio.play(); } catch (e) {}
-            }
-        };
-    }
-
-    function getPlayerData() {
-        if (window.userProfile && window.currentUser) return { profile: window.userProfile, uid: window.currentUser.uid, photo: window.userProfile.photoURL };
-        if (window.currentUserData) {
-            const u = window.currentUserData;
-            return { profile: { nickname: u.nick, mainGame: u.mainGame, rank: u.rango || u.rank, rankLabel: RANK_LABELS[(u.rango||u.rank||'').toLowerCase()] || (u.rango||'Tribal') }, uid: u.uid, photo: u.photoURL };
-        }
-        if (window.State && window.State.user) {
-            const u = window.State.user;
-            return { profile: { nickname: u.username, mainGame: u.mainGame || 'Sin juego', rank: u.rank || 'tribal', rankLabel: u.rank || 'Tribal' }, uid: u.uid, photo: u.photoURL };
-        }
-        return null;
-    }
-
-    function initPlayerCardGenerator() {
-        const btn = document.getElementById('generatePlayerCardBtn');
-        if (!btn) return;
-        btn.addEventListener('click', async function() {
-            const data = getPlayerData();
-            const user = getAuthUser() || (data && data.uid ? { uid: data.uid } : null);
-            if (!data || !user) { showToast('Inicia sesión y carga tu perfil primero', 'error'); return; }
-
-            let tournamentMatches = 0;
-            const db = getDb();
-            if (db && user.uid) {
-                try {
-                    const snap = await db.ref('users/' + user.uid + '/tournamentMatches').once('value');
-                    if (snap.exists()) tournamentMatches = parseInt(snap.val(), 10) || 0;
-                } catch (e) {}
-            }
-
-            const p = data.profile;
-            const nick = (p.nickname || p.nick || 'Jugador').substring(0, 20);
-            const photo = data.photo || DEFAULT_AVATAR;
-            const mainGame = p.mainGame || 'Sin juego';
-            const rankLabel = p.rankLabel || RANK_LABELS[(p.rank||'').toLowerCase()] || 'Tribal';
-
-            const canvas = document.createElement('canvas');
-            canvas.width = 420;
-            canvas.height = 220;
-            const ctx = canvas.getContext('2d');
-
-            ctx.fillStyle = '#0a0c0f';
-            ctx.fillRect(0, 0, 420, 220);
-            ctx.strokeStyle = '#e53935';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(2, 2, 416, 216);
-
-            ctx.fillStyle = '#1a1c20';
-            ctx.fillRect(10, 10, 100, 50);
-            ctx.fillStyle = '#fff';
-            ctx.font = 'bold 14px "Cinzel Decorative", serif';
-            ctx.fillText('Studios', 18, 32);
-            ctx.fillStyle = '#e53935';
-            ctx.fillText('gamesrs', 18, 48);
-
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = function() {
-                ctx.drawImage(img, 20, 70, 90, 90);
-                ctx.fillStyle = '#f0f6fc';
-                ctx.font = 'bold 22px "Orbitron", sans-serif';
-                ctx.fillText(nick, 125, 95);
-                ctx.font = '14px sans-serif';
-                ctx.fillStyle = '#ffb347';
-                ctx.fillText('Rango: ' + rankLabel, 125, 120);
-                ctx.fillText('Juego: ' + mainGame.substring(0, 18), 125, 140);
-                ctx.fillText('Partidas en torneos: ' + tournamentMatches, 125, 160);
-                ctx.fillStyle = '#666';
-                ctx.font = '11px sans-serif';
-                ctx.fillText('StudiosGamesRS · studiosgamesrs.com', 20, 208);
-
-                const link = document.createElement('a');
-                link.download = 'carta-sgrs-' + nick.replace(/\s/g, '-') + '.png';
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                showToast('Carta exportada correctamente', 'success');
-            };
-            img.onerror = function() {
-                ctx.fillStyle = '#333';
-                ctx.fillRect(20, 70, 90, 90);
-                ctx.fillStyle = '#f0f6fc';
-                ctx.font = 'bold 22px "Orbitron"';
-                ctx.fillText(nick, 125, 95);
-                ctx.fillStyle = '#ffb347';
-                ctx.font = '14px sans-serif';
-                ctx.fillText('Rango: ' + rankLabel, 125, 120);
-                ctx.fillText('Juego: ' + mainGame.substring(0, 18), 125, 140);
-                ctx.fillText('Partidas en torneos: ' + tournamentMatches, 125, 160);
-                const link = document.createElement('a');
-                link.download = 'carta-sgrs-' + nick.replace(/\s/g, '-') + '.png';
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                showToast('Carta exportada', 'success');
-            };
-            img.src = photo.startsWith('data:') ? photo : (photo || DEFAULT_AVATAR);
         });
     }
 
@@ -702,8 +449,6 @@
         initThemeFury();
         initStreamerMode();
         initEffectBrazas();
-        initAudioAmbient();
-        initPlayerCardGenerator();
         initNotificationsDropdown();
         initNavDropdown();
     }

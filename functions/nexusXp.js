@@ -5,11 +5,20 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { warnMissingAppCheck } = require('./appCheckGuard');
+const { creditTokens } = require('./creditTokens');
+const SGLevels = require('./sg-levels.js');
 
-const NEXUS_RANK_XP = [0, 500, 1500, 3000, 6000];
-const MULTIPLIER_PER_RANK = 0.05;
 const MAX_COMMANDER_GRANT = 5000;
 const DAILY_BOSS_NEXUS_XP_CAP = 15000;
+
+/**
+ * El Boss se asigna la XP que quiera: SEC-023 pedía "solo Boss, auditoría
+ * obligatoria y tope diario", y eso es lo que siguen cumpliendo las entregas a
+ * terceros. Este número no es una política, es el límite aritmético para que
+ * RTDB no guarde un XP que rompa el cálculo de niveles (el nivel 100 son
+ * 254 500 XP, así que ningún uso real se acerca).
+ */
+const MAX_SELF_GRANT_XP = 1e12;
 
 const STAFF_RANGOS = {
   commander: true,
@@ -36,6 +45,13 @@ const XP_ACTIONS = {
   reward_claim: { max: 2500, cooldownMs: 0 },
   achievement: { max: 2000, cooldownMs: 0, once: true },
   referral_bonus: { max: 500, cooldownMs: 0 },
+  // Play Zone y torneos: sin cooldown porque la idempotencia la pone el evento
+  // que las dispara (tokensAwarded de la misión, resultId de la partida), no el
+  // reloj. Un cooldown aquí solo serviría para tragarse la EXP de dos misiones
+  // seguidas legítimas.
+  mission_complete: { max: 250, cooldownMs: 0 },
+  tournament_win: { max: 300, cooldownMs: 0 },
+  tournament_loss: { max: 100, cooldownMs: 0 },
   general: { max: 120, cooldownMs: 45000 }
 };
 
@@ -48,7 +64,10 @@ const BLOCKED_PLAYER_ACTIONS = {
   generate_ai: true,
   use_ai: true,
   analyze_design: true,
-  streak_bonus: true
+  streak_bonus: true,
+  mission_complete: true,
+  tournament_win: true,
+  tournament_loss: true
 };
 
 const OVERLAY_UPLOAD_COOLDOWN_MS = 1800000;
@@ -67,20 +86,30 @@ const XP_BOOST_DEFAULT_MS = 3600000;
 const XP_BOOST_MIN_MS = 600000;
 const XP_BOOST_MAX_MS = 7200000;
 
-/** Catálogo de recompensas por nivel (SEC-011) — debe coincidir con CONFIG.rewards en nexus-logic.js */
+/**
+ * Catálogo de recompensas por nivel (SEC-011) — debe coincidir con
+ * CONFIG.rewards en nexus-logic.js.
+ *
+ * Los dos marcos reclamables apuntan a marcos que YA existen en el catálogo de
+ * personalización (dragon-guard y golden-nexus, de 25 y 50 tokens): antes eran
+ * comingSoon y fallaban a propósito porque no había ningún marco que entregar.
+ * Los marcos de tramo (nexus-tier-*) no se reclaman aquí, se entregan solos al
+ * cruzar el nivel; estos dos siguen siendo el premio de los niveles 4 y 5, que
+ * quedan muy por debajo del primer tramo con cosmético propio (el 10).
+ */
 const NEXUS_REWARDS = {
   welcome_badge: { level: 1, type: 'badge', xpBonus: 100 },
   theme_dashboard: { level: 2, type: 'theme' },
   profile_frame: { level: 3, type: 'badge' },
   beta_access: { level: 4 },
   priority_support: { level: 4 },
-  profile_frame_nexus: { level: 4, type: 'frame', comingSoon: true },
+  profile_frame_nexus: { level: 4, type: 'frame', frameId: 'dragon-guard' },
   badge_elite: { level: 5, type: 'badge', xpBonus: 2500 },
   exclusive_content: { level: 5 },
   event_early: { level: 5, type: 'badge' },
   custom_overlay: { level: 5 },
   creator_tools: { level: 5, type: 'badge' },
-  frame_ambassador: { level: 5, type: 'frame', comingSoon: true },
+  frame_ambassador: { level: 5, type: 'frame', frameId: 'golden-nexus' },
   vip_lounge: { level: 5, type: 'badge', xpBonus: 1000 }
 };
 
@@ -233,8 +262,8 @@ async function consumeBossDailyNexusXpBudget(actorUid, amount) {
   return { dateKey, totalAfter: Number(result.snapshot.val()) || 0 };
 }
 
-async function appendNexusXpGrantAudit(actorUid, actorNick, targetUid, amount, reason) {
-  await admin.database().ref('security/tokenAuditLog').push({
+async function appendNexusXpGrantAudit(actorUid, actorNick, targetUid, amount, reason, selfGrant) {
+  const entry = {
     action: 'nexus_xp_grant',
     targetUid,
     amount,
@@ -242,20 +271,158 @@ async function appendNexusXpGrantAudit(actorUid, actorNick, targetUid, amount, r
     byUid: actorUid,
     byNick: actorNick,
     at: admin.database.ServerValue.TIMESTAMP
-  });
+  };
+  if (selfGrant) entry.self = true;
+  await admin.database().ref('security/tokenAuditLog').push(entry);
 }
 
-function calcLevelRank(xp) {
-  let level = 1;
-  let rank = 0;
-  for (let i = NEXUS_RANK_XP.length - 1; i >= 0; i--) {
-    if (xp >= NEXUS_RANK_XP[i]) {
-      level = i + 1;
-      rank = i;
-      break;
+/**
+ * Único traductor de XP a nivel en todo el servidor. Cualquier sitio que
+ * escriba stats debe pasar por aquí: cuando había dos cálculos distintos
+ * (applyXpGrant y grantNexusXpCommander) ya se habían separado una vez.
+ *
+ * `rank` deja de ser el escalón viejo 0–4 y pasa a ser el índice de tramo 0–9.
+ * Se mantiene el nombre del campo porque hay lecturas repartidas por el sitio
+ * (leaderboard, panel de staff) que lo esperan; `tier` es el mismo número con
+ * el nombre correcto y `tierName` evita que el cliente tenga que resolverlo.
+ */
+function levelFieldsFromXp(xp) {
+  const total = Math.max(0, Math.floor(Number(xp) || 0));
+  const level = SGLevels.levelFromXp(total);
+  const tier = SGLevels.tierForLevel(level);
+  return { level, rank: tier.index, tier: tier.index, tierName: tier.name };
+}
+
+/**
+ * Añade una insignia sin duplicar, en el mismo formato de array de strings que
+ * usa welcomeReward.js. Nexus es la fuente de verdad y users/{uid}/badges el
+ * espejo que lee el perfil.
+ */
+function badgeAppender(badgeId) {
+  return function (current) {
+    const list = Array.isArray(current)
+      ? current.slice()
+      : (current && typeof current === 'object' ? Object.keys(current).map((k) => current[k]) : []);
+    const clean = list.filter((v) => typeof v === 'string' && v);
+    if (clean.indexOf(badgeId) !== -1) return clean;
+    clean.push(badgeId);
+    return clean;
+  };
+}
+
+async function grantNexusBadge(uid, badgeId) {
+  await admin.database().ref('nexus/users/' + uid + '/badges').transaction(badgeAppender(badgeId));
+  await admin.database().ref('users/' + uid + '/badges').transaction(badgeAppender(badgeId));
+}
+
+/** RTDB rechaza undefined: las recompensas se copian campo a campo. */
+function serializeReward(reward) {
+  const out = {
+    type: String(reward.type || ''),
+    id: String(reward.id || ''),
+    name: String(reward.name || ''),
+    description: String(reward.description || '')
+  };
+  if (reward.amount != null) out.amount = Math.floor(Number(reward.amount) || 0);
+  return out;
+}
+
+async function deliverReward(uid, level, reward) {
+  if (reward.type === 'frame' || reward.type === 'background') {
+    await admin.database()
+      .ref('users/' + uid + '/profileCustomization/unlocked/' + reward.id)
+      .set(true);
+    return;
+  }
+  if (reward.type === 'badge') {
+    await grantNexusBadge(uid, reward.id);
+    return;
+  }
+  if (reward.type === 'tokens' && reward.amount > 0) {
+    await creditTokens(uid, reward.amount, {
+      type: 'level_reward',
+      reason: 'Recompensa del nivel ' + level,
+      source: 'nexusLevelUp',
+      byNick: 'Nexus'
+    });
+  }
+  // 'perk' no se escribe: perksForLevel(level) lo deriva del nivel actual.
+}
+
+/**
+ * Entrega las recompensas de UN nivel y deja el evento de celebración.
+ *
+ * Forma del nodo nexus/users/{uid}/levelUps/{level} — es contrato con el
+ * cliente, que escucha aquí para lanzar la animación de subida:
+ *
+ *   {
+ *     level:     12,                 // número de nivel alcanzado
+ *     tierIndex: 1,                  // 0–9
+ *     tierName:  'CREADOR',
+ *     rewards:   [ { type, id, name, description, amount? }, ... ],
+ *     at:        1730000000000,      // ms; hora del servidor
+ *     failed:    ['id', ...]         // opcional, solo si algo no se pudo dar
+ *   }
+ *
+ * `at` se escribe primero con Date.now() dentro de la transacción (los
+ * ServerValue no se resuelven de forma fiable ahí dentro) y se reemplaza por
+ * el timestamp real del servidor en cuanto termina la entrega.
+ */
+async function deliverLevelRewards(uid, level) {
+  const tier = SGLevels.tierForLevel(level);
+  const rewards = SGLevels.rewardsForLevel(level).map(serializeReward);
+  const eventRef = admin.database().ref('nexus/users/' + uid + '/levelUps/' + level);
+
+  // Cerrojo: crear el nodo del nivel ES la reserva. Si dos grants cruzan el
+  // mismo umbral a la vez, solo uno gana la transacción y paga.
+  const claim = await eventRef.transaction((cur) => {
+    if (cur !== null) return;
+    return {
+      level,
+      tierIndex: tier.index,
+      tierName: tier.name,
+      rewards,
+      at: Date.now()
+    };
+  });
+  if (!claim.committed || !claim.snapshot.exists()) return null;
+
+  const failed = [];
+  for (const reward of rewards) {
+    try {
+      await deliverReward(uid, level, reward);
+    } catch (err) {
+      failed.push(reward.id);
+      console.error('[nexus] recompensa ' + reward.id + ' del nivel ' + level + ' no entregada a ' + uid, err);
     }
   }
-  return { level, rank };
+
+  const patch = { at: admin.database.ServerValue.TIMESTAMP };
+  if (failed.length) patch.failed = failed;
+  await eventRef.update(patch);
+
+  return { level, tierIndex: tier.index, tierName: tier.name, rewards, failed };
+}
+
+/**
+ * Entrega TODOS los niveles cruzados. Un grant grande del Boss puede saltar
+ * varios de golpe y ninguno debe quedarse sin sus recompensas.
+ */
+async function applyLevelUpRewards(uid, levelBefore, levelAfter) {
+  const from = Math.max(1, Math.floor(Number(levelBefore) || 1));
+  const to = Math.min(SGLevels.MAX_LEVEL, Math.floor(Number(levelAfter) || 1));
+  if (!uid || to <= from) return [];
+
+  const events = [];
+  for (let level = from + 1; level <= to; level++) {
+    try {
+      const event = await deliverLevelRewards(uid, level);
+      if (event) events.push(event);
+    } catch (err) {
+      console.error('[nexus] fallo al procesar la subida al nivel ' + level + ' de ' + uid, err);
+    }
+  }
+  return events;
 }
 
 function sanitizeActionKey(raw) {
@@ -275,11 +442,24 @@ async function readStaffRango(uid) {
 async function ensureStatsNode(uid) {
   const ref = admin.database().ref('nexus/users/' + uid + '/stats');
   const snap = await ref.once('value');
-  if (snap.exists()) return snap.val() || {};
+  if (snap.exists()) {
+    const stats = snap.val() || {};
+    // Cuentas de la época de 5 niveles: se recolocan en la curva nueva la
+    // primera vez que se las toca, sin esperar a que ganen XP.
+    const fields = levelFieldsFromXp(stats.xp);
+    if (stats.level !== fields.level || stats.rank !== fields.rank ||
+        stats.tier !== fields.tier || stats.tierName !== fields.tierName) {
+      await ref.update(fields);
+      return { ...stats, ...fields };
+    }
+    return stats;
+  }
   const init = {
     xp: 0,
     level: 1,
     rank: 0,
+    tier: 0,
+    tierName: SGLevels.TIERS[0].name,
     streak: 0,
     maxStreak: 0,
     lastLogin: null,
@@ -340,25 +520,26 @@ async function applyXpGrant(uid, baseAmount, actionKey, meta) {
   const statsRef = admin.database().ref('nexus/users/' + uid + '/stats');
   const beforeSnap = await statsRef.once('value');
   const beforeStats = beforeSnap.val() || {};
-  const rankIndex = Number(beforeStats.rank) || 0;
-  const rankMultiplier = 1 + (rankIndex * MULTIPLIER_PER_RANK);
+  // El multiplicador sale del estado ANTERIOR al grant, como siempre: si se
+  // calculara después, la acción que hace subir de nivel se cobraría ya con el
+  // bono nuevo y la economía daría un salto de golpe.
+  const beforeXp = Number(beforeStats.xp) || 0;
+  const rankMultiplier = SGLevels.xpMultiplier(SGLevels.levelFromXp(beforeXp), beforeXp);
   const boostMultiplier = await getActiveXpBoostMultiplier(uid);
   const granted = Math.floor(amount * rankMultiplier * boostMultiplier);
 
   const result = await statsRef.transaction((cur) => {
     const stats = cur || {
-      xp: 0, level: 1, rank: 0, streak: 0, maxStreak: 0,
+      xp: 0, level: 1, rank: 0, tier: 0, tierName: SGLevels.TIERS[0].name,
+      streak: 0, maxStreak: 0,
       totalQuestsCompleted: 0, totalReferrals: 0, verifiedReferrals: 0,
       overlaysCreated: 0, achievementsUnlocked: 0, lastLogin: null
     };
-    const beforeXp = Number(stats.xp) || 0;
-    const afterXp = beforeXp + granted;
-    const lr = calcLevelRank(afterXp);
+    const afterXp = (Number(stats.xp) || 0) + granted;
     return {
       ...stats,
       xp: afterXp,
-      level: lr.level,
-      rank: lr.rank
+      ...levelFieldsFromXp(afterXp)
     };
   });
 
@@ -367,6 +548,10 @@ async function applyXpGrant(uid, baseAmount, actionKey, meta) {
   }
 
   const newStats = result.snapshot.val() || {};
+  // El nivel de partida se deduce del XP que realmente quedó tras la
+  // transacción, no del que se leyó antes: si otro grant entró en medio, el
+  // tramo cruzado sigue siendo el correcto y nadie se queda sin recompensa.
+  const levelBefore = SGLevels.levelFromXp(Math.max(0, (Number(newStats.xp) || 0) - granted));
 
   await awardsRef.update({
     lastAt: admin.database.ServerValue.TIMESTAMP,
@@ -389,10 +574,28 @@ async function applyXpGrant(uid, baseAmount, actionKey, meta) {
 
   await mirrorUserStatsFromNexus(uid, newStats);
 
+  const levelUps = await applyLevelUpRewards(uid, levelBefore, Number(newStats.level) || 1);
+
   return {
     granted,
-    stats: newStats
+    stats: newStats,
+    levelUps
   };
+}
+
+/**
+ * Puerta de entrada para los triggers RTDB (misiones de Play Zone, partidas de
+ * torneo), que no tienen context de llamada. Igual que applyXpGrant, lanza
+ * HttpsError cuando hay tope o cooldown: quien la use dentro de un trigger
+ * tiene que envolverla en try/catch para no tumbar el resto del proceso.
+ */
+async function grantXpInternal(uid, amount, actionKey, meta) {
+  const targetUid = String(uid || '').trim();
+  if (!targetUid) {
+    throw new functions.https.HttpsError('invalid-argument', 'UID destino requerido.');
+  }
+  await ensureStatsNode(targetUid);
+  return applyXpGrant(targetUid, amount, actionKey, meta);
 }
 
 /** Reclama recompensa de nivel Nexus con validación server-side (SEC-011). */
@@ -403,9 +606,6 @@ exports.claimNexusReward = functions.https.onCall(async (data, context) => {
 
   if (!reward) {
     throw new functions.https.HttpsError('invalid-argument', 'Recompensa no válida.');
-  }
-  if (reward.comingSoon) {
-    throw new functions.https.HttpsError('failed-precondition', 'Esta recompensa aún no está disponible.');
   }
 
   await ensureStatsNode(uid);
@@ -447,6 +647,14 @@ exports.claimNexusReward = functions.https.onCall(async (data, context) => {
     await admin.database().ref('nexus/users/' + uid + '/settings/profileCustomizationUnlocked').set(true);
   }
 
+  let frameUnlocked = null;
+  if (reward.type === 'frame' && reward.frameId) {
+    await admin.database()
+      .ref('users/' + uid + '/profileCustomization/unlocked/' + reward.frameId)
+      .set(true);
+    frameUnlocked = reward.frameId;
+  }
+
   let xpGranted = 0;
   let finalStats = stats;
   const xpBonus = Math.floor(Number(reward.xpBonus) || 0);
@@ -467,6 +675,7 @@ exports.claimNexusReward = functions.https.onCall(async (data, context) => {
     xpGranted,
     stats: finalStats,
     badges,
+    frameUnlocked,
     profileCustomizationUnlocked: reward.type === 'theme' ? true : undefined
   };
 });
@@ -977,20 +1186,30 @@ exports.grantNexusXpCommander = functions.https.onCall(async (data, context) => 
   const reason = String(data && data.reason || '').trim();
   const amount = Math.floor(Math.abs(Number(data && data.amount) || 0));
 
+  const selfGrant = targetUid === actorUid;
+
   if (!targetUid) {
     throw new functions.https.HttpsError('invalid-argument', 'UID destino requerido.');
-  }
-  if (targetUid === actorUid) {
-    throw new functions.https.HttpsError('permission-denied', 'No puedes otorgarte XP Nexus a ti mismo.');
   }
   if (!reason) {
     throw new functions.https.HttpsError('invalid-argument', 'Motivo obligatorio.');
   }
-  if (amount < 1 || amount > MAX_COMMANDER_GRANT) {
-    throw new functions.https.HttpsError('invalid-argument', 'Cantidad fuera de rango (máx. ' + MAX_COMMANDER_GRANT + ' por entrega).');
+  if (amount < 1) {
+    throw new functions.https.HttpsError('invalid-argument', 'Cantidad de XP inválida.');
+  }
+  // El tope por entrega y el presupuesto diario protegen a los demás jugadores
+  // de una cuenta de staff comprometida; sobre su propia cuenta el Boss decide.
+  if (selfGrant) {
+    if (amount > MAX_SELF_GRANT_XP) {
+      throw new functions.https.HttpsError('invalid-argument', 'Cantidad de XP demasiado grande para almacenarse.');
+    }
+  } else {
+    if (amount > MAX_COMMANDER_GRANT) {
+      throw new functions.https.HttpsError('invalid-argument', 'Cantidad fuera de rango (máx. ' + MAX_COMMANDER_GRANT + ' por entrega).');
+    }
+    await consumeBossDailyNexusXpBudget(actorUid, amount);
   }
 
-  await consumeBossDailyNexusXpBudget(actorUid, amount);
   await ensureStatsNode(targetUid);
   const statsRef = admin.database().ref('nexus/users/' + targetUid + '/stats');
   const beforeSnap = await statsRef.once('value');
@@ -998,14 +1217,11 @@ exports.grantNexusXpCommander = functions.https.onCall(async (data, context) => 
 
   const result = await statsRef.transaction((cur) => {
     const stats = cur || {};
-    const beforeXp = Number(stats.xp) || 0;
-    const afterXp = beforeXp + amount;
-    const lr = calcLevelRank(afterXp);
+    const afterXp = (Number(stats.xp) || 0) + amount;
     return {
       ...stats,
       xp: afterXp,
-      level: lr.level,
-      rank: lr.rank
+      ...levelFieldsFromXp(afterXp)
     };
   });
 
@@ -1016,7 +1232,8 @@ exports.grantNexusXpCommander = functions.https.onCall(async (data, context) => 
   const newStats = result.snapshot.val() || {};
   const afterXp = Number(newStats.xp) || 0;
   const granted = afterXp - beforeXp;
-  const lr = calcLevelRank(afterXp);
+  const lr = levelFieldsFromXp(afterXp);
+  const levelBefore = SGLevels.levelFromXp(Math.max(0, afterXp - amount));
 
   const actorNickSnap = await admin.database().ref('users/' + actorUid + '/nick').once('value');
   const actorNick = actorNickSnap.val() || 'Commander';
@@ -1028,19 +1245,25 @@ exports.grantNexusXpCommander = functions.https.onCall(async (data, context) => 
     xpAfter: afterXp,
     levelAfter: lr.level,
     reason,
+    self: selfGrant,
     byUid: actorUid,
     byNick: actorNick,
     at: admin.database.ServerValue.TIMESTAMP
   });
 
-  await appendNexusXpGrantAudit(actorUid, actorNick, targetUid, amount, reason);
+  await appendNexusXpGrantAudit(actorUid, actorNick, targetUid, amount, reason, selfGrant);
 
   await mirrorUserStatsFromNexus(targetUid, newStats);
+
+  const levelUps = await applyLevelUpRewards(targetUid, levelBefore, lr.level);
 
   return {
     granted: amount,
     stats: newStats,
     level: lr.level,
+    tier: lr.tier,
+    tierName: lr.tierName,
+    levelUps,
     afterXp
   };
 });
@@ -1220,10 +1443,18 @@ async function mirrorUserStatsFromNexus(uid, nexusStats) {
   const existingSnap = await userStatsRef.once('value');
   const existing = existingSnap.val() || {};
 
+  // El nivel del espejo se recalcula desde el XP en vez de copiarse: así las
+  // cuentas que todavía tengan el nivel viejo (1–5) guardado se corrigen solas
+  // en users/stats, que es de donde lee el resto del sitio.
+  const xp = Number(nexusStats.xp) || 0;
+  const fields = levelFieldsFromXp(xp);
+
   const mirror = {
-    xp: Number(nexusStats.xp) || 0,
-    level: Number(nexusStats.level) || 1,
-    rank: Number(nexusStats.rank) || 0,
+    xp,
+    level: fields.level,
+    rank: fields.rank,
+    tier: fields.tier,
+    tierName: fields.tierName,
     streak: Number(nexusStats.streak) || 0,
     maxStreak: Number(nexusStats.maxStreak) || 0,
     lastLogin: nexusStats.lastLogin != null ? nexusStats.lastLogin : null,
@@ -1252,3 +1483,9 @@ exports.onNexusStatsUpdated = functions.database
     await mirrorUserStatsFromNexus(context.params.uid, after);
     return null;
   });
+
+/** Helpers para otros módulos del servidor (no son Cloud Functions). */
+exports.grantXpInternal = grantXpInternal;
+exports.applyLevelUpRewards = applyLevelUpRewards;
+exports.levelFieldsFromXp = levelFieldsFromXp;
+exports.XP_ACTIONS = XP_ACTIONS;

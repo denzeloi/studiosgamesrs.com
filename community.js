@@ -194,8 +194,6 @@ auth.onAuthStateChanged(async (user) => {
         initDragDropPanels();
         initThemeFury();
         initStreamerMode();
-        initAudioAmbient();
-        initPlayerCardGenerator();
         initNotificationsToggle();
         registerServiceWorker();
     } else {
@@ -238,12 +236,15 @@ function formatPhotoBadge(count, rank) {
 
 async function loadUserProfile(uid) {
     try {
-        const [userSnap, essenceSnap] = await Promise.all([
+        // El nivel Nexus vive en users/{uid}/stats, el espejo público que
+        // escribe Cloud Functions. La antigua ruta users/{uid}/essence no la
+        // escribía nadie, así que el perfil siempre mostraba "Nivel 1".
+        const [userSnap, statsSnap] = await Promise.all([
             rtdb.ref('users/' + uid).once('value'),
-            rtdb.ref('users/' + uid + '/essence').once('value')
+            rtdb.ref('users/' + uid + '/stats').once('value')
         ]);
         const d = userSnap.val();
-        const ess = essenceSnap.val();
+        const nexusStats = statsSnap.val() || {};
         const rawRank = (d?.rango || d?.rank || 'tribal');
         const rank = typeof rawRank === 'string' ? rawRank.toLowerCase().replace(/\s+/g, '_') : 'tribal';
         if (d && (d.nick != null || d.nickname != null || d.photoURL != null || d.communityHonor != null)) {
@@ -256,7 +257,8 @@ async function loadUserProfile(uid) {
                 status: d.status || null,
                 mentorAvailable: !!d.mentorAvailable,
                 mainGame: d.mainGame || d.preferredGame || null,
-                nexusLevel: (ess && typeof ess.level === 'number') ? ess.level : 1,
+                nexusXp: Number(nexusStats.xp) || 0,
+                nexusLevel: resolveNexusLevel(nexusStats),
                 communityLegendFx: d?.profileCustomization?.communityLegendFx || null,
                 profileCustomization: d?.profileCustomization || null
             };
@@ -274,7 +276,8 @@ async function loadUserProfile(uid) {
                 status: null,
                 mentorAvailable: false,
                 mainGame: null,
-                nexusLevel: 1,
+                nexusXp: Number(nexusStats.xp) || 0,
+                nexusLevel: resolveNexusLevel(nexusStats),
                 communityLegendFx: null
             };
             await rtdb.ref('users/' + uid).update({
@@ -295,10 +298,29 @@ async function loadUserProfile(uid) {
             status: null,
             mentorAvailable: false,
             mainGame: null,
+            nexusXp: 0,
             nexusLevel: 1,
             communityLegendFx: null
         };
     }
+}
+
+/** Nivel Nexus del espejo público; si solo llega la XP, se deduce de la tabla. */
+function resolveNexusLevel(stats) {
+    const level = Number(stats && stats.level) || 0;
+    if (level > 0) return level;
+    const SGL = window.SGLevels;
+    return SGL ? SGL.levelFromXp(stats && stats.xp) : 1;
+}
+
+/** Insignia de nivel Nexus en tamaño lista; cadena vacía si el componente falta. */
+function nexusLevelBadgeHtml(profile, options) {
+    if (!window.SGLevelBadge || !profile) return '';
+    return window.SGLevelBadge.html(Object.assign({
+        xp: profile.nexusXp,
+        level: profile.nexusLevel || 1,
+        size: 'sm'
+    }, options || {}));
 }
 
 async function addTokens(uid, amount, imageId) {
@@ -2046,6 +2068,7 @@ function updateMiniProfile() {
             <div class="mini-profile-info">
                 <h4 class="community-user-link" data-community-uid="${escapeAttr(currentUser.uid)}" data-community-nick="${escapeAttr(nick)}">${escapeHtml(nick)}</h4>
                 <p class="mini-profile-rank">${escapeHtml(rankLabel)}</p>
+                <div class="sg-lvl-row">${nexusLevelBadgeHtml(userProfile, { showTier: true })}</div>
                 <div class="mini-profile-honor-row" data-streamer-hide>
                     <span class="mini-honor-label">Honor</span>
                     <span class="mini-honor-value honor-tier-${getHonorTier(userProfile.communityHonor ?? 0)}" id="miniHonorValue" title="${escapeHtml(honorTierLabel(getHonorTier(userProfile.communityHonor ?? 0)))}">${userProfile.communityHonor ?? 0}</span>
@@ -2448,10 +2471,13 @@ function initProfileScroll() {
             const rankLabel = userProfile.rankLabel || RANK_LABELS[userProfile.rank] || userProfile.rank || 'Tribal';
             const mainGame = userProfile.mainGame || 'Sin juego';
             const nexusLevel = userProfile.nexusLevel ?? 1;
+            const levelBadge = nexusLevelBadgeHtml(userProfile, { size: 'sm', showBar: true, showTier: true });
             statsEl.innerHTML = `
                 <p class="honor-exact-value" data-streamer-hide>Honor: <strong>${honor}</strong></p>
                 <p class="honor-exact-value" data-streamer-hide>Rango: <strong>${escapeHtml(rankLabel)}</strong></p>
-                <p class="honor-exact-value" data-streamer-hide>Nivel Nexus: <strong>${nexusLevel}</strong></p>
+                ${levelBadge
+                    ? `<div class="sg-lvl-row" data-streamer-hide>${levelBadge}</div>`
+                    : `<p class="honor-exact-value" data-streamer-hide>Nivel Nexus: <strong>${nexusLevel}</strong></p>`}
                 <p class="honor-exact-value" data-streamer-hide>Juego favorito: <strong>${escapeHtml(mainGame)}</strong></p>
                 <a href="/dashboard" class="profile-scroll-link">Ver perfil completo <i class="fas fa-external-link-alt"></i></a>`;
         }
@@ -2529,107 +2555,6 @@ function initDragDropPanels() {
             const order = Array.from(main.querySelectorAll('.nexus-draggable-panel')).map((p) => p.getAttribute('data-panel-id'));
             saveOrder(order);
         });
-    });
-}
-
-let ambientAudioCtx = null;
-let ambientOsc = null;
-
-function initAudioAmbient() {
-    const btn = document.getElementById('audioAmbientToggle');
-    if (!btn) return;
-    const stored = localStorage.getItem('nexusAudioAmbient') === 'true';
-    let playing = false;
-
-    const startAmbient = () => {
-        try {
-            const Ctx = window.AudioContext || window.webkitAudioContext;
-            if (!Ctx) return;
-            ambientAudioCtx = ambientAudioCtx || new Ctx();
-            if (ambientAudioCtx.state === 'suspended') ambientAudioCtx.resume();
-            ambientOsc = ambientAudioCtx.createOscillator();
-            const gain = ambientAudioCtx.createGain();
-            ambientOsc.connect(gain);
-            gain.connect(ambientAudioCtx.destination);
-            ambientOsc.type = 'sine';
-            ambientOsc.frequency.setValueAtTime(110, ambientAudioCtx.currentTime);
-            gain.gain.setValueAtTime(0.03, ambientAudioCtx.currentTime);
-            ambientOsc.start();
-            playing = true;
-            btn.classList.add('audio-playing');
-        } catch (e) {}
-    };
-
-    const stopAmbient = () => {
-        if (ambientOsc) try { ambientOsc.stop(); } catch (e) {}
-        ambientOsc = null;
-        playing = false;
-        btn.classList.remove('audio-playing');
-    };
-
-    if (stored) startAmbient();
-
-    btn.addEventListener('click', () => {
-        if (playing) stopAmbient(); else startAmbient();
-        localStorage.setItem('nexusAudioAmbient', playing ? 'true' : 'false');
-    });
-}
-
-function initPlayerCardGenerator() {
-    const btn = document.getElementById('generatePlayerCardBtn');
-    if (!btn) return;
-    btn.addEventListener('click', async () => {
-        if (!userProfile || !currentUser) { showNotification('Carga tu perfil primero', 'error'); return; }
-        const nick = userProfile.nickname || 'Jugador';
-        const photo = userProfile.photoURL || DEFAULT_AVATAR;
-        const honor = userProfile.communityHonor ?? 0;
-        const rank = userProfile.rank || 'tribal';
-
-        const canvas = document.createElement('canvas');
-        canvas.width = 400;
-        canvas.height = 200;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#0a0c0f';
-        ctx.fillRect(0, 0, 400, 200);
-        ctx.strokeStyle = '#e53935';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(2, 2, 396, 196);
-
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-            ctx.drawImage(img, 20, 20, 80, 80);
-            ctx.fillStyle = '#f0f6fc';
-            ctx.font = 'bold 24px "Orbitron"';
-            ctx.fillText(nick.substring(0, 20), 115, 50);
-            ctx.font = '16px sans-serif';
-            ctx.fillStyle = '#ffb347';
-            ctx.fillText('Honor: ' + honor + ' · ' + rank, 115, 85);
-            ctx.fillStyle = '#8b949e';
-            ctx.font = '12px sans-serif';
-            ctx.fillText('StudiosGamesRS · El Nexo', 20, 180);
-
-            const link = document.createElement('a');
-            link.download = 'carta-nexo-' + nick.replace(/\s/g, '-') + '.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            showNotification('Carta exportada correctamente', 'success');
-        };
-        img.onerror = () => {
-            ctx.fillStyle = '#333';
-            ctx.fillRect(20, 20, 80, 80);
-            ctx.fillStyle = '#f0f6fc';
-            ctx.font = 'bold 24px "Orbitron"';
-            ctx.fillText(nick.substring(0, 20), 115, 50);
-            ctx.fillStyle = '#ffb347';
-            ctx.fillText('Honor: ' + honor + ' · ' + rank, 115, 85);
-            const link = document.createElement('a');
-            link.download = 'carta-nexo-' + nick.replace(/\s/g, '-') + '.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            showNotification('Carta exportada', 'success');
-        };
-        img.src = photo.startsWith('data:') ? photo : (photo + '');
     });
 }
 

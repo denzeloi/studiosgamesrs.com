@@ -1,5 +1,5 @@
 /* ============================================================
-   COMMANDER PANEL - Estilos dedicados (modo oscuro, acentos neón)
+   COMMANDER PANEL - Estilos dedicados (modo oscuro, acentos ne?n)
    Solo afecta a commander-panel.html
    Layout: una sola columna a ancho completo, sin sidebar.
    ============================================================ */
@@ -19,7 +19,7 @@ body.commander-panel-page main {
   min-width: 0;
 }
 
-/* Main: contenido justo bajo el menú; botón Volver al final */
+/* Main: contenido justo bajo el men?; bot?n Volver al final */
 body.commander-panel-page .dashboard-container.commander-main-wrap,
 .commander-panel-page main.commander-main-wrap {
   display: flex;
@@ -34,7 +34,7 @@ body.commander-panel-page .dashboard-container.commander-main-wrap,
   z-index: 1;
 }
 
-/* Footer con el botón Volver: siempre al final de la página */
+/* Footer con el bot?n Volver: siempre al final de la p?gina */
 .commander-footer {
   margin-top: auto;
   padding-top: 32px;
@@ -51,7 +51,7 @@ body.commander-panel-page .dashboard-container.commander-main-wrap,
   box-sizing: border-box;
 }
 
-/* --- Área de contenido: empieza alto, sin hueco grande --- */
+/* --- ?rea de contenido: empieza alto, sin hueco grande --- */
 .commander-content-area {
   display: block;
   width: 100%;
@@ -59,7 +59,7 @@ body.commander-panel-page .dashboard-container.commander-main-wrap,
   box-sizing: border-box;
 }
 
-/* Título de página dentro de cada pestaña */
+/* T?tulo de p?gina dentro de cada pesta?a */
 .commander-page-title {
   font-family: 'Orbitron', sans-serif;
   font-size: 1.25rem;
@@ -73,7 +73,7 @@ body.commander-panel-page .dashboard-container.commander-main-wrap,
   box-sizing: border-box;
 }
 
-/* Cada sección de pestaña */
+/* Cada secci?n de pesta?a */
 .commander-panel-section {
   display: block;
   width: 100%;
@@ -190,7 +190,7 @@ body.commander-panel-page .nexus-widget-header {
   to { opacity: 1; }
 }
 
-/* ========== TELEMETRÍA: Ojo que todo lo ve (grid de tarjetas) ========== */
+/* ========== TELEMETR?A: Ojo que todo lo ve (grid de tarjetas) ========== */
 .commander-telemetry-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -249,7 +249,7 @@ body.commander-panel-page .nexus-widget-header {
   min-height: 60px;
 }
 
-/* Filas inferiores de telemetría (actividad, registros, servidores) */
+/* Filas inferiores de telemetr?a (actividad, registros, servidores) */
 .commander-telemetry-bottom {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -335,7 +335,7 @@ body.commander-panel-page .nexus-widget-header {
   font-size: 0.8rem;
 }
 
-/* Commander CLI: siempre visible, su propio espacio debajo del título */
+/* Commander CLI: siempre visible, su propio espacio debajo del t?tulo */
 .commander-cli-block {
   display: block !important;
   visibility: visible !important;
@@ -432,7 +432,7 @@ body.commander-panel-page .nexus-widget-header {
 .commander-toast-error { border-left: 4px solid #f85149; }
 .commander-toast-info { border-left: 4px solid #58a6ff; }
 
-/* ========== USUARIOS (mismo bloque que telemetría/torneos/comms/security) ========== */
+/* ========== USUARIOS (mismo bloque que telemetr?a/torneos/comms/security) ========== */
 .commander-users-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -603,7 +603,7 @@ body.commander-panel-page .header-search .search-results.open {
   display: block;
 }
 
-/* ========== PERSONALIZACIÓN (mismo estilo de bloque) ========== */
+/* ========== PERSONALIZACI?N (mismo estilo de bloque) ========== */
 .commander-customization-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -818,7 +818,7 @@ body.commander-panel-page .header-search .search-results.open {
   border: 1px solid rgba(255, 179, 71, 0.2);
 }
 
-/* Lista de ítems registrados */
+/* Lista de ?tems registrados */
 .commander-customization-list-panel {
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -919,7 +919,7 @@ body.commander-panel-page .header-search .search-results.open {
   border-color: rgba(229, 57, 53, 0.65);
 }
 
-/* Botón volver (siempre al final, con espacio) */
+/* Bot?n volver (siempre al final, con espacio) */
 .commander-main-wrap .back-button,
 .dashboard-container .back-button {
   display: block;
@@ -936,7 +936,7 @@ body.commander-panel-page .header-search .search-results.open {
   width: auto;
 }
 
-/* Placeholder sections: más aire (Torneos, Comunicaciones, Seguridad) */
+/* Placeholder sections: m?s aire (Torneos, Comunicaciones, Seguridad) */
 .commander-panel-section .commander-placeholder-text {
   margin-top: 12px;
   padding-right: 20px;
@@ -957,7 +957,7 @@ body.commander-panel-page .header-search .search-results.open {
   max-width: 100%;
 }
 
-/* --- Estilo unificado para módulos placeholder (Torneos, Comunicaciones, Seguridad) --- */
+/* --- Estilo unificado para m?dulos placeholder (Torneos, Comunicaciones, Seguridad) --- */
 .commander-panel-section .commander-block .nexus-widget-header {
   margin-bottom: 20px;
   padding-bottom: 16px;
@@ -1498,7 +1498,7 @@ body.commander-panel-page .header-search .search-results.open {
   padding: 0 16px;
 }
 
-/* ===================== MÓDULO DE SEGURIDAD ===================== */
+/* ===================== M?DULO DE SEGURIDAD ===================== */
 .sec-block { margin-bottom: 18px; }
 
 .sec-grid {
@@ -1542,7 +1542,7 @@ body.commander-panel-page .header-search .search-results.open {
 }
 .sec-filter-btn.active { background: rgba(229,57,53,0.25); border-color: rgba(229,57,53,0.6); color: #fff; }
 
-/* Tarjetas de órdenes/bugs */
+/* Tarjetas de ?rdenes/bugs */
 .sec-bugs-list { display: flex; flex-direction: column; gap: 10px; }
 .sec-bug-card {
   border: 1px solid rgba(255,255,255,0.1);
@@ -1592,7 +1592,7 @@ body.commander-panel-page .header-search .search-results.open {
 .sec-repaired-meta { color: #58f658; }
 .sec-bug-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 
-/* Auditoría crítica — dossier timeline (solo Boss) */
+/* Auditor?a cr?tica ? dossier timeline (solo Boss) */
 .sec-boss-audit-block {
   border: 1px solid rgba(227, 179, 65, 0.28);
   border-radius: 16px;
@@ -2068,7 +2068,7 @@ body.commander-panel-page .header-search .search-results.open {
 .sec-fraud-meta { color: #8b949e; font-size: 0.78rem; }
 .sec-fraud-actions { display: flex; gap: 8px; }
 
-/* Auditoría */
+/* Auditor?a */
 .sec-audit-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; margin-top: 10px; }
 .sec-audit-row {
   display: grid;
@@ -2487,7 +2487,7 @@ body.commander-panel-page .header-search .search-results.open {
   color: #e3b341;
 }
 
-/* Creator Market — Commander */
+/* Creator Market ? Commander */
 .cm-cmd-apps-list, .cm-cmd-pubs-list { max-height: 480px; overflow-y: auto; }
 .cm-cmd-app-row {
   padding: 14px 16px;
@@ -2608,7 +2608,7 @@ body.commander-panel-page .header-search .search-results.open {
 }
 
 /* ============================================================
-   Broadcast / Notificación Épica 3D — Solo Boss of the State
+   Broadcast / Notificaci?n ?pica 3D ? Solo Boss of the State
    (usa .sg-welcome-stage / .sg-welcome-canvas de welcome-overlay.css)
    ============================================================ */
 .sg-boss-only-tag {
@@ -2654,9 +2654,170 @@ body.commander-panel-page .header-search .search-results.open {
 @media (max-width: 720px) {
   .sg-broadcast-layout { grid-template-columns: 1fr; }
 }
+.sg-broadcast-notif-link {
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+/* ============================================================
+   Notificaciones autom?ticas de nivel (tabla editable por tramo)
+   ============================================================ */
+.sg-notif-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.sg-notif-preview-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: sticky;
+  top: 12px;
+}
+.sg-notif-table-col {
+  min-width: 0;
+  overflow-x: auto;
+}
+.sg-notif-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.sg-notif-table th {
+  text-align: left;
+  padding: 6px 8px;
+  color: #8b949e;
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+}
+.sg-notif-table td {
+  padding: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  vertical-align: middle;
+}
+.sg-notif-tier-name {
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sg-notif-tier-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px currentColor;
+}
+.sg-notif-rewards {
+  color: #c9d1d9;
+  font-size: 0.78rem;
+  max-width: 240px;
+  line-height: 1.35;
+}
+.sg-notif-table select.comms-select {
+  min-width: 140px;
+  font-size: 0.8rem;
+  padding: 5px 8px;
+}
+.sg-notif-row-actions {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+.sg-notif-row-actions .comms-btn {
+  padding: 5px 9px;
+  font-size: 0.75rem;
+}
+.sg-notif-row-status {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.7rem;
+  color: #8b949e;
+}
+.sg-notif-row-status.sg-notif-row-ok { color: #3fb950; }
+.sg-notif-row-status.sg-notif-row-err { color: #e53935; }
+.sg-notif-row-custom td { background: rgba(255, 179, 71, 0.05); }
+@media (max-width: 900px) {
+  .sg-notif-layout { grid-template-columns: 1fr; }
+  .sg-notif-preview-col { position: static; }
+}
+#secNexusNotifBlock.sg-notif-highlight {
+  animation: sgNotifPulse 1.6s ease-out;
+}
+@keyframes sgNotifPulse {
+  0% { box-shadow: 0 0 0 2px rgba(255, 179, 71, 0.9); }
+  100% { box-shadow: 0 0 0 2px rgba(255, 179, 71, 0); }
+}
+
+/* ============================================================
+   Editor avanzado ? "Probar cualquier notificaci?n"
+   ============================================================ */
+.sg-notif-adv-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 4px;
+}
+.sg-notif-adv-grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+.sg-notif-rewards-editor {
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.sg-notif-rewards-editor-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.sg-notif-rewards-editor-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sg-notif-rewards-editor-actions .comms-btn {
+  padding: 6px 10px;
+  font-size: 0.78rem;
+}
+.sg-notif-rewards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sg-notif-reward-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 90px 1.4fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.sg-notif-reward-row .comms-input {
+  padding: 7px 9px;
+  font-size: 0.82rem;
+}
+.sg-notif-reward-remove {
+  padding: 6px 9px !important;
+  color: #e53935;
+  border-color: rgba(229, 57, 53, 0.4) !important;
+}
+@media (max-width: 900px) {
+  .sg-notif-adv-grid { grid-template-columns: 1fr; }
+  .sg-notif-reward-row { grid-template-columns: 1fr; }
+}
 
 /* -------------------------------------------------
-   Campa�a de bienvenida (insignia Lealtad)
+   Campa?a de bienvenida (insignia Lealtad)
    ------------------------------------------------- */
 .sg-welcome-campaign-layout {
   display: grid;

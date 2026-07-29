@@ -232,6 +232,37 @@
     overflow: visible;
 }
 
+/* Orden fijo de la barra de acciones, igual en las seis páginas:
+   Commander → nivel de Nexus → notificaciones → resto → menú + Cerrar Sesión.
+   El nivel queda a la izquierda del grupo y la cuenta cierra la fila a la
+   derecha. El chip de nivel lo inyecta shared-nexus-sensor.js, por eso se
+   ordena aquí y no en el HTML. */
+.unified-header .header-actions > * { order: 5; }
+.unified-header .header-actions > #commanderPanelBtn { order: 1; }
+.unified-header .header-actions > .sg-nexus-chip-wrap { order: 2; }
+.unified-header .header-actions > .header-notifications-wrap { order: 3; }
+.unified-header .header-actions > .header-back-btn { order: 4; }
+.unified-header .header-actions > .header-account-end { order: 9; }
+
+.unified-header .header-back-btn {
+    text-decoration: none;
+}
+
+/* Botón del Panel de Commander (solo visible para commanders vía JS) */
+.commander-panel-btn {
+    color: #ffd166 !important;
+    border: 1px solid rgba(255, 209, 102, 0.45) !important;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.commander-panel-btn:hover {
+    color: #fff !important;
+    background: rgba(255, 209, 102, 0.18) !important;
+    box-shadow: 0 0 12px rgba(255, 209, 102, 0.45);
+}
+
 .unified-header .header-toggles {
     display: none !important;
 }
@@ -295,11 +326,6 @@
     background: rgba(255, 179, 71, 0.15);
     color: #ffb347;
     border-color: rgba(255, 179, 71, 0.3);
-}
-
-.unified-header .icon-btn.audio-playing {
-    color: #ffb347;
-    border-color: rgba(255, 179, 71, 0.4);
 }
 
 .header-notif-badge {
@@ -495,7 +521,7 @@
     .unified-header .header-search { max-width: none; width: 100%; }
     .unified-header .header-nav { justify-content: center; flex-wrap: wrap; }
     .unified-header .header-actions { justify-content: center; flex-wrap: wrap; }
-    .unified-header .header-account-end {
+    .unified-header .header-actions > .header-account-end {
         margin-left: 0;
         padding-left: 0;
         border-left: none;
@@ -521,6 +547,14 @@
     .unified-header .user-search-input {
         min-height: 44px;
         font-size: 16px; /* Evita zoom en iOS */
+    }
+    .unified-header .icon-btn {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    .unified-header .logout-btn {
+        padding: 0.5rem 1rem;
+        min-height: 44px;
     }
 }
 

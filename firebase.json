@@ -51,7 +51,10 @@
       "*.php",
       "**/*.php",
       "serviceAccountKey.json",
-      "animations/**"
+      "animations/**",
+      "Animations/**",
+      "tools_tmp_*/**",
+      "tmp-*"
     ],
     "redirects": [
       { "source": "/", "destination": "/login", "type": 302 }

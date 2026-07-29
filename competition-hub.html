@@ -7,9 +7,11 @@
   <title>Competition Hub - Studiosgamesrs</title>
   <link rel="icon" href="dragon_profile_studiosgamesrs.png" type="image/png" />
 
-  <link rel="stylesheet" href="dashboard-styles.css?v=20260728profile1">
-  <link rel="stylesheet" href="shared-header.css">
+  <link rel="stylesheet" href="dashboard-styles.css?v=20260728lvlui1">
+  <link rel="stylesheet" href="shared-header.css?v=20260728hdr2">
   <link rel="stylesheet" href="shared-notifications.css?v=20260728pm1">
+  <link rel="stylesheet" href="/sg-level-badge.css?v=20260728levels1">
+  <link rel="stylesheet" href="/shared-nexus-sensor.css?v=20260728wyvern1">
   <link rel="stylesheet" href="competition-hub.css">
   <link rel="stylesheet" href="sg-tournament-hub.css?v=20260724perf">
   <link rel="stylesheet" href="/welcome-overlay.css?v=20260728soldier1">
@@ -35,6 +37,8 @@
   <script>sgInitFirebaseApp();</script>
   <script src="cs2-bridge-config.js?v=20260724b"></script>
   <script src="tournament-system.js?v=20260724b"></script>
+  <script src="/sg-levels.js?v=20260728levels1"></script>
+  <script src="/sg-level-badge.js?v=20260728levels1"></script>
   </head>
 
 <body>
@@ -50,7 +54,7 @@
     </div>
     <div class="header-search">
       <div class="search-input-container">
-        <input type="text" id="userSearchInput" placeholder="üîç Buscar usuarios..." class="user-search-input">
+        <input type="text" id="userSearchInput" placeholder="?? Buscar usuarios..." class="user-search-input">
         <div id="searchResults" class="search-results"></div>
       </div>
     </div>
@@ -67,8 +71,6 @@
           <span class="nexus-toggle-switch"></span>
         </label>
       </div>
-      <button type="button" class="icon-btn" id="audioAmbientToggle" title="Audio ambiental"><i class="fas fa-music"></i></button>
-      <button type="button" class="icon-btn" id="generatePlayerCardBtn" title="Carta de Jugador"><i class="fas fa-id-card"></i></button>
       <div class="header-notifications-wrap">
         <button type="button" class="icon-btn" id="notificationsToggleBtn" title="Notificaciones" aria-expanded="false" aria-haspopup="true">
           <i class="fas fa-bell"></i>
@@ -84,9 +86,10 @@
           </div>
         </div>
       </div>
+      <a href="/dashboard" class="icon-btn header-back-btn" title="Volver al Dashboard" aria-label="Volver al Dashboard"><i class="fas fa-arrow-left"></i></a>
       <a href="/commander-panel" class="icon-btn commander-panel-btn" id="commanderPanelBtn" title="Panel de Commander" aria-label="Panel de Commander" style="display:none;"><i class="fas fa-user-shield"></i></a>
       <button class="icon-btn" onclick="toggleTheme()" title="Cambiar tema"><i class="fas fa-palette" id="theme-icon"></i></button>
-      <div class="header-account-end" role="group" aria-label="Navegaci√≥n del sitio y sesi√≥n">
+      <div class="header-account-end" role="group" aria-label="NavegaciÛn del sitio y sesiÛn">
         <div class="nav-dropdown" id="navDropdown">
           <button type="button" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
             <i class="fas fa-dragon nav-dropdown-icon"></i>
@@ -101,7 +104,7 @@
             <a href="/competition-hub" class="current" role="menuitem"><i class="fas fa-trophy"></i> Competition</a>
           </div>
         </div>
-        <button class="logout-btn" onclick="logout()">Cerrar Sesi√≥n</button>
+        <button class="logout-btn" onclick="logout()">Cerrar SesiÛn</button>
       </div>
     </div>
   </header>
@@ -214,9 +217,9 @@
                         <h3 class="dashboard-section-title" style="color: #ffca3a;">
                             <i class="fas fa-envelope-open-text"></i> Invitaciones a torneos
                         </h3>
-                        <p class="sg-tour-inline-hint" style="margin-bottom:0.75rem;">Como capit√°n, acepta o rechaza invitaciones oficiales aqu√≠.</p>
+                        <p class="sg-tour-inline-hint" style="margin-bottom:0.75rem;">Como capit·n, acepta o rechaza invitaciones oficiales aquÌ.</p>
                         <div id="tournamentInvitesList" class="pending-requests-list">
-                            <p style="color: #888; font-size: 0.9rem;">Comprobando invitaciones‚Ä¶</p>
+                            <p style="color: #888; font-size: 0.9rem;">Comprobando invitacionesÖ</p>
                         </div>
                         <div style="margin-bottom: 2rem;"></div>
                     </div>
@@ -242,11 +245,11 @@
                     <div id="nextEventSection" class="next-event-widget team-info-widget">
                         <div class="team-info-row">
                             <span class="team-info-label"><i class="fas fa-calendar-alt"></i> Founded</span>
-                            <span class="team-info-value" id="teamInfoFounded">‚Äî</span>
+                            <span class="team-info-value" id="teamInfoFounded">ó</span>
                         </div>
                         <div class="team-info-row">
                             <span class="team-info-label"><i class="fas fa-crown"></i> Founder</span>
-                            <span class="team-info-value" id="teamInfoFounder">‚Äî</span>
+                            <span class="team-info-value" id="teamInfoFounder">ó</span>
                         </div>
                         <div class="team-info-row">
                             <span class="team-info-label"><i class="fas fa-trophy"></i> Matches won</span>
@@ -263,17 +266,17 @@
                                 <span class="team-level-xp" id="teamInfoLevelXp">0 XP</span>
                             </div>
                             <div class="team-level-bar"><div class="team-level-bar-fill" id="teamInfoLevelBar" style="width:0%"></div></div>
-                            <div class="team-level-next" id="teamInfoLevelNext">Nivel m√°ximo 10</div>
+                            <div class="team-level-next" id="teamInfoLevelNext">Nivel m·ximo 10</div>
                         </div>
 
                         <div class="team-verify-block" id="teamVerifyBlock">
                             <div class="team-verify-head">
                                 <span class="team-verify-badge unverified" id="teamVerifyBadge"><i class="fas fa-shield-alt"></i> No verificado</span>
                             </div>
-                            <div class="team-verify-meta" id="teamVerifyMeta">La verificaci√≥n permite jugar torneos oficiales.</div>
+                            <div class="team-verify-meta" id="teamVerifyMeta">La verificaciÛn permite jugar torneos oficiales.</div>
                             <div class="team-verify-progress" id="teamVerifyProgress"></div>
                             <button id="teamVerifyPayBtn" class="team-verify-btn" type="button" style="display:none;">
-                                <i class="fas fa-coins"></i> Pagar mi verificaci√≥n (5 coins)
+                                <i class="fas fa-coins"></i> Pagar mi verificaciÛn (5 coins)
                             </button>
                         </div>
                     </div>
@@ -498,23 +501,23 @@
       <span id="sgTourCloseCommandCenter" class="modal-close" aria-label="Cerrar">&times;</span>
       <div class="sg-tour-cc-header">
         <h2 id="sgTourCcTitle" class="sg-tour-cc-title">Centro de torneo</h2>
-        <p id="sgTourCcSubtitle" class="sg-tour-cc-sub">Gesti√≥n profesional de invitaciones</p>
+        <p id="sgTourCcSubtitle" class="sg-tour-cc-sub">GestiÛn profesional de invitaciones</p>
         <div class="sg-tour-stats">
-          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Inscritos</span><span class="sg-tour-stat-value" id="sgTourStatRegistered">‚Äî</span></div>
-          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Pendientes</span><span class="sg-tour-stat-value" id="sgTourStatPending">‚Äî</span></div>
-          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Premio</span><span class="sg-tour-stat-value" id="sgTourStatPrize">‚Äî</span></div>
-          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Cuota</span><span class="sg-tour-stat-value" id="sgTourStatFee">‚Äî</span></div>
+          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Inscritos</span><span class="sg-tour-stat-value" id="sgTourStatRegistered">ó</span></div>
+          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Pendientes</span><span class="sg-tour-stat-value" id="sgTourStatPending">ó</span></div>
+          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Premio</span><span class="sg-tour-stat-value" id="sgTourStatPrize">ó</span></div>
+          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Cuota</span><span class="sg-tour-stat-value" id="sgTourStatFee">ó</span></div>
         </div>
         <div class="sg-tour-capacity-wrap">
           <div class="sg-tour-capacity-row">
             <span class="sg-tour-stat-label" id="sgTourCapacityText">Plazas del torneo</span>
-            <span class="sg-tour-capacity-pct" id="sgTourCapacityPct">‚Äî</span>
+            <span class="sg-tour-capacity-pct" id="sgTourCapacityPct">ó</span>
           </div>
           <div class="sg-tour-capacity-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="sgTourCapacityTrack">
             <div id="sgTourCapacityFill" class="sg-tour-capacity-fill"></div>
           </div>
         </div>
-        <span class="sg-tour-stat-label sg-tour-schedule-line">Inicio: <span id="sgTourStatSchedule">‚Äî</span></span>
+        <span class="sg-tour-stat-label sg-tour-schedule-line">Inicio: <span id="sgTourStatSchedule">ó</span></span>
       </div>
       <div class="sg-tour-tabs" role="tablist">
         <button type="button" class="sg-tour-tab" data-sg-tour-tab="Overview" role="tab">Resumen</button>
@@ -532,14 +535,14 @@
           </div>
           <div class="sg-tour-search-wrap">
             <i class="fas fa-search" aria-hidden="true"></i>
-            <input type="search" id="sgTourTeamSearchInput" placeholder="Buscar equipo por nombre (m√≠n. 2 letras)‚Ä¶" maxlength="40" autocomplete="off" aria-label="Buscar equipos">
-            <button type="button" id="sgTourSearchClear" class="sg-tour-search-clear" aria-label="Limpiar b√∫squeda" title="Limpiar">&times;</button>
+            <input type="search" id="sgTourTeamSearchInput" placeholder="Buscar equipo por nombre (mÌn. 2 letras)Ö" maxlength="40" autocomplete="off" aria-label="Buscar equipos">
+            <button type="button" id="sgTourSearchClear" class="sg-tour-search-clear" aria-label="Limpiar b˙squeda" title="Limpiar">&times;</button>
           </div>
-          <p id="sgTourSearchHint" class="sg-tour-inline-hint">Los capitanes reciben la invitaci√≥n en su panel de equipo en Competition Hub.</p>
+          <p id="sgTourSearchHint" class="sg-tour-inline-hint">Los capitanes reciben la invitaciÛn en su panel de equipo en Competition Hub.</p>
           <div id="sgTourSearchResults" class="sg-tour-list"></div>
         </div>
         <div id="sgTourPanelPending" class="sg-tour-panel" role="tabpanel">
-          <p class="sg-tour-inline-hint">Invitaciones enviadas y a√∫n no aceptadas. Puedes retirarlas antes de que el capit√°n responda.</p>
+          <p class="sg-tour-inline-hint">Invitaciones enviadas y a˙n no aceptadas. Puedes retirarlas antes de que el capit·n responda.</p>
           <div id="sgTourOutboundList" class="sg-tour-list"></div>
         </div>
         <div id="sgTourPanelRegistered" class="sg-tour-panel" role="tabpanel">
@@ -568,22 +571,22 @@
           <div class="modal-input-group" style="flex: 1; min-width: 140px;">
             <label for="tournamentFormatSelect">Formato</label>
             <select id="tournamentFormatSelect" class="modal-input" required>
-              <option value="SingleElim">Eliminaci√≥n simple</option>
-              <option value="DoubleElim">Doble eliminaci√≥n</option>
+              <option value="SingleElim">EliminaciÛn simple</option>
+              <option value="DoubleElim">Doble eliminaciÛn</option>
               <option value="RoundRobin">Round Robin</option>
             </select>
           </div>
           <div class="modal-input-group" style="flex: 1; min-width: 140px;">
-            <label for="tournamentRegionSelect">Regi√≥n</label>
+            <label for="tournamentRegionSelect">RegiÛn</label>
             <select id="tournamentRegionSelect" class="modal-input" required>
               <option value="LATAM">LATAM</option>
-              <option value="NorthAmerica">Norteam√©rica</option>
+              <option value="NorthAmerica">NorteamÈrica</option>
               <option value="Europe">Europa</option>
             </select>
           </div>
         </div>
         <div class="modal-input-group">
-          <label for="tournamentMaxTeamsInput">M√°ximo de equipos (m√≠n. 2)</label>
+          <label for="tournamentMaxTeamsInput">M·ximo de equipos (mÌn. 2)</label>
           <input type="number" id="tournamentMaxTeamsInput" class="modal-input" placeholder="16" min="2" required>
         </div>
         <div class="modal-input-group">
@@ -601,8 +604,8 @@
           </div>
         </div>
         <div class="modal-input-group">
-          <label for="tournamentDescriptionTextarea">Reglas / descripci√≥n (opcional)</label>
-          <textarea id="tournamentDescriptionTextarea" class="modal-textarea" maxlength="300" placeholder="Formato, mapas, contacto‚Ä¶"></textarea>
+          <label for="tournamentDescriptionTextarea">Reglas / descripciÛn (opcional)</label>
+          <textarea id="tournamentDescriptionTextarea" class="modal-textarea" maxlength="300" placeholder="Formato, mapas, contactoÖ"></textarea>
         </div>
         <button type="submit" id="saveTournamentBtn" class="modal-action-btn primary sg-tour-create-actions" style="width: 100%;">
           <i class="fas fa-check-circle"></i> Crear torneo
@@ -698,8 +701,9 @@
 
   <script src="shared-unified-header.js?v=20260711d"></script>
   <script src="shared-notifications.js?v=20260728pm1"></script>
-  <script src="/welcome-overlay.js?v=20260728soldier1"></script>
-  <script src="shared-header.js?v=20260719c"></script>
+  <script src="/shared-nexus-sensor.js?v=20260729fix1"></script>
+  <script src="/welcome-overlay.js?v=20260729fix1"></script>
+  <script src="shared-header.js?v=20260728hdr2"></script>
   <script src="tournament-organizer-ui.js?v=20260724perf"></script>
   <script src="competition-hub-logic.js?v=20260726pz017"></script>
 <div id="teamProfileModal" class="modal" style="display: none;">
@@ -732,7 +736,7 @@
 
         <div class="team-profile-footer" style="margin-top: 25px; text-align: center;">
             <button id="modalJoinTeamBtn" class="action-btn join-btn" style="background: #ffca3a; color: #000; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; display: none;">
-                <i class="fas fa-plus"></i> Enviar Solicitud de UniÈèÆ
+                <i class="fas fa-plus"></i> Enviar Solicitud de Uni?
             </button>
         </div>
     </div>
@@ -759,13 +763,13 @@
     <div class="modal-content team-profile-card">
         <span class="close-btn" id="closeTeamAppearanceModal">&times;</span>
         <h2 class="modal-title"><i class="fas fa-paint-brush"></i> Apariencia del Grupo</h2>
-        <p class="modal-subtitle" style="text-align:center;">Personaliza c√≥mo se ve tu equipo en el buscador de equipos.</p>
+        <p class="modal-subtitle" style="text-align:center;">Personaliza cÛmo se ve tu equipo en el buscador de equipos.</p>
 
         <div id="appearancePreview" class="team-browser-item appearance-preview">
             <img id="appearancePreviewEmblem" class="team-browser-emblem" src="https://placehold.co/50x50/333/ccc?text=??" alt="Emblema">
             <div class="team-browser-info">
                 <span class="team-browser-name" id="appearancePreviewName">Tu equipo</span>
-                <span class="team-browser-motto" id="appearancePreviewMotto">Tu lema aparecer√° aqu√≠</span>
+                <span class="team-browser-motto" id="appearancePreviewMotto">Tu lema aparecer· aquÌ</span>
                 <div class="team-browser-stats"><span><i class="fas fa-trophy"></i> <span id="appearancePreviewWins">0</span> Wins</span></div>
             </div>
         </div>
@@ -792,7 +796,7 @@
                     </button>
                 </div>
             </div>
-            <p class="appearance-hint" id="appearanceBgImgHint">Cualquier imagen sirve: la p√°gina baja el tama√±o/calidad autom√°ticamente si es grande. Solo se ve en el buscador y en el perfil del equipo.</p>
+            <p class="appearance-hint" id="appearanceBgImgHint">Cualquier imagen sirve: la p·gina baja el tamaÒo/calidad autom·ticamente si es grande. Solo se ve en el buscador y en el perfil del equipo.</p>
         </div>
         <div class="appearance-field">
             <label for="appearanceMotto">Lema del equipo</label>
@@ -803,7 +807,7 @@
     </div>
 </div>
 
-<!-- SISTEMA DE ESENCIA (funciona en todas las p√°ginas) -->
+<!-- SISTEMA DE ESENCIA (funciona en todas las p·ginas) -->
 <script src="js/essence-system.js"></script>
 </body>
 

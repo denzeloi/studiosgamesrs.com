@@ -1,0 +1,960 @@
+/* ---------------------------------------------------------------------------
+   Sensor de Nexus — avisos de EXP, celebración de nivel y chip de cabecera.
+
+   Todas las clases llevan el prefijo sg-nexus- porque el CSS del sitio es
+   enorme y cualquier nombre corto ya está cogido. El color del tramo entra por
+   la variable --sg-nexus-tier, que el script fija desde SGLevels.
+   --------------------------------------------------------------------------- */
+
+:root {
+  --sg-nexus-ink: #e6edf3;
+  --sg-nexus-panel-bg: #161b26;
+}
+
+/* Contenedor de avisos: solo se usa cuando el sensor tiene que crearlo él
+   mismo (misma posición que el de shared-notifications.css, para que los
+   avisos de misión, de mensaje privado y de EXP se apilen en la misma
+   columna). */
+.sg-nexus-stack-host {
+  position: fixed;
+  top: 6rem;
+  right: 1rem;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+/* --------------------------------- EXP ---------------------------------- */
+
+.sg-nexus-xp-toast,
+.sg-nexus-level-toast {
+  --sg-nexus-tier: #58a6ff;
+  pointer-events: auto;
+  position: relative;
+  width: 350px;
+  max-width: calc(100vw - 24px);
+  box-sizing: border-box;
+  background: linear-gradient(150deg, #1b2130 0%, #12161f 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 5px solid var(--sg-nexus-tier);
+  border-radius: 8px;
+  padding: 0.85rem 2rem 0.9rem 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  color: var(--sg-nexus-ink);
+  font-size: 0.95rem;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateX(24px);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+.sg-nexus-xp-toast.is-in,
+.sg-nexus-level-toast.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+.sg-nexus-xp-toast.is-out,
+.sg-nexus-level-toast.is-out {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.sg-nexus-xp-main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sg-nexus-xp-amount {
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--sg-nexus-tier);
+  text-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+}
+
+.sg-nexus-xp-label {
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+.sg-nexus-xp-detail {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  opacity: 0.72;
+  overflow-wrap: anywhere;
+}
+
+.sg-nexus-xp-foot {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  opacity: 0.7;
+}
+
+.sg-nexus-bar {
+  height: 6px;
+  margin-top: 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.sg-nexus-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+
+.sg-nexus-close {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  border: 0;
+  background: none;
+  color: rgba(230, 237, 243, 0.55);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.sg-nexus-close:hover { color: #fff; }
+
+/* ------------------------ Nivel intermedio (aviso) ---------------------- */
+
+/* El aviso de nivel intermedio no llega a ser un overlay, pero tampoco puede
+   parecer el aviso de EXP de siempre: lleva el color del tramo en un halo y un
+   destello que lo recorre una vez al aparecer. */
+.sg-nexus-level-toast {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  padding: 1rem 2rem 1rem 1rem;
+  overflow: hidden;
+  background:
+    radial-gradient(130% 100% at 0% 0%, color-mix(in srgb, var(--sg-nexus-tier) 22%, transparent), transparent 62%),
+    linear-gradient(150deg, #232a3b 0%, #14181f 100%);
+  border-color: color-mix(in srgb, var(--sg-nexus-tier) 30%, rgba(255, 255, 255, 0.1));
+  box-shadow:
+    0 6px 26px rgba(0, 0, 0, 0.65),
+    0 0 40px -14px var(--sg-nexus-tier),
+    inset 0 0 30px rgba(255, 255, 255, 0.03);
+}
+
+.sg-nexus-level-toast::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 32%, rgba(255, 255, 255, 0.16) 50%, transparent 68%);
+  transform: translateX(-120%);
+}
+
+.sg-nexus-level-toast.is-in::after {
+  animation: sgNexusShine 1.1s ease-out 0.25s 1 forwards;
+}
+@keyframes sgNexusShine {
+  to { transform: translateX(120%); }
+}
+
+.sg-nexus-level-badge {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  min-height: 52px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid var(--sg-nexus-tier);
+  box-shadow: 0 0 18px -4px var(--sg-nexus-tier);
+}
+
+.sg-nexus-level-badge-fallback {
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--sg-nexus-tier);
+}
+
+.sg-nexus-level-body { flex: 1; min-width: 0; }
+
+.sg-nexus-level-kicker {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.sg-nexus-level-number {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--sg-nexus-tier);
+}
+
+.sg-nexus-level-tier {
+  display: inline-block;
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+}
+
+.sg-nexus-level-next {
+  margin: 0.45rem 0 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+/* ------------------- Nivel de tramo (overlay a pantalla) ----------------
+
+   Subir de tramo pasa una vez cada diez niveles y tiene que sentirse: este
+   overlay comparte el lenguaje visual del de bienvenida/torneo del dashboard
+   (welcome-overlay.css) — foto de fondo velada, brasas que suben, resplandor
+   que respira y logo arriba — en vez de la tarjeta plana que era antes.
+   ---------------------------------------------------------------------- */
+
+.sg-nexus-overlay {
+  --sg-nexus-tier: #58a6ff;
+  position: fixed;
+  inset: 0;
+  /* Un punto por debajo del overlay de bienvenida/torneo: si los dos
+     coincidieran, manda el de welcome-overlay.css. */
+  z-index: 2147482000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.sg-nexus-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sg-nexus-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 85% 55% at 50% 100%, rgba(255, 108, 40, 0.20) 0%, transparent 62%),
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(20, 12, 14, 0.55) 0%, transparent 60%),
+    rgba(5, 4, 6, 0.90);
+  backdrop-filter: blur(3px);
+}
+
+/* Foto del escenario. La imagen la pone el script (vive en el CDN), aquí solo
+   se encuadra y se vela para que no compita con la tarjeta. */
+.sg-nexus-overlay-photo {
+  position: absolute;
+  inset: 0;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  transform: scale(1.35);
+  transform-origin: 50% 32%;
+  opacity: 0.34;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(ellipse 78% 74% at 50% 42%, #000 30%, rgba(0, 0, 0, 0.32) 64%, transparent 88%);
+  mask-image: radial-gradient(ellipse 78% 74% at 50% 42%, #000 30%, rgba(0, 0, 0, 0.32) 64%, transparent 88%);
+}
+
+/* Resplandor de brasa desde abajo, respirando lento. */
+.sg-nexus-overlay-ember {
+  position: absolute;
+  left: 50%;
+  bottom: -18%;
+  width: 130%;
+  height: 60%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse 50% 60% at 50% 100%, rgba(255, 96, 32, 0.26) 0%, rgba(150, 30, 10, 0.10) 45%, transparent 72%);
+  filter: blur(8px);
+  pointer-events: none;
+  animation: sgNexusEmberPulse 4.5s ease-in-out infinite;
+}
+@keyframes sgNexusEmberPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.sg-nexus-overlay-embers {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.sg-nexus-overlay-box {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: calc(100vh - 40px);
+  /* Columna flexible para que en pantallas bajas ceda el escenario y no
+     aparezca una barra de scroll: lo que se puede recortar es el 3D, no el
+     nivel ni los premios. */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  /* El resplandor del escenario sobresale del panel a propósito; sin esto
+     provocaba una barra de scroll horizontal de 14 px. */
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  box-sizing: border-box;
+  padding: 20px 26px 26px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(28, 18, 22, 0.55) 0%, rgba(12, 10, 14, 0.76) 45%, rgba(6, 5, 7, 0.90) 100%);
+  border: 1px solid color-mix(in srgb, var(--sg-nexus-tier) 40%, rgba(255, 255, 255, 0.14));
+  /* El halo del tramo se queda pegado al marco: con más alcance se derramaba
+     sobre la foto del fondo y teñía la escena entera del color del tramo. */
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 24px 80px rgba(0, 0, 0, 0.75),
+    0 0 60px -34px var(--sg-nexus-tier),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: var(--sg-nexus-ink);
+  text-align: center;
+  transform: scale(0.92) translateY(18px);
+  transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.25, 1.1);
+}
+
+.sg-nexus-overlay.is-open .sg-nexus-overlay-box { transform: none; }
+
+/* Todo lo que no sea el escenario mantiene su alto: si se encogiera, el texto
+   quedaría recortado. */
+.sg-nexus-overlay-box > * { flex: 0 0 auto; }
+
+.sg-nexus-overlay-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.4);
+  color: #e6edf3;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.sg-nexus-overlay-close:hover { background: rgba(255, 255, 255, 0.16); }
+
+.sg-nexus-overlay-logo {
+  display: block;
+  height: 46px;
+  margin: 0 auto -4px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--sg-nexus-tier) 55%, transparent));
+}
+
+.sg-nexus-overlay-box > .sg-nexus-overlay-stage {
+  position: relative;
+  width: 100%;
+  /* Se estira hasta 290 px si hay sitio y se encoge hasta 150 si no lo hay: el
+     visor reencuadra solo cuando cambia el tamaño del canvas. */
+  flex: 1 1 auto;
+  height: min(40vh, 290px);
+  min-height: 150px;
+  max-height: 290px;
+  margin-bottom: 4px;
+}
+
+/* Sin Three.js en la página (o con prefers-reduced-motion) el escenario se
+   retira entero y queda la tarjeta con nivel, tramo y premios. */
+.sg-nexus-overlay.is-flat .sg-nexus-overlay-stage { display: none; }
+
+/* El resplandor del escenario va con el AMBIENTE del personaje, no con el color
+   del tramo: el tramo 40 es verde y teñía de verde al soldado en un desierto a
+   pleno sol. El color del tramo se queda donde identifica (insignia, número,
+   barra y botón). */
+.sg-nexus-overlay-glow {
+  --sg-nexus-stage-glow: #ff7a2a;
+  position: absolute;
+  inset: -8%;
+  background: radial-gradient(ellipse 58% 52% at 50% 68%, color-mix(in srgb, var(--sg-nexus-stage-glow) 42%, transparent) 0%, transparent 70%);
+  filter: blur(6px);
+  pointer-events: none;
+  opacity: 0.5;
+  animation: sgNexusGlowPulse 2.8s ease-in-out infinite;
+}
+@keyframes sgNexusGlowPulse {
+  0%, 100% { opacity: 0.42; }
+  50% { opacity: 0.78; }
+}
+
+.sg-nexus-overlay-canvas {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sg-nexus-overlay-loading {
+  position: absolute;
+  inset: auto 0 8px 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.sg-nexus-overlay.has-3d .sg-nexus-overlay-glow { opacity: 0.62; }
+
+.sg-nexus-overlay-kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sg-nexus-tier);
+  opacity: 0.9;
+}
+
+/* Insignia y número de nivel en una sola fila: la insignia da el color del
+   tramo y el número el titular. */
+.sg-nexus-overlay-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 0.35rem 0 0.15rem;
+}
+
+.sg-nexus-overlay-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.sg-nexus-overlay-badge-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  border: 2px solid var(--sg-nexus-tier);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 18px -4px var(--sg-nexus-tier);
+  font-weight: 800;
+  color: var(--sg-nexus-tier);
+}
+
+.sg-nexus-overlay-level {
+  margin: 0;
+  font-family: 'Orbitron', 'Rajdhani', system-ui, sans-serif;
+  font-size: clamp(1.7rem, 5.6vw, 2.5rem);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  background: linear-gradient(180deg, #fff6ee 0%, color-mix(in srgb, var(--sg-nexus-tier) 88%, #fff) 55%, color-mix(in srgb, var(--sg-nexus-tier) 62%, #000) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 26px color-mix(in srgb, var(--sg-nexus-tier) 60%, transparent));
+}
+
+.sg-nexus-overlay-tier {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.92rem;
+  letter-spacing: 0.09em;
+  color: var(--sg-nexus-tier);
+}
+
+.sg-nexus-overlay-tagline {
+  margin: 0.5rem auto 0;
+  max-width: 42ch;
+  font-size: 0.9rem;
+  opacity: 0.78;
+}
+
+.sg-nexus-overlay-progress {
+  margin: 0.95rem auto 0;
+  max-width: 360px;
+}
+
+.sg-nexus-overlay-xp {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  opacity: 0.7;
+}
+
+.sg-nexus-rewards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin: 1.1rem 0 0.2rem;
+  text-align: left;
+}
+
+/* Las tarjetas entran en cascada, igual que los premios de la bienvenida. */
+.sg-nexus-reward {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background:
+    radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--sg-nexus-tier) 14%, transparent), transparent 68%),
+    rgba(255, 255, 255, 0.04);
+  border: 1px solid color-mix(in srgb, var(--sg-nexus-tier) 24%, rgba(255, 255, 255, 0.09));
+  opacity: 0;
+  transform: translateY(10px);
+  animation: sgNexusRewardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--sg-nexus-reward-delay, 0ms);
+}
+@keyframes sgNexusRewardIn {
+  to { opacity: 1; transform: none; }
+}
+
+.sg-nexus-reward-icon {
+  color: var(--sg-nexus-tier);
+  font-size: 1.1rem;
+}
+
+.sg-nexus-reward-kind {
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.sg-nexus-reward-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.sg-nexus-reward-desc {
+  font-size: 0.76rem;
+  opacity: 0.68;
+  overflow-wrap: anywhere;
+}
+
+.sg-nexus-overlay-btn {
+  margin-top: 1.2rem;
+  padding: 11px 26px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sg-nexus-tier);
+  color: #0d1117;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: filter 0.2s ease, transform 0.15s ease;
+}
+
+.sg-nexus-overlay-btn:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+
+/* ---- Ambientación por personaje ----
+   El escenario 3D lo elige el tramo (gólem, soldado o wyvern) y el fondo tiene
+   que acompañarlo: el sensor pone el tema en data-sg-theme. Solo cambian los
+   tintes; la estructura es la misma. */
+
+.sg-nexus-overlay[data-sg-theme="desert"] .sg-nexus-overlay-backdrop {
+  background:
+    radial-gradient(ellipse 85% 55% at 50% 100%, rgba(196, 142, 68, 0.24) 0%, transparent 62%),
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(48, 38, 26, 0.52) 0%, transparent 60%),
+    rgba(8, 7, 6, 0.90);
+}
+
+/* La foto del desierto es de día y muy legible: con el velo del volcán se leía
+   como una segunda escena compitiendo con la tarjeta. */
+.sg-nexus-overlay[data-sg-theme="desert"] .sg-nexus-overlay-photo {
+  transform: scale(1.12);
+  transform-origin: 50% 45%;
+  opacity: 0.22;
+  filter: saturate(0.75) brightness(0.8);
+}
+
+.sg-nexus-overlay[data-sg-theme="desert"] .sg-nexus-overlay-ember {
+  background: radial-gradient(ellipse 50% 60% at 50% 100%, rgba(226, 178, 96, 0.24) 0%, rgba(140, 100, 48, 0.10) 45%, transparent 72%);
+}
+
+.sg-nexus-overlay[data-sg-theme="desert"] .sg-nexus-overlay-glow {
+  --sg-nexus-stage-glow: #e8b877;
+}
+
+/* La wyvern sale en la fragua: más rojo saturado y menos velo sobre la foto,
+   que el volcán aquí es parte del personaje. */
+.sg-nexus-overlay[data-sg-theme="wyvern"] .sg-nexus-overlay-backdrop {
+  background:
+    radial-gradient(ellipse 85% 55% at 50% 100%, rgba(255, 74, 22, 0.26) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(30, 8, 10, 0.60) 0%, transparent 58%),
+    rgba(6, 3, 4, 0.91);
+}
+
+.sg-nexus-overlay[data-sg-theme="wyvern"] .sg-nexus-overlay-photo {
+  transform: scale(1.5);
+  transform-origin: 50% 28%;
+  opacity: 0.42;
+}
+
+.sg-nexus-overlay[data-sg-theme="wyvern"] .sg-nexus-overlay-ember {
+  background: radial-gradient(ellipse 50% 60% at 50% 100%, rgba(255, 88, 24, 0.32) 0%, rgba(176, 24, 12, 0.14) 45%, transparent 72%);
+}
+
+.sg-nexus-overlay[data-sg-theme="wyvern"] .sg-nexus-overlay-glow {
+  --sg-nexus-stage-glow: #ff5a28;
+}
+
+/* ------------------------- Chip de la cabecera -------------------------- */
+
+/* El color del tramo se fija en el envoltorio, no en el botón, para que lo
+   herede también el panel (que es su hermano, no su hijo). */
+.sg-nexus-chip-wrap {
+  --sg-nexus-tier: #58a6ff;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* El botón enseña solo la insignia del nivel y mide lo mismo que los demás
+   iconos de la cabecera (30px), para que la fila quede a una sola altura. */
+.sg-nexus-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--sg-nexus-ink);
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+/* Halo del color del tramo que despierta al pasar el cursor. */
+.sg-nexus-chip::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--sg-nexus-tier), transparent 72%);
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.sg-nexus-chip:hover,
+.sg-nexus-chip:focus-visible {
+  transform: translateY(-1px);
+  filter: drop-shadow(0 0 6px var(--sg-nexus-tier));
+  outline: none;
+}
+
+.sg-nexus-chip:hover::after,
+.sg-nexus-chip:focus-visible::after {
+  opacity: 0.32;
+  transform: scale(1);
+}
+
+.sg-nexus-chip-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* La insignia se ajusta al hueco del botón. */
+.sg-nexus-chip-badge .sg-lvl {
+  --sg-lvl-size: 30px;
+  --sg-lvl-ring: 3px;
+  --sg-lvl-num: 0.74rem;
+  gap: 0;
+}
+
+.sg-nexus-chip-fallback {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: var(--sg-nexus-tier);
+}
+
+/* ------------------------- Panel del chip ------------------------------- */
+
+.sg-nexus-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: min(310px, calc(100vw - 24px));
+  box-sizing: border-box;
+  padding: 16px 18px 18px;
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--sg-nexus-tier) 16%, transparent), transparent 70%),
+    var(--sg-nexus-panel-bg);
+  border: 1px solid color-mix(in srgb, var(--sg-nexus-tier) 34%, rgba(255, 255, 255, 0.12));
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  color: var(--sg-nexus-ink);
+  font-size: 0.84rem;
+  z-index: 12090;
+  display: none;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  /* Con todos los accesos desbloqueados el panel crece: se le pone techo. */
+  max-height: min(76vh, 560px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* Puente invisible: el cursor cruza del botón al panel sin que se cierre. */
+.sg-nexus-panel::before {
+  content: '';
+  position: absolute;
+  top: -14px;
+  right: 0;
+  left: 0;
+  height: 14px;
+}
+
+.sg-nexus-panel.is-open {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Flecha que ancla el panel al botón. */
+.sg-nexus-panel.is-open::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: 10px;
+  width: 11px;
+  height: 11px;
+  transform: rotate(45deg);
+  background: var(--sg-nexus-panel-bg);
+  border-left: 1px solid color-mix(in srgb, var(--sg-nexus-tier) 34%, rgba(255, 255, 255, 0.12));
+  border-top: 1px solid color-mix(in srgb, var(--sg-nexus-tier) 34%, rgba(255, 255, 255, 0.12));
+}
+
+.sg-nexus-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Número grande del nivel dentro de un disco del color del tramo. */
+.sg-nexus-panel-num {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #fff;
+  background: radial-gradient(circle at 30% 25%,
+    color-mix(in srgb, var(--sg-nexus-tier) 85%, #fff),
+    color-mix(in srgb, var(--sg-nexus-tier) 55%, #000));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--sg-nexus-tier) 55%, transparent),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.45);
+}
+
+.sg-nexus-panel-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sg-nexus-panel-level {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.sg-nexus-panel-tier {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--sg-nexus-tier);
+}
+
+.sg-nexus-panel-access {
+  margin: 10px 0 8px;
+  font-size: 0.75rem;
+  opacity: 0.65;
+}
+
+.sg-nexus-panel-line {
+  margin: 0.5rem 0 0;
+  opacity: 0.82;
+  font-size: 0.78rem;
+}
+
+.sg-nexus-panel-title {
+  margin: 0.9rem 0 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.sg-nexus-panel-perks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sg-nexus-panel-perks li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.78rem;
+  padding: 6px 9px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sg-nexus-panel-perks i {
+  flex: 0 0 auto;
+  width: 15px;
+  text-align: center;
+  font-size: 0.76rem;
+  color: var(--sg-nexus-tier);
+}
+
+/* Accesos del tramo: en pastillas, que a nivel alto son ocho. */
+.sg-nexus-panel-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.sg-nexus-panel-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(230, 237, 243, 0.9);
+  background: color-mix(in srgb, var(--sg-nexus-tier) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sg-nexus-tier) 32%, transparent);
+}
+
+.sg-nexus-panel-key i {
+  font-size: 0.62rem;
+  color: var(--sg-nexus-tier);
+  opacity: 0.9;
+}
+
+.sg-nexus-panel-next {
+  margin-top: 0.7rem;
+  opacity: 0.7;
+}
+
+.sg-nexus-panel-empty {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.sg-nexus-panel-link {
+  display: block;
+  margin-top: 0.9rem;
+  padding: 8px 10px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: #fff;
+  text-decoration: none;
+  background: color-mix(in srgb, var(--sg-nexus-tier) 26%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sg-nexus-tier) 45%, transparent);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.sg-nexus-panel-link:hover {
+  background: color-mix(in srgb, var(--sg-nexus-tier) 42%, transparent);
+  transform: translateY(-1px);
+}
+
+/* ------------------------------ Adaptación ------------------------------ */
+
+@media (max-width: 520px) {
+  .sg-nexus-stack-host {
+    top: auto;
+    bottom: 16px;
+    right: 12px;
+    left: 12px;
+  }
+
+  .sg-nexus-xp-toast,
+  .sg-nexus-level-toast { width: auto; }
+
+  .sg-nexus-overlay-box > .sg-nexus-overlay-stage { height: 200px; max-height: 200px; }
+
+  .sg-nexus-overlay-level { font-size: 1.9rem; }
+
+  /* Centrado sin transform: el transform lo usa la animación de apertura. */
+  .sg-nexus-panel {
+    right: auto;
+    left: 50%;
+    margin-left: calc(-0.5 * min(310px, 100vw - 24px));
+  }
+
+  .sg-nexus-panel.is-open::after { right: auto; left: calc(50% - 5px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sg-nexus-xp-toast,
+  .sg-nexus-level-toast,
+  .sg-nexus-overlay,
+  .sg-nexus-overlay-box,
+  .sg-nexus-bar-fill,
+  .sg-nexus-overlay-btn {
+    transition: none !important;
+  }
+
+  .sg-nexus-xp-toast,
+  .sg-nexus-level-toast {
+    transform: none;
+    opacity: 1;
+  }
+
+  .sg-nexus-overlay-box { transform: none; }
+
+  /* Nada de brasas respirando, destellos ni cascadas: el contenido se queda
+     quieto y visible. */
+  .sg-nexus-overlay-ember,
+  .sg-nexus-overlay-glow,
+  .sg-nexus-level-toast.is-in::after {
+    animation: none !important;
+  }
+
+  .sg-nexus-reward {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+}

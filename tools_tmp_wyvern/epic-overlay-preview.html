@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<!--
+  Banco de pruebas de la notificación épica (welcome-overlay).
+
+  Muestra el mismo overlay del dashboard: soldado (victoria de torneo) y
+  wyvern (broadcast). Los .glb y las fotos se leen del disco local.
+
+  Uso:  /tools_tmp_wyvern/epic-overlay-preview.html
+-->
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Preview notificación épica</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Orbitron:wght@400;500;700&family=Montserrat:wght@300;400;600&family=Rajdhani:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="/welcome-overlay.css" />
+  <style>
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: Montserrat, system-ui, sans-serif;
+      background: radial-gradient(ellipse at 50% 20%, #1a1410 0%, #0b0d12 60%);
+      color: #c8d0dc;
+      display: grid; place-items: center;
+    }
+    .panel {
+      text-align: center;
+      padding: 28px 32px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      background: rgba(12,14,20,0.72);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      max-width: 420px;
+    }
+    h1 { margin: 0 0 8px; font-size: 1.15rem; letter-spacing: 0.04em; }
+    p { margin: 0 0 20px; font-size: 0.9rem; opacity: 0.75; line-height: 1.5; }
+    .btns { display: flex; flex-direction: column; gap: 10px; }
+    button {
+      appearance: none; border: 0; cursor: pointer;
+      padding: 12px 16px; border-radius: 10px;
+      font: inherit; font-weight: 600; letter-spacing: 0.02em;
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+    button:hover { transform: translateY(-1px); filter: brightness(1.08); }
+    .soldier {
+      background: linear-gradient(135deg, #c9a46a, #8a6a3a);
+      color: #1a1208;
+    }
+    .wyvern {
+      background: linear-gradient(135deg, #ff6a2a, #b02010);
+      color: #fff6ee;
+    }
+    .both {
+      background: linear-gradient(135deg, #58a6ff, #3d6fbf);
+      color: #fff;
+    }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="panel">
+    <h1>Notificación épica</h1>
+    <p>Misma pieza que usa el dashboard. Elige personaje o míralos uno detrás del otro.</p>
+    <div class="btns">
+      <button type="button" class="soldier" id="btnSoldier">Soldado · victoria de torneo</button>
+      <button type="button" class="wyvern" id="btnWyvern">Wyvern · rugido</button>
+      <button type="button" class="both" id="btnBoth">Ver los dos (soldado → wyvern)</button>
+    </div>
+  </div>
+
+  <script src="/welcome-overlay.js"></script>
+  <script>
+    (function () {
+      // Los .glb salen del disco local, no de Firebase.
+      var chars = window.SGCreatureViewer && window.SGCreatureViewer.CHARACTERS;
+      if (chars) {
+        Object.keys(chars).forEach(function (id) {
+          chars[id].basePath = '/models/' + id + '/';
+        });
+      }
+
+      // Las fotos de fondo también.
+      var photoFix = new MutationObserver(function () {
+        var photo = document.querySelector('.sg-welcome-overlay-photo');
+        if (!photo) return;
+        var url = photo.style.backgroundImage || '';
+        var m = url.match(/\/([\w-]+\.jpg)/);
+        if (m && /studiosgamesrs/.test(url)) {
+          photo.style.backgroundImage = "url('/" + m[1] + "')";
+        }
+      });
+      photoFix.observe(document.documentElement, { childList: true, subtree: true });
+
+      function showSoldier() {
+        window.SGWelcomeOverlay.showOverlay('tournament-result', {
+          result: 'win',
+          teamName: 'Alpha Squad',
+          opponentName: 'Night Wolves',
+          tournamentName: 'Copa StudiosGamesRS',
+          score: '16-12',
+          map: 'Mirage'
+        }, 3);
+      }
+
+      function showWyvern() {
+        window.SGWelcomeOverlay.showOverlay('broadcast', {
+          title: '¡Wyvern desbloqueada!',
+          message: 'La nueva animación ya corre en las notificaciones épicas. Tramo LEYENDA y superiores.',
+          characterId: 'wyvern-dragon',
+          animation: 'roar'
+        }, 3);
+      }
+
+      document.getElementById('btnSoldier').addEventListener('click', showSoldier);
+      document.getElementById('btnWyvern').addEventListener('click', showWyvern);
+      document.getElementById('btnBoth').addEventListener('click', function () {
+        // Primero el soldado; al cerrar, la cola del overlay saca la wyvern.
+        showSoldier();
+        setTimeout(function () {
+          window.SGWelcomeOverlay.showOverlay('broadcast', {
+            title: '¡Wyvern desbloqueada!',
+            message: 'La nueva animación ya corre en las notificaciones épicas. Tramo LEYENDA y superiores.',
+            characterId: 'wyvern-dragon',
+            animation: 'roar'
+          }, 0);
+        }, 400);
+      });
+
+      // Arranca con los dos en cola para que se vea de una.
+      showSoldier();
+      setTimeout(function () {
+        window.SGWelcomeOverlay.showOverlay('broadcast', {
+          title: '¡Wyvern desbloqueada!',
+          message: 'La nueva animación ya corre en las notificaciones épicas. Tramo LEYENDA y superiores.',
+          characterId: 'wyvern-dragon',
+          animation: 'roar'
+        }, 0);
+      }, 400);
+    })();
+  </script>
+</body>
+</html>

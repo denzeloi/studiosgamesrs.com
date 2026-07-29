@@ -484,15 +484,331 @@ body::before {
     border-radius: 8px;
 }
 
-.profile-avatar-center {
-    display: flex;
-    justify-content: center;
-    margin: 8px 0 12px;
+/* ============ TARJETA DEL CREADOR (héroe cinematográfico) ============
+   La foto va arriba a la izquierda con el marco equipado encima, y el nombre y
+   el honor a su derecha. Detrás, una ambientación de cuatro capas teñida por el
+   color del tramo del jugador (--nexus-hero-accent, que pinta nexus-logic.js).
+   Nexus no carga dashboard-styles.css, así que las reglas de marcos y sus
+   paletas viven aquí. */
+.nexus-hero-cine {
+    --nexus-hero-accent: #e53935;
+    position: relative;
+    isolation: isolate;
 }
 
-.profile-rank-meta {
-    text-align: center;
-    margin-bottom: 14px;
+.nexus-hero-stage {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.nexus-hero-cine > *:not(.nexus-hero-stage) {
+    position: relative;
+    z-index: 1;
+}
+
+.nexus-hero-cine .profile-card-top {
+    align-items: center;
+}
+
+/* Si falta sitio, las etiquetas de la derecha se reparten en dos filas antes de
+   estrujar el nombre y el honor. */
+.nexus-hero-cine .profile-rewards-top {
+    flex-shrink: 1;
+    flex-wrap: wrap;
+}
+
+.nexus-hero-cine .profile-honor-text {
+    white-space: nowrap;
+}
+
+/* Capa 1: manchas de luz que respiran, en el color del tramo */
+.nexus-hero-stage-aurora {
+    position: absolute;
+    inset: -35%;
+    opacity: 0.34;
+    filter: blur(20px) saturate(125%);
+    background:
+        radial-gradient(closest-side, var(--nexus-hero-accent), transparent 72%) 16% 26% / 58% 62% no-repeat,
+        radial-gradient(closest-side, #58a6ff, transparent 74%) 84% 78% / 62% 66% no-repeat,
+        radial-gradient(closest-side, #ffb347, transparent 76%) 60% 8% / 46% 52% no-repeat;
+    animation: nexusHeroAurora 19s ease-in-out infinite alternate;
+}
+
+/* Capa 2: rejilla técnica que se desplaza despacio, difuminada hacia el fondo */
+.nexus-hero-stage-grid {
+    position: absolute;
+    inset: 0;
+    opacity: 0.16;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+    background-size: 34px 34px, 34px 34px;
+    -webkit-mask-image: radial-gradient(125% 95% at 10% 0%, #000 0%, transparent 74%);
+    mask-image: radial-gradient(125% 95% at 10% 0%, #000 0%, transparent 74%);
+    animation: nexusHeroGrid 30s linear infinite;
+}
+
+/* Capa 3: el barrido de luz que cruza la tarjeta */
+.nexus-hero-stage-sweep {
+    position: absolute;
+    top: -30%;
+    bottom: -30%;
+    left: -55%;
+    width: 40%;
+    transform: skewX(-14deg);
+    filter: blur(3px);
+    background: linear-gradient(
+        100deg,
+        transparent,
+        rgba(255, 255, 255, 0.08) 32%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0.08) 68%,
+        transparent
+    );
+    animation: nexusHeroSweep 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Capa 4: brasas que suben, a juego con el tema dragón de la página */
+.nexus-hero-stage-embers {
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(2px 2px at 11% 86%, var(--nexus-hero-accent), transparent 62%),
+        radial-gradient(1.5px 1.5px at 27% 94%, #ffb347, transparent 62%),
+        radial-gradient(2px 2px at 46% 88%, var(--nexus-hero-accent), transparent 62%),
+        radial-gradient(1.5px 1.5px at 68% 96%, #ffd390, transparent 62%),
+        radial-gradient(2px 2px at 83% 90%, var(--nexus-hero-accent), transparent 62%);
+    animation: nexusHeroEmbers 15s linear infinite;
+}
+
+@keyframes nexusHeroAurora {
+    0% { transform: translate3d(-3%, -2%, 0) scale(1); }
+    50% { transform: translate3d(2%, 3%, 0) scale(1.09); }
+    100% { transform: translate3d(4%, -3%, 0) scale(1.03); }
+}
+
+@keyframes nexusHeroGrid {
+    to { background-position: 34px 34px, 34px 34px; }
+}
+
+@keyframes nexusHeroSweep {
+    0%, 60% { left: -55%; opacity: 0; }
+    66% { opacity: 1; }
+    100% { left: 118%; opacity: 0; }
+}
+
+@keyframes nexusHeroEmbers {
+    0% { transform: translateY(8%); opacity: 0; }
+    15% { opacity: 0.6; }
+    100% { transform: translateY(-26%); opacity: 0; }
+}
+
+/* --- Identidad: foto + nombre + honor --- */
+.nexus-hero-identity {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+}
+
+.nexus-hero-avatar {
+    position: relative;
+    flex-shrink: 0;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    isolation: isolate;
+}
+
+/* Halo del tramo alrededor de la foto */
+.nexus-hero-avatar::after {
+    content: '';
+    position: absolute;
+    inset: -10px;
+    z-index: 0;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--nexus-hero-accent), transparent 74%);
+    opacity: 0.38;
+    filter: blur(7px);
+    pointer-events: none;
+    animation: nexusHeroHalo 4.4s ease-in-out infinite;
+}
+
+/* Con marco equipado el halo baja para no competir con el anillo del marco */
+.nexus-hero-avatar.has-profile-frame::after,
+.nexus-hero-avatar.sg-lvl-frame::after {
+    opacity: 0.2;
+}
+
+@keyframes nexusHeroHalo {
+    0%, 100% { opacity: 0.24; transform: scale(0.97); }
+    50% { opacity: 0.46; transform: scale(1.03); }
+}
+
+.nexus-hero-avatar-img {
+    position: relative;
+    z-index: 4;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #0d1117;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+    transition: transform 0.25s ease;
+}
+
+.nexus-hero-avatar:hover .nexus-hero-avatar-img {
+    transform: scale(1.04);
+}
+
+/* El anillo del marco tapa el borde de la foto, igual que en el dashboard */
+.nexus-hero-avatar.has-profile-frame .nexus-hero-avatar-img {
+    clip-path: circle(48% at 50% 50%);
+}
+
+/* --- Marcos: overlay que inyecta profile-customization.js --- */
+.nexus-hero-avatar .profile-photo-frame-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: calc(100% * var(--frame-outer-ratio, 1.19));
+    height: calc(100% * var(--frame-outer-ratio, 1.19));
+    transform: translate(-50%, -50%);
+    z-index: 7;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+}
+
+.nexus-hero-avatar .profile-photo-frame-overlay.frame-layout-standard { --frame-outer-ratio: 1.16; }
+.nexus-hero-avatar .profile-photo-frame-overlay.frame-layout-wide { --frame-outer-ratio: 1.22; }
+.nexus-hero-avatar .profile-photo-frame-overlay.frame-layout-ornate { --frame-outer-ratio: 1.28; }
+
+/* Paleta de cada tramo (los marcos de nivel dibujan su anillo con CSS puro) */
+.nexus-hero-avatar.profile-frame-nexus-tier-creador {
+    --sg-frame-c1: #a371f7; --sg-frame-c2: #e0cdff; --sg-frame-c3: #5b32a8;
+    --sg-frame-glow: rgba(163, 113, 247, 0.5);
+    --sg-frame-ring: conic-gradient(from 220deg, var(--sg-frame-c3), var(--sg-frame-c1) 30%, var(--sg-frame-c2) 50%, var(--sg-frame-c1) 70%, var(--sg-frame-c3));
+}
+.nexus-hero-avatar.profile-frame-nexus-tier-promotor {
+    --sg-frame-c1: #f778ba; --sg-frame-c2: #ffcfe8; --sg-frame-c3: #a52d6d;
+    --sg-frame-glow: rgba(247, 120, 186, 0.52);
+    --sg-frame-ring: conic-gradient(from 200deg, var(--sg-frame-c3), var(--sg-frame-c1) 25%, var(--sg-frame-c2) 45%, var(--sg-frame-c1) 68%, var(--sg-frame-c3));
+}
+.nexus-hero-avatar.profile-frame-nexus-tier-influencer {
+    --sg-frame-c1: #e3b341; --sg-frame-c2: #fff0bd; --sg-frame-c3: #8a6410;
+    --sg-frame-glow: rgba(227, 179, 65, 0.55);
+    --sg-frame-ring: linear-gradient(160deg, var(--sg-frame-c2), var(--sg-frame-c1) 50%, var(--sg-frame-c3));
+    --sg-frame-inner: linear-gradient(0deg, var(--sg-frame-c2), var(--sg-frame-c2));
+}
+.nexus-hero-avatar.profile-frame-nexus-tier-embajador {
+    --sg-frame-c1: #3fb950; --sg-frame-c2: #b7f5c0; --sg-frame-c3: #17632a;
+    --sg-frame-glow: rgba(63, 185, 80, 0.6);
+    --sg-frame-ring: conic-gradient(from 140deg, var(--sg-frame-c3), var(--sg-frame-c1) 20%, var(--sg-frame-c2) 48%, var(--sg-frame-c1) 76%, var(--sg-frame-c3));
+    --sg-frame-inner: linear-gradient(0deg, var(--sg-frame-c1), var(--sg-frame-c1));
+}
+.nexus-hero-avatar.profile-frame-nexus-tier-veterano {
+    --sg-frame-c1: #2dd4bf; --sg-frame-c2: #c2fff5; --sg-frame-c3: #0d6b61;
+    --sg-frame-glow: rgba(45, 212, 191, 0.55);
+    --sg-frame-ring: repeating-conic-gradient(from 0deg, var(--sg-frame-c1) 0 6deg, var(--sg-frame-c3) 6deg 12deg);
+}
+.nexus-hero-avatar.profile-frame-nexus-tier-elite {
+    --sg-frame-c1: #ff7b3d; --sg-frame-c2: #ffd3ab; --sg-frame-c3: #9c3a08;
+    --sg-frame-glow: rgba(255, 123, 61, 0.58);
+    --sg-frame-ring: repeating-conic-gradient(from 0deg, var(--sg-frame-c2) 0 2deg, var(--sg-frame-c1) 2deg 8deg, var(--sg-frame-c3) 8deg 14deg);
+    --sg-frame-inner: linear-gradient(0deg, var(--sg-frame-c1), var(--sg-frame-c1));
+}
+.nexus-hero-avatar.profile-frame-nexus-tier-leyenda {
+    --sg-frame-c1: #ff4d6d; --sg-frame-c2: #ffd0da; --sg-frame-c3: #8c0f2c;
+    --sg-frame-glow: rgba(255, 77, 109, 0.6);
+    --sg-frame-ring: conic-gradient(from 0deg, var(--sg-frame-c3), var(--sg-frame-c1) 16%, var(--sg-frame-c2) 28%, var(--sg-frame-c1) 42%, var(--sg-frame-c3) 64%, var(--sg-frame-c1) 88%, var(--sg-frame-c3));
+    --sg-frame-spin: 11s;
+}
+.nexus-hero-avatar.profile-frame-nexus-tier-mitico {
+    --sg-frame-c1: #b48cff; --sg-frame-c2: #eadfff; --sg-frame-c3: #4b2a94;
+    --sg-frame-glow: rgba(180, 140, 255, 0.62);
+    --sg-frame-ring: conic-gradient(from 0deg, var(--sg-frame-c3), var(--sg-frame-c1) 14%, var(--sg-frame-c2) 26%, var(--sg-frame-c1) 40%, var(--sg-frame-c3) 58%, var(--sg-frame-c2) 74%, var(--sg-frame-c1) 88%, var(--sg-frame-c3));
+    --sg-frame-inner: linear-gradient(0deg, var(--sg-frame-c2), var(--sg-frame-c2));
+    --sg-frame-spin: 9s;
+    --sg-frame-pulse: 3.4s;
+}
+.nexus-hero-avatar.profile-frame-nexus-tier-eterno {
+    --sg-frame-c1: #f2f4ff; --sg-frame-c2: #ffffff; --sg-frame-c3: #6d76b8;
+    --sg-frame-glow: rgba(210, 220, 255, 0.7);
+    --sg-frame-ring: conic-gradient(from 0deg, #f2f4ff, #a371f7 14%, #2dd4bf 30%, #ffe9a8 48%, #ff7b3d 64%, #ff4d6d 80%, #f2f4ff);
+    --sg-frame-inner: linear-gradient(0deg, var(--sg-frame-c2), var(--sg-frame-c2));
+    --sg-frame-spin: 13s;
+    --sg-frame-pulse: 3.8s;
+}
+.nexus-hero-avatar.profile-frame-nexus-lv100-soberano {
+    --sg-frame-c1: #ffe9a8; --sg-frame-c2: #ffffff; --sg-frame-c3: #b48cff;
+    --sg-frame-glow: rgba(255, 233, 168, 0.75);
+    --sg-frame-ring: conic-gradient(from 0deg, #ffffff, #ffe9a8 10%, #ff4d6d 24%, #b48cff 38%, #2dd4bf 52%, #58a6ff 66%, #ffe9a8 82%, #ffffff);
+    --sg-frame-inner: conic-gradient(from 180deg, #ffe9a8, #ffffff 20%, #b48cff 45%, #58a6ff 70%, #ffe9a8);
+    --sg-frame-spin: 7.5s;
+    --sg-frame-pulse: 15s;
+    --sg-frame-inner-anim: sg-lvframe-spin-reverse;
+    --sg-frame-inner-ease: linear;
+}
+
+.nexus-hero-avatar.sg-lvl-frame > .profile-photo-frame-overlay {
+    --sg-frame-w: 9%;
+    border-radius: 50%;
+    background-image: none;
+}
+
+.nexus-hero-avatar.sg-lvl-frame > .profile-photo-frame-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+    background: var(--sg-frame-ring, var(--sg-frame-c1, transparent));
+    /* Centro hueco: el anillo no llega a tapar la cara. */
+    -webkit-mask-image: radial-gradient(circle closest-side, transparent calc(100% - var(--sg-frame-w)), #000 calc(100% - var(--sg-frame-w)));
+    mask-image: radial-gradient(circle closest-side, transparent calc(100% - var(--sg-frame-w)), #000 calc(100% - var(--sg-frame-w)));
+    filter: drop-shadow(0 0 7px var(--sg-frame-glow, transparent));
+    animation: sg-lvframe-spin var(--sg-frame-spin, 0s) linear infinite;
+}
+
+.nexus-hero-avatar.sg-lvl-frame > .profile-photo-frame-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 7.5%;
+    border-radius: 50%;
+    pointer-events: none;
+    background: var(--sg-frame-inner, none);
+    -webkit-mask-image: radial-gradient(circle closest-side, transparent 93%, #000 93%);
+    mask-image: radial-gradient(circle closest-side, transparent 93%, #000 93%);
+    animation-name: var(--sg-frame-inner-anim, sg-lvframe-pulse);
+    animation-duration: var(--sg-frame-pulse, 0s);
+    animation-timing-function: var(--sg-frame-inner-ease, ease-in-out);
+    animation-iteration-count: infinite;
+}
+
+@keyframes sg-lvframe-spin { to { transform: rotate(360deg); } }
+@keyframes sg-lvframe-spin-reverse { to { transform: rotate(-360deg); } }
+@keyframes sg-lvframe-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nexus-hero-stage-aurora,
+    .nexus-hero-stage-grid,
+    .nexus-hero-stage-sweep,
+    .nexus-hero-stage-embers,
+    .nexus-hero-avatar::after,
+    .nexus-hero-avatar.sg-lvl-frame > .profile-photo-frame-overlay::before,
+    .nexus-hero-avatar.sg-lvl-frame > .profile-photo-frame-overlay::after {
+        animation: none !important;
+    }
 }
 
 .profile-card-compact .rank-badge-container {
@@ -3603,6 +3919,15 @@ body.effect-brazas .particle {
         align-items: stretch;
     }
 
+    .nexus-hero-cine .profile-card-top {
+        align-items: stretch;
+    }
+
+    .nexus-hero-avatar {
+        width: 60px;
+        height: 60px;
+    }
+
     .profile-rewards-top {
         justify-content: flex-start;
         flex-wrap: wrap;
@@ -5860,5 +6185,159 @@ body.nexus-access-overlay-open {
     .nexus-access-footer {
         padding-left: 16px;
         padding-right: 16px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INSIGNIA DE NIVEL (sg-level-badge) EN LA PÁGINA NEXUS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.nexus-hero-level-badge {
+    display: flex;
+    justify-content: center;
+    margin: 4px 0 14px;
+}
+
+.nexus-hero-level-badge .sg-lvl {
+    max-width: 340px;
+    width: 100%;
+}
+
+.nexus-access-tag-badge {
+    display: inline-flex;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+/* La etiqueta de acceso es estrecha: ahí el tooltip estorba más que ayuda. */
+.nexus-access-tag-badge .sg-lvl__tip {
+    display: none;
+}
+
+.nexus-access-current-seal .sg-lvl {
+    gap: 0;
+}
+
+.leaderboard-row .sg-lvl {
+    flex: 0 0 auto;
+}
+
+/* Con pocos hitos, el primero y el último se salían de la barra. */
+.xp-milestones .milestone:first-child {
+    transform: translateX(-25%);
+}
+
+.xp-milestones .milestone:last-child {
+    transform: translateX(-85%);
+}
+
+/* ── Recompensas por nivel (curva de 100) ─────────────────────────────────── */
+.nexus-level-rewards {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--glass-border);
+}
+
+.nexus-level-rewards-title {
+    margin: 0 0 12px;
+    font-family: var(--font-orbitron);
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #c9d1d9;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nexus-level-rewards-title i {
+    color: var(--nexus-gold);
+}
+
+.nexus-level-rewards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.sg-lvl-reward-card {
+    --tier-color: var(--nexus-primary);
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(13, 17, 23, 0.6);
+    border: 1px solid var(--glass-border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sg-lvl-reward-card.is-owned {
+    border-color: rgba(63, 185, 80, 0.35);
+}
+
+.sg-lvl-reward-card.is-tier {
+    border-color: var(--tier-color);
+    box-shadow: 0 0 18px -8px var(--tier-color);
+}
+
+.sg-lvl-reward-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sg-lvl-reward-head i {
+    color: var(--tier-color);
+}
+
+.sg-lvl-reward-head h4 {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #e6edf3;
+}
+
+.sg-lvl-reward-level {
+    font-family: var(--font-orbitron);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: var(--nexus-gold);
+}
+
+.sg-lvl-reward-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sg-lvl-reward-list li {
+    font-size: 0.74rem;
+    color: #c9d1d9;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.sg-lvl-reward-list i {
+    color: var(--tier-color);
+    font-size: 0.68rem;
+}
+
+.sg-lvl-reward-desc {
+    margin: 0;
+    font-size: 0.72rem;
+    color: #8b949e;
+    line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+    .nexus-hero-level-badge .sg-lvl {
+        max-width: 100%;
+    }
+
+    .nexus-level-rewards-grid {
+        grid-template-columns: 1fr;
     }
 }

@@ -78,6 +78,9 @@ exports.checkNexusAchievements = nexusXp.checkNexusAchievements;
 exports.completeNexusQuest = nexusXp.completeNexusQuest;
 exports.processNexusDailyStreak = nexusXp.processNexusDailyStreak;
 
+const tournamentXp = require('./tournamentXp');
+exports.awardTournamentMatchXp = tournamentXp.awardTournamentMatchXp;
+
 const tokenLedger = require('./tokenLedger');
 exports.appendTokenLedgerEntry = tokenLedger.appendTokenLedgerEntry;
 

@@ -30,6 +30,10 @@ if (!admin.apps.length) {
   admin.initializeApp();
 }
 
+const { creditTokens } = require('./creditTokens');
+const nexusXp = require('./nexusXp');
+const SGLevels = require('./sg-levels.js');
+
 // ======================= CONFIGURACIÓN =======================
 const HARD_CAP = 5;                    // Máximo absoluto de tokens de premio por misión (estándar).
 const CS2_FRIENDS_REWARD_PER_PLAYER = 5;
@@ -47,6 +51,7 @@ const BUDGET_INITIAL = 5000;             // Saldo inicial al sembrar la bolsa po
 const PAYABLE_STATUSES = { active: true, finished: true };
 const CS2_FRIENDS_MAX_ESCROW = 50;   // Hasta 10 jugadores × 5 tokens
 const MIN_PARTICIPANTS_FOR_REWARD = 2; // Se necesita al menos 2 jugadores para pagar.
+const MISSION_COMPLETE_XP = nexusXp.XP_ACTIONS.mission_complete.max; // EXP Nexus base por misión completada.
 const TIME_GATE_FACTOR = 0.5;          // Debe pasar al menos la mitad del tiempo estimado.
 
 // ======================= ESTIMADOR (igual que playzone-smart.js) =======================
@@ -195,30 +200,18 @@ async function consumeBudget(want) {
   return taken;
 }
 
-async function creditTokens(uid, amount, meta) {
-  if (!uid || amount <= 0) return;
-  const tokensRef = admin.database().ref(`users/${uid}/tokens`);
-  const result = await tokensRef.transaction((cur) => (cur || 0) + amount);
-  if (!result.committed) return;
-
-  const after = Number(result.snapshot.val()) || 0;
-  const before = after - amount;
-
+/**
+ * Nivel real del jugador, deducido de su XP y no del campo level guardado:
+ * las cuentas que no se han tocado desde el sistema de 5 niveles todavía
+ * tienen ahí un número de la curva vieja.
+ */
+async function readNexusLevel(uid) {
   try {
-    const tokenLedger = require('./tokenLedger');
-    await tokenLedger.appendTokenLedgerEntryAdmin(uid, {
-      type: (meta && meta.type) || 'mission_reward',
-      amount,
-      balanceBefore: before,
-      balanceAfter: after,
-      reason: (meta && meta.reason) || 'Premio misión PlayZone',
-      source: 'awardMissionTokens',
-      missionId: meta && meta.missionId ? meta.missionId : null,
-      byUid: 'system',
-      byNick: 'PlayZone'
-    });
+    const snap = await admin.database().ref('nexus/users/' + uid + '/stats/xp').once('value');
+    return SGLevels.levelFromXp(Number(snap.val()) || 0);
   } catch (e) {
-    console.error('[creditTokens] ledger', uid, e);
+    console.error('[award] no se pudo leer el nivel Nexus de ' + uid, e);
+    return 1;
   }
 }
 
@@ -504,6 +497,7 @@ exports.awardMissionTokens = functions.database
     // Misiones en solitario (menos de MIN_PARTICIPANTS_FOR_REWARD) no cobran,
     // pero igual se sellan más abajo para que cuenten en el historial.
     const payouts = {};
+    const tierBonuses = {};
     let prize = 0;
     let capped = false;
 
@@ -533,13 +527,33 @@ exports.awardMissionTokens = functions.database
           continue;
         }
 
-        await creditTokens(uid, funded, {
+        // 3) Bono de tokens por tramo Nexus. Sale de la bolsa igual que el
+        // premio base, pero NO consume cupo diario: el cupo limita lo que un
+        // jugador puede farmear al día y el bono es un beneficio del nivel, no
+        // una misión más. consumeBudget nunca devuelve más de lo que queda,
+        // así que la bolsa no puede quedar en negativo.
+        //
+        // Se redondea en vez de truncar porque el premio estándar son 5 tokens
+        // y truncar dejaría el bono en cero para casi todos los tramos.
+        const bonusPct = SGLevels.perksForLevel(await readNexusLevel(uid)).missionTokenBonusPct;
+        let bonus = 0;
+        if (bonusPct > 0) {
+          const wanted = Math.round((funded * bonusPct) / 100);
+          if (wanted > 0) {
+            bonus = await consumeBudget(wanted);
+            if (bonus < wanted) capped = true;
+          }
+        }
+
+        const paid = funded + bonus;
+        await creditTokens(uid, paid, {
           type: 'mission_reward',
           reason: 'Premio misión: ' + (after.title || missionId),
           missionId
         });
-        payouts[uid] = funded;
-        prize += funded;
+        payouts[uid] = paid;
+        if (bonus > 0) tierBonuses[uid] = bonus;
+        prize += paid;
       }
     } else {
       console.warn(`[award] ${missionId}: ${pIds.length} participante(s) (mínimo ${MIN_PARTICIPANTS_FOR_REWARD} para pagar); se sella sin premio.`);
@@ -550,12 +564,35 @@ exports.awardMissionTokens = functions.database
       try { await writeMissionHistory(uid, after, missionId); } catch (e) { console.error('history', uid, e); }
     }
 
+    // --- EXP Nexus por completar la misión ---
+    // La reserva de tokensAwarded de arriba es la que garantiza que esto pasa
+    // una sola vez por misión, así que la acción no lleva cooldown propio. Va
+    // jugador a jugador y en su propio try/catch: applyXpGrant lanza
+    // HttpsError ante cualquier tope y eso no puede tumbar una misión ya
+    // pagada y sellada. Las misiones en solitario no dan EXP, igual que no dan
+    // premio.
+    const xpGranted = {};
+    if (eligibleForReward) {
+      for (const uid of pIds) {
+        try {
+          const res = await nexusXp.grantXpInternal(uid, MISSION_COMPLETE_XP, 'mission_complete', {
+            source: 'Misión PlayZone: ' + (after.title || missionId)
+          });
+          xpGranted[uid] = res.granted;
+        } catch (e) {
+          console.error(`[award] ${missionId}: sin EXP Nexus para ${uid}`, e);
+        }
+      }
+    }
+
     // --- Sellar la misión ---
     await change.after.ref.update({
       nexusVerifiedComplete: after.nexusVerifiedComplete || admin.database.ServerValue.TIMESTAMP,
       escrowStatus: prize > 0 ? 'sponsored' : (after.escrowStatus || 'none'),
       awardedAmount: prize,
       awardedPayouts: payouts,
+      awardedTierBonuses: tierBonuses,
+      awardedXp: xpGranted,
       awardedCapped: capped,
       estMinutes: est.estMinutes,
       awardedAt: admin.database.ServerValue.TIMESTAMP

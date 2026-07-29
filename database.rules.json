@@ -45,6 +45,10 @@
             ".read": "auth != null && auth.uid === $uid",
             ".write": false
           },
+          "levelUps": {
+            ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
+            ".write": false
+          },
           "commanderGrants": {
             ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
             ".write": false
@@ -818,8 +822,8 @@
         ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
         ".validate": "newData.hasChildren(['active', 'triggeredBy', 'triggeredAt'])",
         "active": { ".validate": "newData.isBoolean()" },
-        "characterId": { ".validate": "!newData.exists() || (newData.isString() && newData.val() === 'golem-tortoise')" },
-        "animation": { ".validate": "!newData.exists() || (newData.isString() && (newData.val() === 'idle' || newData.val() === 'awake' || newData.val() === 'roar' || newData.val() === 'walk' || newData.val() === 'hurt' || newData.val() === 'faint'))" },
+        "characterId": { ".validate": "!newData.exists() || (newData.isString() && (newData.val() === 'golem-tortoise' || newData.val() === 'soldier-specops' || newData.val() === 'wyvern-dragon'))" },
+        "animation": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length > 0 && newData.val().length <= 32)" },
         "title": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 80)" },
         "message": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 400)" },
         "triggeredBy": { ".validate": "newData.isString() && newData.val() === auth.uid" },
@@ -832,6 +836,29 @@
         ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
         "active": { ".validate": "newData.isBoolean()" },
         "endsAt": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)" },
+        "updatedBy": { ".validate": "!newData.exists() || (newData.isString() && newData.val() === auth.uid)" },
+        "updatedAt": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() <= (now + 60000))" },
+        "$other": { ".validate": false }
+      }
+    },
+    "nexusTierAnimations": {
+      ".read": true,
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+      "$tierIndex": {
+        "characterId": { ".validate": "newData.isString() && (newData.val() === 'golem-tortoise' || newData.val() === 'soldier-specops' || newData.val() === 'wyvern-dragon')" },
+        "clip": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 32" },
+        "updatedBy": { ".validate": "!newData.exists() || (newData.isString() && newData.val() === auth.uid)" },
+        "updatedAt": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() <= (now + 60000))" },
+        "$other": { ".validate": false }
+      }
+    },
+    "nexusCharacterCamera": {
+      ".read": true,
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+      "$characterId": {
+        ".validate": "$characterId === 'golem-tortoise' || $characterId === 'soldier-specops' || $characterId === 'wyvern-dragon'",
+        "yawDeg": { ".validate": "newData.isNumber() && newData.val() >= -360 && newData.val() <= 360" },
+        "sizeMult": { ".validate": "newData.isNumber() && newData.val() >= 0.3 && newData.val() <= 3" },
         "updatedBy": { ".validate": "!newData.exists() || (newData.isString() && newData.val() === auth.uid)" },
         "updatedAt": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() <= (now + 60000))" },
         "$other": { ".validate": false }
