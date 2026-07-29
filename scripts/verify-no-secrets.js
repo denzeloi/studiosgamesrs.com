@@ -27,6 +27,7 @@ const SKIP_FILES = new Set([
 
 const PATTERNS = [
   { name: 'Hetzner API token', re: /HETZNER_API_TOKEN\s*=\s*[A-Za-z0-9]{20,}/ },
+  { name: 'Vultr API token', re: /VULTR_API_TOKEN\s*=\s*[A-Za-z0-9]{20,}/ },
   { name: 'RCON password assignment', re: /RCON_PASSWORD\s*=\s*(?!changeme|YOUR_|__)[^\s#]{8,}/ },
   { name: 'GSLT token assignment', re: /GSLT_SERVER_\d+\s*=\s*[A-F0-9]{20,}/i },
   { name: 'Private key block', re: /-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/ },

@@ -6,7 +6,7 @@ LOG="/var/log/cs2-nexus-install.log"
 exec > >(tee -a "$LOG") 2>&1
 echo "=== CS2 Nexus install started $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
 
-# Hetzner images may force a root password change on first SSH, which blocks key-based checks.
+# Cloud images may force a root password change on first SSH, which blocks key-based checks.
 chage -d "$(date +%Y-%m-%d)" root 2>/dev/null || true
 chage -M 99999 -E -1 root 2>/dev/null || true
 
@@ -93,6 +93,46 @@ if command -v ufw >/dev/null 2>&1; then
   echo "[install] ufw enabled (27015 udp/tcp open)"
 fi
 
+open_cs2_ports() {
+  iptables -C INPUT -p udp --dport 27015 -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport 27015 -j ACCEPT
+  iptables -C INPUT -p tcp --dport 27015 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 27015 -j ACCEPT
+  iptables -C INPUT -p udp --dport 27020 -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport 27020 -j ACCEPT
+}
+open_cs2_ports
+
+cat > /usr/local/bin/open-cs2-ports.sh << 'FWEOF'
+#!/bin/bash
+set -euo pipefail
+if command -v ufw >/dev/null 2>&1; then
+  ufw allow 27015/udp >/dev/null 2>&1 || true
+  ufw allow 27015/tcp >/dev/null 2>&1 || true
+  ufw allow 27020/udp >/dev/null 2>&1 || true
+fi
+iptables -C INPUT -p udp --dport 27015 -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport 27015 -j ACCEPT
+iptables -C INPUT -p tcp --dport 27015 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 27015 -j ACCEPT
+iptables -C INPUT -p udp --dport 27020 -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport 27020 -j ACCEPT
+FWEOF
+chmod +x /usr/local/bin/open-cs2-ports.sh
+
+cat > /etc/systemd/system/cs2-firewall.service << 'FWSVC'
+[Unit]
+Description=Open CS2 UDP/TCP ports for player connections
+Before=cs2-server.service
+After=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/open-cs2-ports.sh
+
+[Install]
+WantedBy=multi-user.target
+FWSVC
+
+systemctl daemon-reload
+systemctl enable cs2-firewall.service 2>/dev/null || true
+systemctl start cs2-firewall.service 2>/dev/null || true
+
 cat > "$CS2_DIR/cfg/server.cfg" << 'CFGEOF'
 hostname "Studiosgamesrs | Nexus Tournament"
 sv_password ""
@@ -103,7 +143,11 @@ game_type 0
 game_mode 1
 mp_autoteambalance 0
 mp_limitteams 0
+mp_maxrounds 24
+tv_enable 1
+tv_delay 105
 log on
+sv_hibernate_when_empty 0
 CFGEOF
 
 cat > /etc/cs2-nexus/bridge.env << ENVEOF
@@ -124,7 +168,7 @@ User=${CS2_USER}
 WorkingDirectory=${CS2_ROOT}/game
 EnvironmentFile=/etc/cs2-nexus/bridge.env
 Environment=DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true
-ExecStart=${CS2_SH} -dedicated -usercon -fakercon +ip 0.0.0.0 -port 27015 +map de_mirage +exec server.cfg +tv_port 27020
+ExecStart=${CS2_SH} -dedicated -usercon -fakercon +ip 0.0.0.0 -port 27015 +sv_setsteamaccount __GSLT_TOKEN__ +map de_mirage +exec server.cfg +tv_port 27020
 Restart=on-failure
 RestartSec=15
 

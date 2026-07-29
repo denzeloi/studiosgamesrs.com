@@ -1,27 +1,26 @@
-# Manual snapshot recovery (when automated build fails)
+# Manual snapshot recovery (Vultr)
+
+Use this when automated snapshot tooling is unavailable or RCON checks from your PC fail.
 
 ## Is VPN the problem?
 
 | What | VPN impact |
 |------|------------|
-| **Hetzner CS2 install** (Steam, plugins) | **No** — runs on Hetzner, not your PC |
+| **Vultr CS2 install** (Steam, plugins) | **No** — runs on Vultr, not your PC |
 | **Firebase / tournament website** | Sometimes — try without VPN if pages fail |
-| **Snapshot script RCON check** (`create-cs2-snapshot.js`) | **Sometimes** — script runs on **your PC** and connects to port 27015. Some VPNs break RCON auth even when the port looks open |
 | **Playing CS2 / connecting to server** | Sometimes — use server public IP, not LAN IP |
-
-If the log shows `Port 27015 open` for many minutes but RCON never succeeds, the server may be fine and **your VPN may block RCON from your machine**. Test from the server itself (steps below).
 
 ---
 
 ## Manual fix on the golden server
 
-The failed build leaves the server running for debugging (see log: `Server left running for debugging: <id>`).
+After a full-install provision, the server stays running until you shut it down.
 
-### 1. Open Hetzner console
+### 1. Open Vultr console
 
-1. [Hetzner Cloud Console](https://console.hetzner.cloud/) → your project → **Servers**
-2. Open the golden build server (`cs2-nexus-golden-build`)
-3. Use **Console** (browser SSH) or SSH as root: `ssh root@<server-ip>`
+1. [Vultr Customer Portal](https://my.vultr.com/) → **Products → Cloud Compute**
+2. Open the golden build server
+3. Use **View Console** (browser) or SSH as root: `ssh root@<server-ip>`
 
 ### 2. Check install logs
 
@@ -49,8 +48,6 @@ apt-get update && apt-get install -y mcrcon
 mcrcon -H 127.0.0.1 -P 27015 -p 'YOUR_RCON_PASSWORD' status
 ```
 
-If this works locally but fails from your PC → **turn off VPN** and retry from your machine.
-
 If local test fails → reinstall plugins and restart:
 
 ```bash
@@ -61,20 +58,24 @@ sleep 30
 mcrcon -H 127.0.0.1 -P 27015 -p 'YOUR_RCON_PASSWORD' status
 ```
 
-### 5. Create snapshot (VPN off recommended)
+### 5. Create Vultr snapshot
 
-From your PC, in the repo root:
+1. Power off the instance in Vultr portal
+2. **Products → Snapshots → Add Snapshot**
+3. Copy snapshot ID to `VULTR_SNAPSHOT_ID` in `repo/functions/.env`
+4. Sync and deploy:
 
 ```bash
-# Turn VPN off first
-node scripts/create-cs2-snapshot.js --server-id <SERVER_ID>
-cd repo && firebase deploy --only functions:cs2-nexus
+cp functions/.env functions/cs2-nexus/.env
+cd repo && npm run deploy:functions
 ```
-
-Replace `<SERVER_ID>` with the ID from `snapshot-build.log` (e.g. `155593326`).
 
 ---
 
 ## Provision without snapshot (slow but works)
 
-Remove or comment out `HETZNER_SNAPSHOT_ID` in `repo/functions/.env`, deploy functions, then **Provision** from the tournament page. First boot takes ~30–45 min (full Steam install).
+Leave `VULTR_SNAPSHOT_ID` unset in `repo/functions/.env`, sync to `functions/cs2-nexus/.env`, deploy functions, then **Provision** from the tournament page. First boot takes ~30–45 min (full Steam install).
+
+## Legacy: Hetzner
+
+If still on Hetzner (`CS2_CLOUD_PROVIDER=hetzner`), use `HETZNER_SNAPSHOT_ID` and the [Hetzner Cloud Console](https://console.hetzner.cloud/) instead of the steps above.

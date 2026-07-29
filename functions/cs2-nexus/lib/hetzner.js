@@ -1,15 +1,13 @@
 'use strict';
 
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
+const cloudInit = require('./cloud-init-pack');
 
 const HETZNER_API = 'https://api.hetzner.cloud/v1';
+const ALLOWED_LOCATIONS = new Set(['ash', 'hil', 'fsn1', 'nbg1', 'hel1', 'sin']);
 
 function envValue(name, fallback) {
-  const raw = process.env[name];
-  if (raw == null || raw === '') return fallback || '';
-  return String(raw).trim().replace(/\r$/, '');
+  return cloudInit.envValue(name, fallback);
 }
 
 function getToken() {
@@ -42,6 +40,12 @@ function sanitizeServerName(name) {
   return s.slice(0, 63);
 }
 
+function resolveLocation(requested) {
+  const loc = String(requested || envValue('HETZNER_LOCATION', 'ash')).toLowerCase();
+  if (ALLOWED_LOCATIONS.has(loc)) return loc;
+  return envValue('HETZNER_LOCATION', 'ash');
+}
+
 function getClient() {
   const token = getToken();
   if (!token) throw new Error('HETZNER_API_TOKEN not configured');
@@ -69,77 +73,26 @@ function getProvisionImage() {
   return envValue('HETZNER_IMAGE', 'ubuntu-24.04');
 }
 
-function loadCloudInitScript(mode) {
-  const file = mode === 'snapshot' ? 'cloud-init-snapshot.sh' : 'cloud-init.sh';
-  const scriptPath = path.join(__dirname, '..', file);
-  let script = fs.readFileSync(scriptPath, 'utf8');
-  const rcon = envValue('RCON_PASSWORD', 'changeme');
-  const gslt = envValue('GSLT_SERVER_1');
-  const secret = envValue('WEBHOOK_SECRET');
-  const webhookUrl = envValue('CS2_WEBHOOK_URL');
-  script = script
-    .replace(/__RCON_PASSWORD__/g, rcon)
-    .replace(/__GSLT_TOKEN__/g, gslt)
-    .replace(/__WEBHOOK_SECRET__/g, secret)
-    .replace(/__BRIDGE_WEBHOOK_URL__/g, webhookUrl);
-  return script;
-}
-
-function indentCloudInit(text, spaces) {
-  const pad = ' '.repeat(spaces);
-  return text.split('\n').map((l) => `${pad}${l}`).join('\n');
-}
-
-function readRepoFile(relPath) {
-  const p = path.join(__dirname, '..', '..', '..', relPath);
-  if (!fs.existsSync(p)) return null;
-  return fs.readFileSync(p, 'utf8');
-}
-
-function loadCloudInit() {
-  const mode = usesSnapshot() ? 'snapshot' : 'full';
-  const script = loadCloudInitScript(mode);
-  const runPath = mode === 'snapshot' ? '/root/configure-cs2.sh' : '/root/install-cs2.sh';
-  const files = [{ path: runPath, content: script }];
-
-  files.push({
-    path: '/root/install-plugins.sh',
-    content: fs.readFileSync(path.join(__dirname, '..', 'install-plugins.sh'), 'utf8'),
-  });
-  const nexusCs = readRepoFile('cs2-server/plugins/NexusBridge/NexusBridgePlugin.cs');
-  const nexusProj = readRepoFile('cs2-server/plugins/NexusBridge/NexusBridge.csproj');
-  if (nexusCs) files.push({ path: '/root/NexusBridgePlugin.cs', content: nexusCs });
-  if (nexusProj) files.push({ path: '/root/NexusBridge.csproj', content: nexusProj });
-
-  if (mode === 'snapshot') {
-    files.push({
-      path: '/root/install-cs2-full.sh',
-      content: loadCloudInitScript('full'),
-    });
-  }
-
-  let yaml = '#cloud-config\nwrite_files:\n';
-  files.forEach((f) => {
-    yaml += `  - path: ${f.path}\n    permissions: '0755'\n    content: |\n${indentCloudInit(f.content, 6)}\n`;
-  });
-  yaml += `runcmd:\n  - [ bash, ${runPath} ]\n`;
-  return yaml;
-}
-
-async function createServer({ name, labels = {} }) {
+async function createServer({ name, labels = {}, location } = {}) {
   const client = getClient();
   const snapshot = usesSnapshot();
+  const loc = resolveLocation(location);
   try {
     const { data } = await client.post('/servers', {
       name: sanitizeServerName(name || `cs2-nexus-${Date.now()}`),
       server_type: envValue('HETZNER_SERVER_TYPE', 'cpx31'),
-      location: envValue('HETZNER_LOCATION', 'ash'),
+      location: loc,
       image: getProvisionImage(),
       labels: sanitizeLabels(labels),
-      user_data: loadCloudInit(),
+      user_data: cloudInit.loadCloudInitYaml(),
       start_after_create: true,
     });
-    return { ...data.server, provisionMode: snapshot ? 'snapshot' : 'full' };
+    return {
+      ...data.server,
+      provisionMode: snapshot ? 'snapshot' : 'full',
+      provider: 'hetzner',
+      region: loc,
+    };
   } catch (err) {
     throw new Error(formatHetznerError(err));
   }
@@ -195,4 +148,6 @@ module.exports = {
   sanitizeLabels,
   usesSnapshot,
   getProvisionImage,
+  resolveLocation,
+  ALLOWED_LOCATIONS,
 };

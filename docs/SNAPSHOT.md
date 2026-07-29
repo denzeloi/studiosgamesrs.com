@@ -1,70 +1,76 @@
-# CS2 Hetzner Snapshot (fast provisioning)
+# CS2 Vultr Snapshot (fast provisioning)
 
-Provisioning from a **golden snapshot** skips the 30–45 minute SteamCMD download. New tournament servers boot in about **5–8 minutes**.
+Provisioning from a **golden snapshot** skips re-downloading CS2 via SteamCMD on every new server. Plugins and game files are already on disk.
 
-## Why snapshot builds waited 65 min and failed
+## Important: two phases (total time)
 
-CS2 **native RCON does not work** with standard RCON clients (Valve bug). Port 27015 opens but auth always fails.
+Vultr snapshot provision is **not** 5–8 minutes end-to-end. That figure was only the **cloud-init / CS2 restart** step *after* the disk exists.
 
-**Fix:** Install [Fake RCON](https://github.com/Salvatore-Als/cs2-fake-rcon) Metamod plugin + `-fakercon` launch flag + `game/bin/linuxsteamrt64/rcon.txt` password file. This is automated in `install-plugins.sh`.
+| Phase | What happens | Typical time |
+|-------|----------------|--------------|
+| **1. Vultr snapshot restore** | Vultr copies your ~160 GB golden disk onto the **new** VM (orange banner in portal) | **~20–45 min** (Vultr says up to 60 min) |
+| **2. Boot + configure** | VM starts, `cloud-init-snapshot.sh` applies GSLT/RCON/MatchZy, restarts CS2 | **~5–10 min** |
+| **3. RCON ready** | CS2 listens on 27015 | **~2–5 min** |
 
-## One-time: create the snapshot
+**Realistic total:** often **~30–50 minutes** per new Provision (similar to a full install, but more reliable — no Steam download).
 
-From the repo root:
+The snapshot still helps because:
+- No dependency on SteamCMD download speed
+- Plugins and CS2 version are pre-baked
+- Consistent golden config every time
 
-```bash
-node scripts/create-cs2-snapshot.js --provision
-```
+## Why restore takes so long every Provision
 
-This will:
+Each **Provision Server** creates a **brand-new Vultr VM**. Vultr must **copy the entire snapshot** to that VM’s disk every time. This is not reusing one running server — it is a full disk clone per tournament server.
 
-1. Create a temporary Hetzner server (`cs2-nexus-golden-build`)
-2. Install CS2 via SteamCMD (~30–45 min)
-3. Install **Metamod, CounterStrikeSharp, MatchZy, and NexusBridge** automatically
-4. Wait until RCON responds
-5. Power off the server and create a Hetzner **snapshot**
-6. Write `HETZNER_SNAPSHOT_ID=<id>` into `repo/functions/.env`
-7. Delete the temporary build server
+You see this in the portal as: *“A snapshot is currently being restored…”*
 
-### Snapshot from an existing server
+## One-time: create the snapshot on Vultr
 
-If you already have a VM with CS2 fully installed:
+### Manual (recommended for Vultr)
 
-```bash
-node scripts/create-cs2-snapshot.js --server-id 123456789
-```
+1. Provision a test tournament server **without** `VULTR_SNAPSHOT_ID` set (full install, ~30–45 min)
+2. SSH or use Vultr web console → verify CS2 + RCON + plugins work
+3. Power off the instance in [Vultr Customer Portal](https://my.vultr.com/)
+4. **Products → Snapshots → Add Snapshot** from that instance
+5. Copy the snapshot ID into `repo/functions/.env`:
 
-**Do not use `--server-id` unless CS2 + RCON are already working.** The script now verifies RCON before snapshotting. Use `--force` only for emergencies (creates an incomplete snapshot).
+   ```bash
+   VULTR_SNAPSHOT_ID=your_snapshot_uuid
+   ```
 
-### List snapshots
+6. Sync and deploy:
 
-```bash
-node scripts/create-cs2-snapshot.js --list
-```
+   ```bash
+   cp functions/.env functions/cs2-nexus/.env
+   npm run deploy:functions
+   ```
+
+Or run: `./scripts/create-vultr-snapshot.sh <instance-id>`
+
+See [MANUAL-SNAPSHOT.md](./MANUAL-SNAPSHOT.md) for step-by-step console instructions.
 
 ## Deploy after snapshot is created
 
 ```bash
 cd repo
+cp functions/.env functions/cs2-nexus/.env
 firebase deploy --only functions:cs2-nexus
 ```
-
-Firebase loads `HETZNER_SNAPSHOT_ID` from `repo/functions/.env` on deploy.
 
 ## How it works
 
-| Mode | Hetzner image | Boot script | Typical ready time |
-|------|---------------|-------------|-------------------|
-| **Snapshot** (`HETZNER_SNAPSHOT_ID` set) | Your snapshot | `cloud-init-snapshot.sh` — config + restart only | ~5–8 min |
-| **Full** (no snapshot) | `ubuntu-24.04` | `cloud-init.sh` — full SteamCMD install | ~15–45 min |
+| Mode | Vultr image | Boot script | Typical ready time |
+|------|-------------|-------------|-------------------|
+| **Snapshot** (`VULTR_SNAPSHOT_ID` set) | New VM from snapshot (disk restore + configure) | `cloud-init-snapshot.sh` | **~30–50 min total** |
+| **Full** (no snapshot) | Ubuntu 24.04 (`VULTR_OS_ID`) | `cloud-init.sh` — full SteamCMD install | **~35–50 min** |
 
 ## Updating the snapshot
 
-When CS2 has a major update, rebuild:
+When CS2 has a major update, rebuild from a fresh golden VM and update `VULTR_SNAPSHOT_ID`, then redeploy functions.
 
-```bash
-node scripts/create-cs2-snapshot.js --provision
-firebase deploy --only functions:cs2-nexus
-```
+Old snapshots can be deleted in the Vultr portal to save storage costs (~$0.05/GB/month).
 
-Old snapshots can be deleted in the Hetzner Cloud Console to save storage costs.
+## Legacy: Hetzner snapshots
+
+If `CS2_CLOUD_PROVIDER=hetzner`, use `HETZNER_SNAPSHOT_ID` instead. Hetzner snapshot IDs do **not** work on Vultr — build a separate Vultr golden image.

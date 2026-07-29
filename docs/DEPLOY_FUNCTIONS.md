@@ -60,7 +60,7 @@ npm run deploy:all
 If `/login` 404s again, run `npm run deploy:hosting` — it rebuilds route folders and verifies live URLs.
 ## Environment variables
 
-Loaded from `repo/functions/.env` on deploy (Hetzner token, GSLT, RCON password, webhook secret).
+Loaded from `repo/functions/cs2-nexus/.env` on deploy (Vultr token, GSLT, RCON password, webhook secret). Keep in sync with `repo/functions/.env`.
 
 ## CS2 server webhook
 

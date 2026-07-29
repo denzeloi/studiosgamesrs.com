@@ -243,8 +243,14 @@
     tournamentCreationInitialized = true;
   }
 
-  async function checkServer(tournamentId, serverId) {
-    return callCs2Api('check', { tournamentId: tournamentId, serverId: serverId }, 12000);
+  async function checkServer(tournamentId, serverId, options) {
+    var opts = options || {};
+    var timeoutMs = opts.quick ? 15000 : 45000;
+    return callCs2Api('check', {
+      tournamentId: tournamentId,
+      serverId: serverId,
+      quick: opts.quick === true,
+    }, timeoutMs);
   }
 
   async function resumeProvision(tournamentId, serverId) {

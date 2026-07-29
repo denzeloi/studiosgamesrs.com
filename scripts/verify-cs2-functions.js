@@ -46,10 +46,16 @@ if (!finishMatch) {
   }
 }
 
-if (!fs.existsSync(path.join(path.dirname(indexPath), 'lib', 'hetzner.js'))) {
-  fail('cs2-nexus/lib/hetzner.js missing — deploy package is incomplete');
+if (!fs.existsSync(path.join(path.dirname(indexPath), 'lib', 'vultr.js'))) {
+  fail('cs2-nexus/lib/vultr.js missing — deploy package is incomplete');
 } else {
-  ok('cs2-nexus lib bundle present');
+  ok('cs2-nexus Vultr provider present');
+}
+
+if (!fs.existsSync(path.join(path.dirname(indexPath), 'lib', 'provider.js'))) {
+  fail('cs2-nexus/lib/provider.js missing — deploy package is incomplete');
+} else {
+  ok('cs2-nexus provider facade present');
 }
 
 if (failed) {

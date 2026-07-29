@@ -1,6 +1,6 @@
 {
   "name": "cs2-nexus-functions",
-  "description": "CS2 tournament server lifecycle (Hetzner, RCON, brackets)",
+  "description": "CS2 tournament server lifecycle (Vultr, RCON, brackets)",
   "engines": {
     "node": "20"
   },

@@ -1,0 +1,4 @@
+{
+  "_comment": "Copy to game/csgo/cfg/MatchZy/admins.json on the server. Use Steam64 IDs of Commanders as keys with value true.",
+  "76561198000000000": true
+}
