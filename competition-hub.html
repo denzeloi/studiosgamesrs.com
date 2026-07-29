@@ -54,7 +54,7 @@
     </div>
     <div class="header-search">
       <div class="search-input-container">
-        <input type="text" id="userSearchInput" placeholder="?? Buscar usuarios..." class="user-search-input">
+        <input type="text" id="userSearchInput" placeholder="ðŸ” Buscar usuarios..." class="user-search-input">
         <div id="searchResults" class="search-results"></div>
       </div>
     </div>
@@ -89,7 +89,7 @@
       <a href="/dashboard" class="icon-btn header-back-btn" title="Volver al Dashboard" aria-label="Volver al Dashboard"><i class="fas fa-arrow-left"></i></a>
       <a href="/commander-panel" class="icon-btn commander-panel-btn" id="commanderPanelBtn" title="Panel de Commander" aria-label="Panel de Commander" style="display:none;"><i class="fas fa-user-shield"></i></a>
       <button class="icon-btn" onclick="toggleTheme()" title="Cambiar tema"><i class="fas fa-palette" id="theme-icon"></i></button>
-      <div class="header-account-end" role="group" aria-label="Navegación del sitio y sesión">
+      <div class="header-account-end" role="group" aria-label="NavegaciÃ³n del sitio y sesiÃ³n">
         <div class="nav-dropdown" id="navDropdown">
           <button type="button" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
             <i class="fas fa-dragon nav-dropdown-icon"></i>
@@ -104,7 +104,7 @@
             <a href="/competition-hub" class="current" role="menuitem"><i class="fas fa-trophy"></i> Competition</a>
           </div>
         </div>
-        <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+        <button class="logout-btn" onclick="logout()">Cerrar SesiÃ³n</button>
       </div>
     </div>
   </header>
@@ -217,9 +217,9 @@
                         <h3 class="dashboard-section-title" style="color: #ffca3a;">
                             <i class="fas fa-envelope-open-text"></i> Invitaciones a torneos
                         </h3>
-                        <p class="sg-tour-inline-hint" style="margin-bottom:0.75rem;">Como capitán, acepta o rechaza invitaciones oficiales aquí.</p>
+                        <p class="sg-tour-inline-hint" style="margin-bottom:0.75rem;">Como capitÃ¡n, acepta o rechaza invitaciones oficiales aquÃ­.</p>
                         <div id="tournamentInvitesList" class="pending-requests-list">
-                            <p style="color: #888; font-size: 0.9rem;">Comprobando invitaciones…</p>
+                            <p style="color: #888; font-size: 0.9rem;">Comprobando invitacionesâ€¦</p>
                         </div>
                         <div style="margin-bottom: 2rem;"></div>
                     </div>
@@ -245,11 +245,11 @@
                     <div id="nextEventSection" class="next-event-widget team-info-widget">
                         <div class="team-info-row">
                             <span class="team-info-label"><i class="fas fa-calendar-alt"></i> Founded</span>
-                            <span class="team-info-value" id="teamInfoFounded">—</span>
+                            <span class="team-info-value" id="teamInfoFounded">â€”</span>
                         </div>
                         <div class="team-info-row">
                             <span class="team-info-label"><i class="fas fa-crown"></i> Founder</span>
-                            <span class="team-info-value" id="teamInfoFounder">—</span>
+                            <span class="team-info-value" id="teamInfoFounder">â€”</span>
                         </div>
                         <div class="team-info-row">
                             <span class="team-info-label"><i class="fas fa-trophy"></i> Matches won</span>
@@ -266,17 +266,17 @@
                                 <span class="team-level-xp" id="teamInfoLevelXp">0 XP</span>
                             </div>
                             <div class="team-level-bar"><div class="team-level-bar-fill" id="teamInfoLevelBar" style="width:0%"></div></div>
-                            <div class="team-level-next" id="teamInfoLevelNext">Nivel máximo 10</div>
+                            <div class="team-level-next" id="teamInfoLevelNext">Nivel mÃ¡ximo 10</div>
                         </div>
 
                         <div class="team-verify-block" id="teamVerifyBlock">
                             <div class="team-verify-head">
                                 <span class="team-verify-badge unverified" id="teamVerifyBadge"><i class="fas fa-shield-alt"></i> No verificado</span>
                             </div>
-                            <div class="team-verify-meta" id="teamVerifyMeta">La verificación permite jugar torneos oficiales.</div>
+                            <div class="team-verify-meta" id="teamVerifyMeta">La verificaciÃ³n permite jugar torneos oficiales.</div>
                             <div class="team-verify-progress" id="teamVerifyProgress"></div>
                             <button id="teamVerifyPayBtn" class="team-verify-btn" type="button" style="display:none;">
-                                <i class="fas fa-coins"></i> Pagar mi verificación (5 coins)
+                                <i class="fas fa-coins"></i> Pagar mi verificaciÃ³n (5 coins)
                             </button>
                         </div>
                     </div>
@@ -501,23 +501,23 @@
       <span id="sgTourCloseCommandCenter" class="modal-close" aria-label="Cerrar">&times;</span>
       <div class="sg-tour-cc-header">
         <h2 id="sgTourCcTitle" class="sg-tour-cc-title">Centro de torneo</h2>
-        <p id="sgTourCcSubtitle" class="sg-tour-cc-sub">Gestión profesional de invitaciones</p>
+        <p id="sgTourCcSubtitle" class="sg-tour-cc-sub">GestiÃ³n profesional de invitaciones</p>
         <div class="sg-tour-stats">
-          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Inscritos</span><span class="sg-tour-stat-value" id="sgTourStatRegistered">—</span></div>
-          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Pendientes</span><span class="sg-tour-stat-value" id="sgTourStatPending">—</span></div>
-          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Premio</span><span class="sg-tour-stat-value" id="sgTourStatPrize">—</span></div>
-          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Cuota</span><span class="sg-tour-stat-value" id="sgTourStatFee">—</span></div>
+          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Inscritos</span><span class="sg-tour-stat-value" id="sgTourStatRegistered">â€”</span></div>
+          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Pendientes</span><span class="sg-tour-stat-value" id="sgTourStatPending">â€”</span></div>
+          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Premio</span><span class="sg-tour-stat-value" id="sgTourStatPrize">â€”</span></div>
+          <div class="sg-tour-stat"><span class="sg-tour-stat-label">Cuota</span><span class="sg-tour-stat-value" id="sgTourStatFee">â€”</span></div>
         </div>
         <div class="sg-tour-capacity-wrap">
           <div class="sg-tour-capacity-row">
             <span class="sg-tour-stat-label" id="sgTourCapacityText">Plazas del torneo</span>
-            <span class="sg-tour-capacity-pct" id="sgTourCapacityPct">—</span>
+            <span class="sg-tour-capacity-pct" id="sgTourCapacityPct">â€”</span>
           </div>
           <div class="sg-tour-capacity-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="sgTourCapacityTrack">
             <div id="sgTourCapacityFill" class="sg-tour-capacity-fill"></div>
           </div>
         </div>
-        <span class="sg-tour-stat-label sg-tour-schedule-line">Inicio: <span id="sgTourStatSchedule">—</span></span>
+        <span class="sg-tour-stat-label sg-tour-schedule-line">Inicio: <span id="sgTourStatSchedule">â€”</span></span>
       </div>
       <div class="sg-tour-tabs" role="tablist">
         <button type="button" class="sg-tour-tab" data-sg-tour-tab="Overview" role="tab">Resumen</button>
@@ -535,14 +535,14 @@
           </div>
           <div class="sg-tour-search-wrap">
             <i class="fas fa-search" aria-hidden="true"></i>
-            <input type="search" id="sgTourTeamSearchInput" placeholder="Buscar equipo por nombre (mín. 2 letras)…" maxlength="40" autocomplete="off" aria-label="Buscar equipos">
-            <button type="button" id="sgTourSearchClear" class="sg-tour-search-clear" aria-label="Limpiar búsqueda" title="Limpiar">&times;</button>
+            <input type="search" id="sgTourTeamSearchInput" placeholder="Buscar equipo por nombre (mÃ­n. 2 letras)â€¦" maxlength="40" autocomplete="off" aria-label="Buscar equipos">
+            <button type="button" id="sgTourSearchClear" class="sg-tour-search-clear" aria-label="Limpiar bÃºsqueda" title="Limpiar">&times;</button>
           </div>
-          <p id="sgTourSearchHint" class="sg-tour-inline-hint">Los capitanes reciben la invitación en su panel de equipo en Competition Hub.</p>
+          <p id="sgTourSearchHint" class="sg-tour-inline-hint">Los capitanes reciben la invitaciÃ³n en su panel de equipo en Competition Hub.</p>
           <div id="sgTourSearchResults" class="sg-tour-list"></div>
         </div>
         <div id="sgTourPanelPending" class="sg-tour-panel" role="tabpanel">
-          <p class="sg-tour-inline-hint">Invitaciones enviadas y aún no aceptadas. Puedes retirarlas antes de que el capitán responda.</p>
+          <p class="sg-tour-inline-hint">Invitaciones enviadas y aÃºn no aceptadas. Puedes retirarlas antes de que el capitÃ¡n responda.</p>
           <div id="sgTourOutboundList" class="sg-tour-list"></div>
         </div>
         <div id="sgTourPanelRegistered" class="sg-tour-panel" role="tabpanel">
@@ -571,22 +571,22 @@
           <div class="modal-input-group" style="flex: 1; min-width: 140px;">
             <label for="tournamentFormatSelect">Formato</label>
             <select id="tournamentFormatSelect" class="modal-input" required>
-              <option value="SingleElim">Eliminación simple</option>
-              <option value="DoubleElim">Doble eliminación</option>
+              <option value="SingleElim">EliminaciÃ³n simple</option>
+              <option value="DoubleElim">Doble eliminaciÃ³n</option>
               <option value="RoundRobin">Round Robin</option>
             </select>
           </div>
           <div class="modal-input-group" style="flex: 1; min-width: 140px;">
-            <label for="tournamentRegionSelect">Región</label>
+            <label for="tournamentRegionSelect">RegiÃ³n</label>
             <select id="tournamentRegionSelect" class="modal-input" required>
               <option value="LATAM">LATAM</option>
-              <option value="NorthAmerica">Norteamérica</option>
+              <option value="NorthAmerica">NorteamÃ©rica</option>
               <option value="Europe">Europa</option>
             </select>
           </div>
         </div>
         <div class="modal-input-group">
-          <label for="tournamentMaxTeamsInput">Máximo de equipos (mín. 2)</label>
+          <label for="tournamentMaxTeamsInput">MÃ¡ximo de equipos (mÃ­n. 2)</label>
           <input type="number" id="tournamentMaxTeamsInput" class="modal-input" placeholder="16" min="2" required>
         </div>
         <div class="modal-input-group">
@@ -604,8 +604,8 @@
           </div>
         </div>
         <div class="modal-input-group">
-          <label for="tournamentDescriptionTextarea">Reglas / descripción (opcional)</label>
-          <textarea id="tournamentDescriptionTextarea" class="modal-textarea" maxlength="300" placeholder="Formato, mapas, contacto…"></textarea>
+          <label for="tournamentDescriptionTextarea">Reglas / descripciÃ³n (opcional)</label>
+          <textarea id="tournamentDescriptionTextarea" class="modal-textarea" maxlength="300" placeholder="Formato, mapas, contactoâ€¦"></textarea>
         </div>
         <button type="submit" id="saveTournamentBtn" class="modal-action-btn primary sg-tour-create-actions" style="width: 100%;">
           <i class="fas fa-check-circle"></i> Crear torneo
@@ -763,13 +763,13 @@
     <div class="modal-content team-profile-card">
         <span class="close-btn" id="closeTeamAppearanceModal">&times;</span>
         <h2 class="modal-title"><i class="fas fa-paint-brush"></i> Apariencia del Grupo</h2>
-        <p class="modal-subtitle" style="text-align:center;">Personaliza cómo se ve tu equipo en el buscador de equipos.</p>
+        <p class="modal-subtitle" style="text-align:center;">Personaliza cÃ³mo se ve tu equipo en el buscador de equipos.</p>
 
         <div id="appearancePreview" class="team-browser-item appearance-preview">
             <img id="appearancePreviewEmblem" class="team-browser-emblem" src="https://placehold.co/50x50/333/ccc?text=??" alt="Emblema">
             <div class="team-browser-info">
                 <span class="team-browser-name" id="appearancePreviewName">Tu equipo</span>
-                <span class="team-browser-motto" id="appearancePreviewMotto">Tu lema aparecerá aquí</span>
+                <span class="team-browser-motto" id="appearancePreviewMotto">Tu lema aparecerÃ¡ aquÃ­</span>
                 <div class="team-browser-stats"><span><i class="fas fa-trophy"></i> <span id="appearancePreviewWins">0</span> Wins</span></div>
             </div>
         </div>
@@ -796,7 +796,7 @@
                     </button>
                 </div>
             </div>
-            <p class="appearance-hint" id="appearanceBgImgHint">Cualquier imagen sirve: la página baja el tamaño/calidad automáticamente si es grande. Solo se ve en el buscador y en el perfil del equipo.</p>
+            <p class="appearance-hint" id="appearanceBgImgHint">Cualquier imagen sirve: la pÃ¡gina baja el tamaÃ±o/calidad automÃ¡ticamente si es grande. Solo se ve en el buscador y en el perfil del equipo.</p>
         </div>
         <div class="appearance-field">
             <label for="appearanceMotto">Lema del equipo</label>
@@ -807,7 +807,7 @@
     </div>
 </div>
 
-<!-- SISTEMA DE ESENCIA (funciona en todas las páginas) -->
+<!-- SISTEMA DE ESENCIA (funciona en todas las pÃ¡ginas) -->
 <script src="js/essence-system.js"></script>
 </body>
 
