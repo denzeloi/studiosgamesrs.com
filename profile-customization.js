@@ -16,9 +16,27 @@
     assetsPromise: null
   };
 
-  var FRAME_CLASSES = ['profile-frame-default', 'profile-frame-nexus-ember', 'profile-frame-dragon-guard', 'profile-frame-golden-nexus'];
+  // Clases que se limpian antes de aplicar otro marco. Se derivan de la
+  // configuración: si se añadiera un marco built-in y su clase no estuviera
+  // aquí, se quedaría pegada al contenedor al cambiar de marco.
+  var FRAME_CLASSES = collectCssClasses(
+    CFG.builtinFrames,
+    ['profile-frame-default', 'profile-frame-nexus-ember', 'profile-frame-dragon-guard', 'profile-frame-golden-nexus']
+  );
+  var BACKGROUND_CLASSES = collectCssClasses(CFG.builtinBackgrounds, []);
   // Evita spam de marcos en el chat: 30s entre cambios de marco.
   var FRAME_EQUIP_COOLDOWN_MS = 30000;
+
+  function collectCssClasses(catalog, seed) {
+    var list = seed.slice();
+    Object.keys(catalog || {}).forEach(function(id) {
+      var item = catalog[id] || {};
+      [item.cssClass, item.baseClass].forEach(function(cls) {
+        if (cls && list.indexOf(cls) === -1) list.push(cls);
+      });
+    });
+    return list;
+  }
 
   function getCustomization(ud) {
     return (ud && ud.profileCustomization) ? ud.profileCustomization : {};
@@ -32,12 +50,41 @@
     return cust.equippedBackground || cust.equippedBackgroundId || cust.backgroundId || null;
   }
 
+  function getBuiltinCatalog(type) {
+    return (type === 'background' ? CFG.builtinBackgrounds : CFG.builtinFrames) || {};
+  }
+
+  /** Cosmético que se gana subiendo de nivel (0 si no lo es). */
+  function getUnlockLevel(type, id) {
+    var item = getBuiltinCatalog(type)[id];
+    if (!item || item.source !== 'level') return 0;
+    return Number(item.unlockLevel) || 0;
+  }
+
+  /**
+   * Nivel del jugador. `stats.level` es el espejo que escribe el servidor; si
+   * viniera desfasado respecto a la XP, manda el que sale de la curva.
+   */
+  function getPlayerLevel() {
+    var stats = (state.userData && state.userData.stats) || {};
+    var level = Math.floor(Number(stats.level) || 0);
+    var xp = Math.floor(Number(stats.xp != null ? stats.xp : state.userData && state.userData.xp) || 0);
+    var levels = global.SGLevels;
+    if (levels && xp > 0) level = Math.max(level, levels.levelFromXp(xp));
+    return Math.max(1, level);
+  }
+
   function isUnlocked(cust, type, id) {
     if (!id) return false;
     if (type === 'frame' && CFG.freeUnlockIds && CFG.freeUnlockIds.indexOf(id) !== -1) return true;
     var unlocked = cust.unlocked || cust.owned || {};
     if (unlocked[id]) return true;
     if (unlocked[type] && unlocked[type][id]) return true;
+    // Red de seguridad: la entrega de premios la escribe el servidor en
+    // unlocked/{id} (el cliente no puede), y el trigger puede tardar. Si el
+    // jugador ya tiene el nivel, se le deja usar su premio al instante.
+    var needed = getUnlockLevel(type, id);
+    if (needed && getPlayerLevel() >= needed) return true;
     return false;
   }
 
@@ -96,7 +143,9 @@
 
   function getFramePreviewAvatarSrc() {
     var img = document.querySelector('#profileImageContainer img, .profile-image-container img');
-    return (img && img.src) ? img.src : '/dragon_profile_studiosgamesrs.png';
+    if (img && img.src) return img.src;
+    // Silueta de reserva; el PNG que había aquí antes no existe en el sitio.
+    return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIyMCIgZmlsbD0iIzMzMyIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMTUiIHI9IjYiIGZpbGw9IiM2NjYiLz48Y2lyY2xlIGN4PSIyMCIgY3k9IjMwIiByPSI5IiBmaWxsPSIjNjY2Ii8+PC9zdmc+';
   }
 
   function buildFrameAssetPreviewHtml(item) {
@@ -137,8 +186,17 @@
 
     if (resolved.type === 'builtin' && resolved.data.cssClass) {
       // En dashboard la clase va a la card; en chat/mini-perfil al wrap del avatar.
-      if (profileCard) profileCard.classList.add(resolved.data.cssClass);
-      if (container) container.classList.add(resolved.data.cssClass);
+      [resolved.data.cssClass, resolved.data.baseClass].forEach(function(cls) {
+        if (!cls) return;
+        if (profileCard) profileCard.classList.add(cls);
+        if (container) container.classList.add(cls);
+      });
+      // Los marcos de nivel dibujan su anillo con CSS sobre el mismo overlay que
+      // usan los PNG, así que necesitan su proporción y el recorte de la foto.
+      if (resolved.data.cssRing && container && overlay) {
+        overlay.classList.add(getFrameLayoutClass(resolved.data.frameLayout));
+        container.classList.add('has-profile-frame');
+      }
       return;
     }
     if (resolved.type === 'image' && resolved.data.imageUrl && overlay) {
@@ -163,18 +221,50 @@
       || document.querySelector('.profile-stage');
   }
 
+  function clearBackgroundClasses(el) {
+    if (!el) return;
+    BACKGROUND_CLASSES.forEach(function(cls) { el.classList.remove(cls); });
+  }
+
+  /** Un fondo puede ser built-in (degradado CSS) o un PNG del catálogo RTDB. */
+  function resolveBackgroundAsset(bgId) {
+    if (!bgId) return null;
+    if (CFG.builtinBackgrounds && CFG.builtinBackgrounds[bgId]) {
+      return { type: 'builtin', data: CFG.builtinBackgrounds[bgId] };
+    }
+    if (state.assets.background[bgId] && state.assets.background[bgId].imageUrl) {
+      return { type: 'image', data: state.assets.background[bgId] };
+    }
+    return null;
+  }
+
   function applyBackground(bgId) {
     var stage = getProfileStageElement();
     var bgEl = getProfileBgElement();
     if (!bgEl || !stage) return;
 
-    if (!bgId || !state.assets.background[bgId] || !state.assets.background[bgId].imageUrl) {
-      bgEl.style.backgroundImage = '';
+    clearBackgroundClasses(bgEl);
+    bgEl.style.backgroundImage = '';
+    bgEl.style.backgroundSize = '';
+    bgEl.style.backgroundPosition = '';
+    bgEl.style.backgroundRepeat = '';
+
+    var resolved = resolveBackgroundAsset(bgId);
+    if (!resolved) {
       stage.classList.remove('has-profile-bg');
       return;
     }
 
-    var url = String(state.assets.background[bgId].imageUrl).replace(/"/g, '');
+    if (resolved.type === 'builtin') {
+      // El degradado lo pone la clase; nada de background-image en línea, que
+      // pisaría la regla CSS del fondo.
+      if (resolved.data.baseClass) bgEl.classList.add(resolved.data.baseClass);
+      if (resolved.data.cssClass) bgEl.classList.add(resolved.data.cssClass);
+      stage.classList.add('has-profile-bg');
+      return;
+    }
+
+    var url = String(resolved.data.imageUrl).replace(/"/g, '');
     bgEl.style.backgroundImage = 'url("' + url + '")';
     bgEl.style.backgroundSize = 'cover';
     bgEl.style.backgroundPosition = 'center center';
@@ -190,22 +280,46 @@
 
     if (avatar) avatar.src = getFramePreviewAvatarSrc();
 
-    if (type === 'background' && id && state.assets.background[id] && state.assets.background[id].imageUrl) {
-      var u = String(state.assets.background[id].imageUrl).replace(/"/g, '');
-      bgLayer.style.backgroundImage = 'url("' + u + '")';
+    clearBackgroundClasses(bgLayer);
+    bgLayer.style.backgroundImage = '';
+
+    var resolved = type === 'background' ? resolveBackgroundAsset(id) : null;
+    if (resolved) {
+      if (resolved.type === 'builtin') {
+        if (resolved.data.baseClass) bgLayer.classList.add(resolved.data.baseClass);
+        if (resolved.data.cssClass) bgLayer.classList.add(resolved.data.cssClass);
+      } else {
+        bgLayer.style.backgroundImage = 'url("' + String(resolved.data.imageUrl).replace(/"/g, '') + '")';
+      }
       box.classList.add('active');
       box.setAttribute('aria-hidden', 'false');
       return;
     }
 
-    bgLayer.style.backgroundImage = '';
     box.classList.remove('active');
     box.setAttribute('aria-hidden', 'true');
   }
 
   function buildBackgroundPreviewHtml(item) {
+    if (item.source === 'builtin') {
+      return '<div class="profile-customization-bg-preview ' + esc(item.data.baseClass || '') + ' ' +
+        esc(item.data.cssClass || '') + '" role="img" aria-label="Vista previa del fondo"></div>';
+    }
     var url = esc(item.data.imageUrl || '');
     return '<div class="profile-customization-bg-preview" style="background-image:url(\'' + url + '\');" role="img" aria-label="Vista previa del fondo"></div>';
+  }
+
+  /** Los marcos de anillo CSS se previsualizan sobre un avatar de muestra. */
+  function buildBuiltinFramePreviewHtml(item) {
+    if (!item.data.cssRing) {
+      return '<div class="profile-customization-item-preview profile-customization-preview-' + esc(item.id) + '"></div>';
+    }
+    return '<div class="profile-customization-frame-preview-wrap">' +
+      '<div class="profile-customization-frame-preview-stage has-profile-frame ' +
+      esc(item.data.baseClass || '') + ' ' + esc(item.data.cssClass || '') + '">' +
+      '<img src="' + esc(getFramePreviewAvatarSrc()) + '" alt="">' +
+      '<div class="profile-photo-frame-overlay ' + getFrameLayoutClass(item.data.frameLayout) + '"></div>' +
+      '</div></div>';
   }
 
   function applyDashboardTheme(cust) {
@@ -240,6 +354,65 @@
     return (state.userData && typeof state.userData.tokens === 'number') ? state.userData.tokens : 0;
   }
 
+  function buildItemPreviewHtml(item) {
+    if (item.type === 'background') return buildBackgroundPreviewHtml(item);
+    if (item.source === 'builtin') return buildBuiltinFramePreviewHtml(item);
+    return buildFrameAssetPreviewHtml(item);
+  }
+
+  function renderItemCard(item, cust, equippedId) {
+    var unlocked = isUnlocked(cust, item.type, item.id);
+    var selected = equippedId === item.id;
+    var isLevelItem = item.data.source === 'level';
+    var lockedByLevel = isLevelItem && !unlocked;
+    var cost = item.data.tokenCost || 0;
+    var meta = unlocked
+      ? 'Desbloqueado'
+      : (isLevelItem ? (item.data.unlockLabel || ('Nivel ' + item.data.unlockLevel)) : cost + ' tokens');
+
+    return '<button type="button" class="profile-customization-item' + (selected ? ' selected' : '') +
+      (unlocked ? '' : ' locked') + (lockedByLevel ? ' locked-level' : '') +
+      '" data-item-type="' + esc(item.type) + '" data-item-id="' + esc(item.id) + '" data-item-cost="' + cost + '">' +
+      buildItemPreviewHtml(item) +
+      '<div class="profile-customization-item-title">' + esc(item.data.name || item.id) + '</div>' +
+      '<div class="profile-customization-item-meta">' +
+      '<span class="profile-customization-item-cost' + (lockedByLevel ? ' profile-customization-item-unlock' : '') + '">' +
+      esc(meta) + '</span>' +
+      (selected ? '<span class="profile-customization-item-status">Equipado</span>' : '') +
+      '</div></button>';
+  }
+
+  function gridHtml(items, cust, equippedId) {
+    return '<div class="profile-customization-items-grid">' + items.map(function(item) {
+      return renderItemCard(item, cust, equippedId);
+    }).join('') + '</div>';
+  }
+
+  /**
+   * Sección de premios de nivel. Se ordenan por nivel de desbloqueo, que es lo
+   * mismo que agruparlos por tramo (cada tramo estrena una sola pieza), y los
+   * que aún no tiene el jugador se enseñan bloqueados a propósito: son el
+   * escaparate de lo que gana si sigue subiendo.
+   */
+  function levelSectionHtml(title, items, cust, equippedId) {
+    if (!items.length) return '';
+    var sorted = items.slice().sort(function(a, b) {
+      return (Number(a.data.unlockLevel) || 0) - (Number(b.data.unlockLevel) || 0);
+    });
+    return '<h4 class="profile-customization-section-title">' + esc(title) + '</h4>' +
+      '<p class="profile-customization-modal-intro">Se ganan subiendo de nivel Nexus. Vas por el nivel ' +
+      getPlayerLevel() + '.</p>' + gridHtml(sorted, cust, equippedId);
+  }
+
+  function splitByLevelSource(items) {
+    var shop = [];
+    var level = [];
+    items.forEach(function(item) {
+      (item.data.source === 'level' ? level : shop).push(item);
+    });
+    return { shop: shop, level: level };
+  }
+
   function renderModalLists() {
     var framesList = document.getElementById('profileCustomizationFramesList');
     var bgList = document.getElementById('profileCustomizationBackgroundsList');
@@ -256,38 +429,26 @@
     Object.keys(state.assets.frame).forEach(function(id) {
       frameItems.push({ id: id, type: 'frame', source: 'asset', data: state.assets.frame[id] });
     });
+    var frames = splitByLevelSource(frameItems);
 
-    framesList.innerHTML = '<h4 class="profile-customization-section-title">Marcos de foto</h4><div class="profile-customization-items-grid">' +
-      frameItems.map(function(item) {
-        var unlocked = isUnlocked(cust, 'frame', item.id);
-        var cost = item.data.tokenCost || 0;
-        var selected = equippedFrame === item.id;
-        var preview = item.source === 'builtin'
-          ? '<div class="profile-customization-item-preview profile-customization-preview-' + esc(item.id) + '"></div>'
-          : buildFrameAssetPreviewHtml(item);
-        return '<button type="button" class="profile-customization-item' + (selected ? ' selected' : '') + (unlocked ? '' : ' locked') + '" data-item-type="frame" data-item-id="' + esc(item.id) + '" data-item-cost="' + cost + '">' +
-          preview +
-          '<div class="profile-customization-item-title">' + esc(item.data.name || item.id) + '</div>' +
-          '<div class="profile-customization-item-meta"><span class="profile-customization-item-cost">' + (unlocked ? 'Desbloqueado' : cost + ' tokens') + '</span>' +
-          (selected ? '<span class="profile-customization-item-status">Equipado</span>' : '') + '</div></button>';
-      }).join('') + '</div>';
+    framesList.innerHTML = '<h4 class="profile-customization-section-title">Marcos de foto</h4>' +
+      gridHtml(frames.shop, cust, equippedFrame) +
+      levelSectionHtml('Marcos de nivel Nexus', frames.level, cust, equippedFrame);
 
-    var bgItems = Object.keys(state.assets.background).map(function(id) {
-      return { id: id, data: state.assets.background[id] };
+    var bgItems = [];
+    Object.keys(CFG.builtinBackgrounds || {}).forEach(function(id) {
+      bgItems.push({ id: id, type: 'background', source: 'builtin', data: CFG.builtinBackgrounds[id] });
     });
+    Object.keys(state.assets.background).forEach(function(id) {
+      bgItems.push({ id: id, type: 'background', source: 'asset', data: state.assets.background[id] });
+    });
+    var backgrounds = splitByLevelSource(bgItems);
+
     bgList.innerHTML = '<h4 class="profile-customization-section-title">Fondos de perfil (banner)</h4>' +
-      (bgItems.length
-        ? '<div class="profile-customization-items-grid">' + bgItems.map(function(item) {
-            var unlocked = isUnlocked(cust, 'background', item.id);
-            var cost = item.data.tokenCost || 0;
-            var selected = equippedBg === item.id;
-            return '<button type="button" class="profile-customization-item' + (selected ? ' selected' : '') + (unlocked ? '' : ' locked') + '" data-item-type="background" data-item-id="' + esc(item.id) + '" data-item-cost="' + cost + '">' +
-              buildBackgroundPreviewHtml(item) +
-              '<div class="profile-customization-item-title">' + esc(item.data.name || item.id) + '</div>' +
-              '<div class="profile-customization-item-meta"><span class="profile-customization-item-cost">' + (unlocked ? 'Desbloqueado' : cost + ' tokens') + '</span>' +
-              (selected ? '<span class="profile-customization-item-status">Equipado</span>' : '') + '</div></button>';
-          }).join('') + '</div>'
-        : '<p class="profile-customization-modal-intro">Aún no hay fondos publicados.</p>');
+      (backgrounds.shop.length
+        ? gridHtml(backgrounds.shop, cust, equippedBg)
+        : '<p class="profile-customization-modal-intro">Aún no hay fondos publicados.</p>') +
+      levelSectionHtml('Fondos de nivel Nexus', backgrounds.level, cust, equippedBg);
 
     framesList.querySelectorAll('.profile-customization-item').forEach(bindItemClick);
     bgList.querySelectorAll('.profile-customization-item').forEach(bindItemClick);
@@ -325,6 +486,16 @@
     var equipKey = type === 'background' ? 'equippedBackground' : 'equippedFrame';
 
     if (!unlocked) {
+      var neededLevel = getUnlockLevel(type, id);
+      if (neededLevel) {
+        // No se compran: los entrega el servidor al subir de nivel.
+        var locked = getBuiltinCatalog(type)[id] || {};
+        var lockedMsg = 'Aún no es tuyo. Se desbloquea en el ' +
+          (locked.unlockLabel || ('Nivel ' + neededLevel)).replace('Nivel', 'nivel') + '.';
+        if (typeof showFloatingMessage === 'function') showFloatingMessage('info', lockedMsg);
+        else alert(lockedMsg);
+        return;
+      }
       if (type === 'frame') {
         var lastBuy = Number(cust.lastFrameEquipAt || 0);
         var leftBuy = FRAME_EQUIP_COOLDOWN_MS - (Date.now() - lastBuy);
@@ -493,6 +664,13 @@
     resolveFrameAsset: resolveFrameAsset,
     getCustomization: getCustomization,
     getEquippedFrameId: getEquippedFrameId,
+    getEquippedBackgroundId: getEquippedBackgroundId,
+    isUnlocked: isUnlocked,
+    getPlayerLevel: getPlayerLevel,
+    getUnlockLevel: getUnlockLevel,
+    renderModalLists: renderModalLists,
+    FRAME_CLASSES: FRAME_CLASSES,
+    BACKGROUND_CLASSES: BACKGROUND_CLASSES,
     FRAME_EQUIP_COOLDOWN_MS: FRAME_EQUIP_COOLDOWN_MS
   };
 })(typeof window !== 'undefined' ? window : this);

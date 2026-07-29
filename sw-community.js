@@ -1,7 +1,9 @@
-/* Service Worker - El Nexo Community PWA (v2)
+/* Service Worker - El Nexo Community PWA (v3)
  * Solo cachea la sección Community. No intercepta login/Steam/dashboard.
+ * Al subir la versión se descarta el caché anterior (activate borra las que no
+ * coinciden), necesario cuando cambia community.js o community.html.
  */
-const CACHE_NAME = 'nexus-community-v2';
+const CACHE_NAME = 'nexus-community-v3';
 
 const COMMUNITY_ASSETS = [
   'community.html',

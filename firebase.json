@@ -32,7 +32,10 @@
       "*.php",
       "**/*.php",
       "serviceAccountKey.json",
-      "animations/**"
+      "animations/**",
+      "Animations/**",
+      "tools_tmp_*/**",
+      "tmp-*"
     ],
     "headers": [
       {

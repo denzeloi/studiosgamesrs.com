@@ -22,6 +22,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const MODE = (process.argv[2] || 'local').toLowerCase();
 const ROOT = process.env.SG_VERIFY_ROOT || path.resolve(__dirname, '..');
@@ -31,6 +32,11 @@ const LIVE_ORIGIN = process.env.SG_VERIFY_ORIGIN || 'https://studiosgamesrs.web.
 const REQUIRED_FILES = [
   { file: 'welcome-overlay.js', minKB: 20 },
   { file: 'welcome-overlay.css', minKB: 4 },
+  { file: 'sg-levels.js', minKB: 10 },
+  { file: 'sg-level-badge.js', minKB: 4 },
+  { file: 'sg-level-badge.css', minKB: 2 },
+  { file: 'shared-nexus-sensor.js', minKB: 8 },
+  { file: 'shared-nexus-sensor.css', minKB: 2 },
   { file: 'overlay-volcano.jpg', minKB: 60 },
   { file: 'overlay-cs2-desert.jpg', minKB: 100 },
   { file: 'logo-studiosgamesrs.png', minKB: 100 },
@@ -54,7 +60,10 @@ const REQUIRED_FILES = [
   { file: 'models/soldier-specops/soldier-run.glb', minKB: 1800 },
   { file: 'models/soldier-specops/soldier-jump.glb', minKB: 1800 },
   { file: 'models/soldier-specops/soldier-crouch-walk.glb', minKB: 1800 },
-  { file: 'models/soldier-specops/soldier-death.glb', minKB: 1800 }
+  { file: 'models/soldier-specops/soldier-death.glb', minKB: 1800 },
+  // La wyvern lleva sus once animaciones dentro del mismo archivo, así que es
+  // un único .glb en vez de uno por clip.
+  { file: 'models/wyvern-dragon/wyvern-dragon.glb', minKB: 2400 }
 ];
 
 /**
@@ -68,6 +77,59 @@ const REQUIRED_MARKERS = [
   { file: 'commander-panel.html', url: '/commander-panel', needle: 'type="importmap"', why: 'sin importmap, la vista previa del panel no carga' },
   { file: 'welcome-overlay.js', url: '/welcome-overlay.js', needle: 'SGCreatureViewer', why: 'el visor 3D reutilizable debe estar presente' }
 ];
+
+/**
+ * La tabla de niveles vive por duplicado: el navegador carga sg-levels.js y las
+ * Cloud Functions requieren functions/sg-levels.js, porque el despliegue de
+ * functions solo empaqueta esa carpeta. Si las dos copias divergen, el nivel que
+ * calcula el servidor deja de coincidir con el que ve el jugador, que es
+ * exactamente el problema que tenía el sistema anterior con tres tablas
+ * distintas. Se comprueba en cada despliegue.
+ */
+const TWIN_FILES = [
+  ['sg-levels.js', 'functions/sg-levels.js']
+];
+
+/**
+ * Las páginas que forman parte del sistema de niveles deben cargar la tabla y
+ * el sensor: si una se queda sin ellos, el jugador ve un nivel distinto según
+ * dónde esté.
+ */
+const LEVEL_PAGES = [
+  ['dashboard.html', '/dashboard'],
+  ['playzone.html', '/playzone'],
+  ['community.html', '/community'],
+  ['nexus.html', '/nexus'],
+  ['competition-hub.html', '/competition-hub'],
+  ['commander-panel.html', '/commander-panel']
+];
+
+for (const [file, url] of LEVEL_PAGES) {
+  REQUIRED_MARKERS.push(
+    { file, url, needle: 'sg-levels.js', why: 'sin la tabla de niveles la página calcularía el nivel por su cuenta' },
+    { file, url, needle: 'shared-nexus-sensor.js', why: 'el sensor de Nexus debe estar en todas las páginas' }
+  );
+}
+
+/**
+ * Funciones retiradas de la cabecera (música ambiental y carta de jugador
+ * descargable). Estaban duplicadas en shared-header.js y community.js, así que
+ * volvían a aparecer al editar solo una: si un marcador reaparece, hay una
+ * página o un script sirviendo la versión antigua.
+ */
+const REMOVED_MARKERS = [];
+for (const [file] of LEVEL_PAGES) {
+  REMOVED_MARKERS.push(
+    { file, needle: 'audioAmbientToggle' },
+    { file, needle: 'generatePlayerCardBtn' }
+  );
+}
+REMOVED_MARKERS.push(
+  { file: 'shared-header.js', needle: 'initAudioAmbient' },
+  { file: 'shared-header.js', needle: 'initPlayerCardGenerator' },
+  { file: 'community.js', needle: 'initAudioAmbient' },
+  { file: 'community.js', needle: 'initPlayerCardGenerator' }
+);
 
 /**
  * Rutas que jamás deben quedar públicas. El patrón "**\/.*" de firebase.json
@@ -114,6 +176,23 @@ function checkLocal() {
     if (text === null) { bad(file + ' no se pudo leer para buscar "' + needle + '"'); continue; }
     if (text.includes(needle)) ok(file + ' contiene "' + needle + '"');
     else bad(file + ' ya no contiene "' + needle + '" — ' + why);
+  }
+  for (const { file, needle } of REMOVED_MARKERS) {
+    const full = path.join(ROOT, file);
+    let text = null;
+    try { text = fs.readFileSync(full, 'utf8'); } catch (e) { /* ya reportado arriba */ }
+    if (text === null) continue;
+    if (text.includes(needle)) bad(file + ' todavía contiene "' + needle + '" — función retirada de la cabecera');
+  }
+  for (const [a, b] of TWIN_FILES) {
+    let hashA = null;
+    let hashB = null;
+    try { hashA = crypto.createHash('sha1').update(fs.readFileSync(path.join(ROOT, a))).digest('hex'); } catch (e) { /* abajo */ }
+    try { hashB = crypto.createHash('sha1').update(fs.readFileSync(path.join(ROOT, b))).digest('hex'); } catch (e) { /* abajo */ }
+    if (!hashA) { bad(a + ' no se pudo leer para comparar con ' + b); continue; }
+    if (!hashB) { bad(b + ' no existe: las Cloud Functions se quedarían sin la tabla de niveles'); continue; }
+    if (hashA === hashB) ok(a + ' y ' + b + ' son idénticos');
+    else bad(a + ' y ' + b + ' han divergido — copia uno sobre el otro antes de desplegar');
   }
 }
 

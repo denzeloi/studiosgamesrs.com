@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<!--
+  Banco de pruebas del overlay de subida de tramo del Nexo.
+
+  No reimplementa nada: carga los mismos archivos que nexus.html y dispara la
+  celebracion por el gancho publico SGNexusSensor.handleLevelUp(..., {force:true}),
+  asi que lo que se ve aqui es exactamente lo que vera el jugador.
+
+  Lo unico que se falsea es de donde salen los .glb y las fotos: en produccion
+  viven en Firebase (SG_CDN) y aqui hay que leerlos del disco.
+
+  Uso:  /tools_tmp_wyvern/nexus-overlay-preview.html?level=70
+        level=70 -> wyvern | level=40 -> soldado | level=20 -> golem
+-->
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Preview overlay Nexo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Orbitron:wght@400;500;700&family=Montserrat:wght@300;400;600&family=Rajdhani:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="/sg-level-badge.css" />
+  <link rel="stylesheet" href="/shared-nexus-sensor.css" />
+  <link rel="stylesheet" href="/welcome-overlay.css" />
+  <style>
+    /* Un fondo de pagina cualquiera, solo para ver que el overlay tapa bien. */
+    body {
+      margin: 0; min-height: 100vh; font-family: Montserrat, system-ui, sans-serif;
+      background: #0b0d12; color: #8892a4; display: grid; place-items: center;
+    }
+    .hint { text-align: center; line-height: 1.8; }
+    .hint a { color: #58a6ff; }
+  </style>
+</head>
+<body>
+  <div class="hint">
+    Banco de pruebas del overlay del Nexo.<br />
+    <a href="?level=70">nivel 70 (wyvern)</a> ·
+    <a href="?level=40">nivel 40 (soldado)</a> ·
+    <a href="?level=20">nivel 20 (golem)</a>
+  </div>
+
+  <script src="/sg-levels.js"></script>
+  <script src="/sg-level-badge.js"></script>
+  <script src="/shared-nexus-sensor.js"></script>
+  <script src="/welcome-overlay.js"></script>
+  <script>
+    (function () {
+      var level = Number(new URLSearchParams(location.search).get('level') || 70);
+
+      // Los .glb se piden al servidor local en vez de a Firebase.
+      var chars = window.SGCreatureViewer && window.SGCreatureViewer.CHARACTERS;
+      if (chars) {
+        Object.keys(chars).forEach(function (id) { chars[id].basePath = '/models/' + id + '/'; });
+      }
+
+      // Las fotos de fondo tambien: applyAmbience las pide al CDN, asi que se
+      // reescribe la ruta en cuanto el overlay existe.
+      new MutationObserver(function () {
+        var photo = document.querySelector('.sg-nexus-overlay-photo');
+        if (!photo) return;
+        var url = photo.style.backgroundImage || '';
+        var m = url.match(/\/([\w-]+\.jpg)/);
+        if (m && url.indexOf('studiosgamesrs') !== -1) {
+          photo.style.backgroundImage = "url('/" + m[1] + "')";
+        }
+      }).observe(document.body, { childList: true, subtree: true });
+
+      var SGN = window.SGNexusSensor;
+      var SG = window.SGLevels;
+      SGN.setUid('preview');
+      // EXP coherente con el nivel para que la barra y el texto digan algo real.
+      SGN.setStats({ xp: (SG && SG.xpForLevel) ? SG.xpForLevel(level) : level * 400 });
+      SGN.handleLevelUp(level, {
+        level: level,
+        at: Date.now(),
+        rewards: [
+          { type: 'tokens', name: '250 Fichas', amount: 250, description: 'Ingresadas en tu billetera' },
+          { type: 'badge', name: 'Insignia de tramo', description: 'Visible en tu perfil publico' },
+          { type: 'access', name: 'Acceso a Coliseo', description: 'Torneos de alto rango' }
+        ]
+      }, { force: true });
+    })();
+  </script>
+</body>
+</html>

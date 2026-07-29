@@ -816,6 +816,103 @@
   box-shadow: 0 0 14px rgba(255, 193, 7, 0.45);
 }
 
+/* === Marcos de nivel Nexus en el chat ===
+   El anillo se dibuja una sola vez para los dos avatares del campamento (el del
+   mensaje y el de la tarjeta de usuario) sobre el overlay que ya crea
+   profile-customization.js; cada tramo solo repite aquí su paleta. Las recetas
+   de degradado y las animaciones (sg-lvframe-*) viven en dashboard-styles.css,
+   que se carga en esta misma página. */
+.cf-avatar-wrap.profile-frame-nexus-tier-creador,
+.cf-user-card-avatar-wrap.profile-frame-nexus-tier-creador {
+  --sg-frame-c1: #a371f7; --sg-frame-c2: #e0cdff; --sg-frame-c3: #5b32a8; --sg-frame-glow: rgba(163, 113, 247, 0.5);
+}
+.cf-avatar-wrap.profile-frame-nexus-tier-promotor,
+.cf-user-card-avatar-wrap.profile-frame-nexus-tier-promotor {
+  --sg-frame-c1: #f778ba; --sg-frame-c2: #ffcfe8; --sg-frame-c3: #a52d6d; --sg-frame-glow: rgba(247, 120, 186, 0.52);
+}
+.cf-avatar-wrap.profile-frame-nexus-tier-influencer,
+.cf-user-card-avatar-wrap.profile-frame-nexus-tier-influencer {
+  --sg-frame-c1: #e3b341; --sg-frame-c2: #fff0bd; --sg-frame-c3: #8a6410; --sg-frame-glow: rgba(227, 179, 65, 0.55);
+}
+.cf-avatar-wrap.profile-frame-nexus-tier-embajador,
+.cf-user-card-avatar-wrap.profile-frame-nexus-tier-embajador {
+  --sg-frame-c1: #3fb950; --sg-frame-c2: #b7f5c0; --sg-frame-c3: #17632a; --sg-frame-glow: rgba(63, 185, 80, 0.6);
+}
+.cf-avatar-wrap.profile-frame-nexus-tier-veterano,
+.cf-user-card-avatar-wrap.profile-frame-nexus-tier-veterano {
+  --sg-frame-c1: #2dd4bf; --sg-frame-c2: #c2fff5; --sg-frame-c3: #0d6b61; --sg-frame-glow: rgba(45, 212, 191, 0.55);
+}
+.cf-avatar-wrap.profile-frame-nexus-tier-elite,
+.cf-user-card-avatar-wrap.profile-frame-nexus-tier-elite {
+  --sg-frame-c1: #ff7b3d; --sg-frame-c2: #ffd3ab; --sg-frame-c3: #9c3a08; --sg-frame-glow: rgba(255, 123, 61, 0.58);
+}
+.cf-avatar-wrap.profile-frame-nexus-tier-leyenda,
+.cf-user-card-avatar-wrap.profile-frame-nexus-tier-leyenda {
+  --sg-frame-c1: #ff4d6d; --sg-frame-c2: #ffd0da; --sg-frame-c3: #8c0f2c; --sg-frame-glow: rgba(255, 77, 109, 0.6);
+}
+.cf-avatar-wrap.profile-frame-nexus-tier-mitico,
+.cf-user-card-avatar-wrap.profile-frame-nexus-tier-mitico {
+  --sg-frame-c1: #b48cff; --sg-frame-c2: #eadfff; --sg-frame-c3: #4b2a94; --sg-frame-glow: rgba(180, 140, 255, 0.62);
+}
+.cf-avatar-wrap.profile-frame-nexus-tier-eterno,
+.cf-user-card-avatar-wrap.profile-frame-nexus-tier-eterno {
+  --sg-frame-c1: #f2f4ff; --sg-frame-c2: #ffffff; --sg-frame-c3: #6d76b8; --sg-frame-glow: rgba(210, 220, 255, 0.7);
+}
+.cf-avatar-wrap.profile-frame-nexus-lv100-soberano,
+.cf-user-card-avatar-wrap.profile-frame-nexus-lv100-soberano {
+  --sg-frame-c1: #ffe9a8; --sg-frame-c2: #ffffff; --sg-frame-c3: #b48cff; --sg-frame-glow: rgba(255, 233, 168, 0.75);
+}
+
+/* Avatares chicos: el anillo necesita más grosor relativo para leerse. */
+.cf-avatar-wrap.sg-lvl-frame > .profile-photo-frame-overlay { --sg-frame-w: 12%; }
+.cf-user-card-avatar-wrap.sg-lvl-frame > .profile-photo-frame-overlay { --sg-frame-w: 10%; }
+
+.cf-avatar-wrap.sg-lvl-frame > .profile-photo-frame-overlay,
+.cf-user-card-avatar-wrap.sg-lvl-frame > .profile-photo-frame-overlay {
+  border-radius: 50%;
+  background-image: none;
+}
+
+.cf-avatar-wrap.sg-lvl-frame > .profile-photo-frame-overlay::after,
+.cf-user-card-avatar-wrap.sg-lvl-frame > .profile-photo-frame-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background: var(--sg-frame-ring, var(--sg-frame-c1, transparent));
+  /* Centro hueco: el anillo no llega a tapar la foto. */
+  -webkit-mask-image: radial-gradient(circle closest-side, transparent calc(100% - var(--sg-frame-w)), #000 calc(100% - var(--sg-frame-w)));
+  mask-image: radial-gradient(circle closest-side, transparent calc(100% - var(--sg-frame-w)), #000 calc(100% - var(--sg-frame-w)));
+  filter: drop-shadow(0 0 4px var(--sg-frame-glow, transparent));
+  animation: sg-lvframe-spin var(--sg-frame-spin, 0s) linear infinite;
+}
+
+.cf-avatar-wrap.sg-lvl-frame > .profile-photo-frame-overlay::before,
+.cf-user-card-avatar-wrap.sg-lvl-frame > .profile-photo-frame-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 7.5%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: var(--sg-frame-inner, none);
+  -webkit-mask-image: radial-gradient(circle closest-side, transparent 92%, #000 92%);
+  mask-image: radial-gradient(circle closest-side, transparent 92%, #000 92%);
+  animation-name: var(--sg-frame-inner-anim, sg-lvframe-pulse);
+  animation-duration: var(--sg-frame-pulse, 0s);
+  animation-timing-function: var(--sg-frame-inner-ease, ease-in-out);
+  animation-iteration-count: infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cf-avatar-wrap.sg-lvl-frame > .profile-photo-frame-overlay::before,
+  .cf-avatar-wrap.sg-lvl-frame > .profile-photo-frame-overlay::after,
+  .cf-user-card-avatar-wrap.sg-lvl-frame > .profile-photo-frame-overlay::before,
+  .cf-user-card-avatar-wrap.sg-lvl-frame > .profile-photo-frame-overlay::after {
+    animation: none !important;
+  }
+}
+
 .cf-shell .campfire-message:hover .cf-avatar-wrap .message-avatar,
 .cf-shell .campfire-message:hover .message-avatar {
   transform: scale(1.06);

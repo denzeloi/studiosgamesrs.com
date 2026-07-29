@@ -3,17 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="El Nexo - Comunidad StudiosGamesRS: galerÃ­a, foro, chat global y honor.">
+    <meta name="description" content="El Nexo - Comunidad StudiosGamesRS: galería, foro, chat global y honor.">
     <meta name="theme-color" content="#0a0c0f">
     <link rel="icon" href="/dragon_profile_studiosgamesrs.png" type="image/png" />
     <link rel="manifest" href="manifest.json">
     <title>StudiosGamesRS - Comunidad: El Nexo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="dashboard-styles.css?v=20260728profile1">
-    <link rel="stylesheet" href="shared-header.css">
+    <link rel="stylesheet" href="dashboard-styles.css?v=20260728lvlui1">
+    <link rel="stylesheet" href="shared-header.css?v=20260728hdr2">
     <link rel="stylesheet" href="shared-notifications.css?v=20260728pm1">
-    <link rel="stylesheet" href="community.css?v=20260725bars2">
+    <link rel="stylesheet" href="/sg-level-badge.css?v=20260728levels1">
+    <link rel="stylesheet" href="/shared-nexus-sensor.css?v=20260728wyvern1">
+    <link rel="stylesheet" href="community.css?v=20260728hdr2">
     <link rel="stylesheet" href="campfire-chat.css?v=20260727frames2">
     <link rel="stylesheet" href="/welcome-overlay.css?v=20260728soldier1">
     <script type="importmap">
@@ -40,7 +42,7 @@
         <div class="header-search dragon-eye-search">
             <div class="search-input-container">
                 <i class="fas fa-eye search-dragon-icon" aria-hidden="true" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:#888;pointer-events:none;"></i>
-                <input type="text" id="communitySearchInput" class="user-search-input" placeholder="Ojo de DragÃ³n: usuarios, hilos, imÃ¡genes..." style="padding-left:2.5rem;" aria-label="Buscador Ojo de DragÃ³n" autocomplete="off">
+                <input type="text" id="communitySearchInput" class="user-search-input" placeholder="Ojo de Dragón: usuarios, hilos, imágenes..." style="padding-left:2.5rem;" aria-label="Buscador Ojo de Dragón" autocomplete="off">
                 <div id="communitySearchResults" class="search-results dragon-eye-results"></div>
             </div>
         </div>
@@ -57,8 +59,6 @@
                     <span class="nexus-toggle-switch"></span>
                 </label>
             </div>
-            <button type="button" class="icon-btn" id="audioAmbientToggle" title="Audio ambiental"><i class="fas fa-music"></i></button>
-            <button type="button" class="icon-btn" id="generatePlayerCardBtn" title="Carta de Jugador"><i class="fas fa-id-card"></i></button>
             <div class="header-notifications-wrap">
                 <button type="button" class="icon-btn" id="notificationsToggleBtn" title="Notificaciones" aria-expanded="false" aria-haspopup="true">
                     <i class="fas fa-bell"></i>
@@ -75,8 +75,9 @@
                 </div>
             </div>
             <button class="dashboard-return-btn" id="dashboardReturnBtn" onclick="returnToDashboard()" style="display:none;">Volver</button>
+            <a href="/dashboard" class="icon-btn header-back-btn" title="Volver al Dashboard" aria-label="Volver al Dashboard"><i class="fas fa-arrow-left"></i></a>
             <button class="icon-btn" onclick="toggleTheme()" title="Cambiar tema"><i class="fas fa-palette" id="theme-icon"></i></button>
-            <div class="header-account-end" role="group" aria-label="NavegaciÃ³n del sitio y sesiÃ³n">
+            <div class="header-account-end" role="group" aria-label="Navegación del sitio y sesión">
                 <div class="nav-dropdown" id="navDropdown">
                     <button type="button" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
                         <i class="fas fa-dragon nav-dropdown-icon"></i>
@@ -91,16 +92,16 @@
                         <a href="/competition-hub" role="menuitem"><i class="fas fa-trophy"></i> Competition</a>
                     </div>
                 </div>
-                <button class="logout-btn" onclick="logout()">Cerrar SesiÃ³n</button>
+                <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
             </div>
         </div>
     </header>
 
     <!-- MAIN CONTENT: EL NEXO COMUNITARIO (widgets reordenables) -->
     <main id="community-main" class="community-main" role="main" aria-label="Contenido principal de la comunidad">
-        <!-- Panel Izquierdo: GalerÃ­a y Foro (arrastrable) -->
+        <!-- Panel Izquierdo: Galería y Foro (arrastrable) -->
         <div class="community-left-panel nexus-draggable-panel" data-panel-id="left">
-            <!-- SECCIÃ“N: LA FORJA (GalerÃ­a de ImÃ¡genes) -->
+            <!-- SECCIÓN: LA FORJA (Galería de Imágenes) -->
             <section class="nexus-card forge-section" aria-labelledby="forge-title">
                 <div class="nexus-header">
                     <i class="fas fa-image" aria-hidden="true"></i>
@@ -110,7 +111,7 @@
                 <div class="forge-upload-area" id="forgeUploadArea" role="button" tabindex="0" aria-label="Publicar proeza">
                     <i class="fas fa-cloud-upload-alt"></i>
                     <p>Sube foto o video a La Forja</p>
-                    <small>2 fotos al dÃ­a Â· Divisional ~50 Â· Commander ilimitado</small>
+                    <small>2 fotos al día · Divisional ~50 · Commander ilimitado</small>
                 </div>
                 <div class="forge-upload-mode" id="forgeUploadMode">
                     <button type="button" class="forge-mode-btn active" data-mode="image_local" id="forgeModeImageBtn">Foto</button>
@@ -121,12 +122,12 @@
                     <video id="forgePreviewVideo" controls muted playsinline style="display:none;"></video>
                     <div class="forge-preview-details">
                         <div id="forgeTitleField">
-                            <input type="text" id="forgeImageTitle" placeholder="TÃ­tulo de tu proeza...">
+                            <input type="text" id="forgeImageTitle" placeholder="Título de tu proeza...">
                         </div>
                         <div id="forgeFileFields" style="display:none;">
                             <input type="file" id="fileUploadInput" accept="video/mp4,video/webm" style="display: none;">
                             <button type="button" class="nexus-footer-btn" id="triggerFileUpload">Seleccionar video</button>
-                            <small>.mp4 / .webm (mÃ¡x. 20MB)</small>
+                            <small>.mp4 / .webm (máx. 20MB)</small>
                         </div>
                         <div id="forgeImageFields">
                             <input type="file" id="forgeImageInput" accept="image/jpeg,image/png,image/webp" style="display: none;">
@@ -134,7 +135,7 @@
                             <small>JPG, PNG o WebP</small>
                         </div>
                         <select id="forgeGameSelect"></select>
-                        <button class="electric-btn-dashboard" id="submitForgeBtn">Â¡Forjar Recuerdo!</button>
+                        <button class="electric-btn-dashboard" id="submitForgeBtn">¡Forjar Recuerdo!</button>
                     </div>
                 </div>
                 <div class="forge-latest-showcase" id="forgeLatestShowcase" style="display:none;"></div>
@@ -143,7 +144,7 @@
 
         <!-- Panel Central: Chat Global y Actividad (arrastrable) -->
         <div class="community-center-panel nexus-draggable-panel" data-panel-id="center">
-            <!-- SECCIÃ“N: EL FUEGO DE CAMPAMENTO (Chat Global) -->
+            <!-- SECCIÓN: EL FUEGO DE CAMPAMENTO (Chat Global) -->
             <section class="nexus-card campfire-chat-section cf-shell" id="cfShell" data-cf-accent="ember" aria-label="Fuego de Campamento">
                 <canvas class="cf-embers" id="cfEmbers" aria-hidden="true"></canvas>
 
@@ -159,17 +160,17 @@
                         <div class="cf-presence" id="cfPresence">
                             <button type="button" class="cf-presence-btn" id="cfPresenceBtn" aria-expanded="false" aria-haspopup="true">
                                 <i class="cf-presence-dot" aria-hidden="true"></i>
-                                <span class="cf-presence-label" id="cfPresenceLabel">En lÃ­nea</span>
+                                <span class="cf-presence-label" id="cfPresenceLabel">En línea</span>
                                 <i class="fas fa-chevron-down cf-presence-caret" aria-hidden="true"></i>
                             </button>
-                            <div class="cf-presence-tip" id="cfPresenceTip" role="tooltip"><span id="onlineCount">â€”</span> en lÃ­nea</div>
+                            <div class="cf-presence-tip" id="cfPresenceTip" role="tooltip"><span id="onlineCount">—</span> en línea</div>
                             <div class="cf-presence-menu" id="cfPresenceMenu" hidden>
-                                <div class="cf-presence-menu-count"><i class="fas fa-circle"></i> <span id="cfPresenceMenuCount">â€”</span> personas en el campamento</div>
+                                <div class="cf-presence-menu-count"><i class="fas fa-circle"></i> <span id="cfPresenceMenuCount">—</span> personas en el campamento</div>
                                 <div class="cf-presence-menu-label">Tu estado</div>
                                 <div id="playerStatusSelectorContainer" class="cf-presence-statuses"></div>
                             </div>
                         </div>
-                        <button type="button" class="cf-icon-btn" id="cfMenuToggle" title="MÃ¡s opciones" aria-label="MÃ¡s opciones" aria-expanded="false"><i class="fas fa-ellipsis-h"></i></button>
+                        <button type="button" class="cf-icon-btn" id="cfMenuToggle" title="Más opciones" aria-label="Más opciones" aria-expanded="false"><i class="fas fa-ellipsis-h"></i></button>
                         <div class="cf-menu" id="cfMenu" hidden>
                             <button type="button" class="cf-menu-item" id="cfSearchToggle"><i class="fas fa-search"></i> Buscar</button>
                             <button type="button" class="cf-menu-item" id="cfExpandToggle"><i class="fas fa-expand"></i> Expandir</button>
@@ -184,9 +185,9 @@
 
                 <div class="cf-searchbar" id="cfSearchBar" hidden>
                     <i class="fas fa-search" aria-hidden="true"></i>
-                    <input type="search" id="cfSearchInput" placeholder="Buscar mensajesâ€¦" aria-label="Buscar en el chat" autocomplete="off">
+                    <input type="search" id="cfSearchInput" placeholder="Buscar mensajes…" aria-label="Buscar en el chat" autocomplete="off">
                     <span class="cf-search-count" id="cfSearchCount"></span>
-                    <button type="button" class="cf-icon-btn" id="cfSearchClose" title="Cerrar" aria-label="Cerrar bÃºsqueda"><i class="fas fa-times"></i></button>
+                    <button type="button" class="cf-icon-btn" id="cfSearchClose" title="Cerrar" aria-label="Cerrar búsqueda"><i class="fas fa-times"></i></button>
                 </div>
 
                 <div class="cf-pop" id="cfSettings" hidden></div>
@@ -209,34 +210,34 @@
                         <button type="button" class="cf-icon-btn" id="cfEmojiBtn" title="Emojis" aria-label="Abrir emojis"><i class="far fa-smile"></i></button>
                         <button type="button" class="cf-icon-btn" id="cfAttachBtn" title="Adjuntar imagen" aria-label="Adjuntar imagen"><i class="fas fa-image"></i></button>
                         <input type="file" id="cfFileInput" accept="image/*" hidden>
-                        <textarea id="cfInput" rows="1" maxlength="500" placeholder="Escribe algo para el campamentoâ€¦" aria-label="Escribir mensaje"></textarea>
+                        <textarea id="cfInput" rows="1" maxlength="500" placeholder="Escribe algo para el campamento…" aria-label="Escribir mensaje"></textarea>
                         <button type="button" class="chat-action-btn send" id="cfSend" title="Enviar" aria-label="Enviar mensaje"><i class="fas fa-paper-plane"></i></button>
                     </div>
                 </div>
             </section>
-            <!-- SECCIÃ“N: EL CONSEJO DE GUERRA (Foro) -->
+            <!-- SECCIÓN: EL CONSEJO DE GUERRA (Foro) -->
             <section class="nexus-card war-council-section" aria-labelledby="council-title">
                 <div class="nexus-header nexus-header-with-btn">
                     <span class="nexus-header-title council-title-wrap">
                         <i class="fas fa-scroll" aria-hidden="true"></i>
                         <h2 id="council-title" class="council-title-tip" tabindex="0">El Consejo de Guerra</h2>
-                        <span class="council-tooltip" role="tooltip">Foro tÃ¡ctico del Nexo: publica dudas, pide ayuda con clips y responde a otros jugadores. Usa <strong>Â¡Al toque de corneta!</strong> para una llamada a batalla urgente.</span>
+                        <span class="council-tooltip" role="tooltip">Foro táctico del Nexo: publica dudas, pide ayuda con clips y responde a otros jugadores. Usa <strong>¡Al toque de corneta!</strong> para una llamada a batalla urgente.</span>
                     </span>
-                    <span id="battleHornCount" class="battle-horn-badge" style="display: none;" title="Llamadas a batalla activas">ðŸ“¯ <span id="battleHornNum">0</span></span>
+                    <span id="battleHornCount" class="battle-horn-badge" style="display: none;" title="Llamadas a batalla activas">?? <span id="battleHornNum">0</span></span>
                     <button type="button" class="nexus-footer-btn" id="filterBattleCallsBtn" style="display: none;" title="Ver solo Llamadas a batalla">Solo ayudas</button>
                     <button type="button" class="nexus-footer-btn" id="openNewThreadBtn"><i class="fas fa-feather-alt"></i> Nuevo Tema</button>
                 </div>
                 <div class="war-council-threads" id="warCouncilThreads">
-                    <!-- AquÃ­ se renderizarÃ¡n los hilos del foro -->
+                    <!-- Aquí se renderizarán los hilos del foro -->
                 </div>
                 <div class="council-call-to-action">
-                    <p>Â¿Tu escuadrÃ³n estÃ¡ en problemas?</p>
+                    <p>¿Tu escuadrón está en problemas?</p>
                     <button class="legendary-action-btn primary" id="callToBattleBtn">
-                        <i class="fas fa-trumpet"></i> Â¡AL TOQUE DE CORNETA! <i class="fas fa-dragon"></i>
+                        <i class="fas fa-trumpet"></i> ¡AL TOQUE DE CORNETA! <i class="fas fa-dragon"></i>
                     </button>
                 </div>
             </section>
-            <!-- SECCIÃ“N: MURO DE LOS ANALES (Primeros hitos) -->
+            <!-- SECCIÓN: MURO DE LOS ANALES (Primeros hitos) -->
             <section class="nexus-card annals-section" id="annalsSection" aria-labelledby="annals-title" style="display: none;">
                 <div class="nexus-header">
                     <i class="fas fa-landmark" aria-hidden="true"></i>
@@ -246,7 +247,7 @@
             </section>
         </div>
 
-        <!-- Panel Derecho: Perfil, ReputaciÃ³n y Miembros (arrastrable) -->
+        <!-- Panel Derecho: Perfil, Reputación y Miembros (arrastrable) -->
         <div class="community-right-panel nexus-draggable-panel" data-panel-id="right">
             <!-- MINI PERFIL (Pergamino Desplegable + Logros) -->
             <section class="nexus-card mini-profile-section" id="miniProfileSection">
@@ -255,7 +256,7 @@
                     <h3>Tu Honor</h3>
                 </div>
                 <div class="mini-profile-content" id="miniProfileContent" role="button" tabindex="0" aria-expanded="false" aria-label="Expandir perfil en pergamino">
-                    <!-- Cargado dinÃ¡micamente -->
+                    <!-- Cargado dinámicamente -->
                 </div>
                 <div class="profile-scroll-expanded" id="profileScrollExpanded" aria-hidden="true">
                     <div class="profile-scroll-inner">
@@ -278,7 +279,7 @@
                 </div>
                 <div id="streakWrap" class="streak-wrap" style="display: none;">
                     <span id="streakCount" class="streak-count">0</span>
-                    <span class="streak-label">dÃ­as seguidos</span>
+                    <span class="streak-label">días seguidos</span>
                 </div>
             </section>
             <!-- MIEMBROS DESTACADOS (Honor y Rango) -->
@@ -317,7 +318,7 @@
     <div id="battleCallModal" class="modal-container" style="display: none;">
         <div class="modal-content">
             <span class="modal-close" onclick="closeModal('battleCallModal')">&times;</span>
-            <h2>Â¡LLAMADA A BATALLA!</h2>
+            <h2>¡LLAMADA A BATALLA!</h2>
             <p>El Nexo te escucha. Forja tu solicitud de ayuda.</p>
             <div class="modal-input-group">
                 <label><i class="fas fa-gamepad"></i> Juego</label>
@@ -331,16 +332,16 @@
             <div class="modal-input-group">
                 <label><i class="fas fa-tag"></i> Tipo de Ayuda</label>
                 <select id="battleHelpTypeSelect" class="modal-input">
-                    <option value="estrategia">Estrategia / TÃ¡ctica</option>
-                    <option value="mecanica">Mejora MecÃ¡nica</option>
-                    <option value="team">BÃºsqueda de Equipo</option>
-                    <option value="bug">Problema TÃ©cnico</option>
+                    <option value="estrategia">Estrategia / Táctica</option>
+                    <option value="mecanica">Mejora Mecánica</option>
+                    <option value="team">Búsqueda de Equipo</option>
+                    <option value="bug">Problema Técnico</option>
                     <option value="coaching">Solicitar Coach</option>
                 </select>
             </div>
             <div class="modal-input-group">
                 <label><i class="fas fa-feather-alt"></i> Describe tu Batalla</label>
-                <textarea id="battleDescription" class="modal-textarea" rows="4" placeholder="CuÃ©ntanos con lujo de detalle quÃ© necesitas..."></textarea>
+                <textarea id="battleDescription" class="modal-textarea" rows="4" placeholder="Cuéntanos con lujo de detalle qué necesitas..."></textarea>
             </div>
             <div class="modal-input-group">
                 <label><i class="fas fa-link"></i> Enlace a Video/Clip (Opcional)</label>
@@ -356,7 +357,7 @@
             <span class="modal-close" onclick="closeModal('newThreadModal')">&times;</span>
             <h2>Crear Nuevo Tema de Batalla</h2>
             <div class="modal-input-group">
-                <label>TÃ­tulo</label>
+                <label>Título</label>
                 <input type="text" id="newThreadTitle" class="modal-input" maxlength="100">
             </div>
             <div class="modal-input-group">
@@ -389,7 +390,7 @@
         <div class="modal-content">
             <span class="modal-close" onclick="closeModal('reportPlayerModal')">&times;</span>
             <h2><i class="fas fa-flag"></i> Reportar Jugador</h2>
-            <p>Los Commanders recibirÃ¡n este reporte. Indica el jugador y el motivo.</p>
+            <p>Los Commanders recibirán este reporte. Indica el jugador y el motivo.</p>
             <div class="modal-input-group">
                 <label>Buscar jugador a reportar</label>
                 <input type="text" id="reportPlayerSearch" class="modal-input" placeholder="Escribe nick o nombre...">
@@ -401,7 +402,7 @@
             </div>
             <div class="modal-input-group">
                 <label>Motivo del reporte</label>
-                <textarea id="reportReason" class="modal-textarea" rows="4" placeholder="Describe por quÃ© reportas a este jugador..." maxlength="500"></textarea>
+                <textarea id="reportReason" class="modal-textarea" rows="4" placeholder="Describe por qué reportas a este jugador..." maxlength="500"></textarea>
             </div>
             <button class="modal-save-btn" id="submitReport"><i class="fas fa-paper-plane"></i> Enviar reporte</button>
         </div>
@@ -415,8 +416,8 @@
                 <div class="forge-epic-egg-glow"></div>
             </div>
             <div class="forge-epic-dragon">
-                <img src="/dragon_profile_studiosgamesrs.png" alt="DragÃ³n forjando">
-                <p>Forjando recuerdoâ€¦</p>
+                <img src="/dragon_profile_studiosgamesrs.png" alt="Dragón forjando">
+                <p>Forjando recuerdo…</p>
             </div>
         </div>
     </div>
@@ -430,15 +431,18 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-check-compat.js"></script>
     <script src="/sg-firebase-init.js?v=20260724nocaptcha"></script>
     <script>sgInitFirebaseApp();</script>
+    <script src="/sg-levels.js?v=20260728levels1"></script>
+    <script src="/sg-level-badge.js?v=20260728levels1"></script>
     <script src="playzone-games-config.js"></script>
     <script src="shared-image-utils.js"></script>
     <script src="shared-unified-header.js?v=20260711d"></script>
     <script src="shared-notifications.js?v=20260728pm1"></script>
-    <script src="/welcome-overlay.js?v=20260728soldier1"></script>
-    <script src="shared-header.js?v=20260719c"></script>
+    <script src="/shared-nexus-sensor.js?v=20260729fix1"></script>
+    <script src="/welcome-overlay.js?v=20260729fix1"></script>
+    <script src="shared-header.js?v=20260728hdr2"></script>
     <script src="profile-customization-config.js?v=20260727frames1"></script>
     <script src="profile-customization.js?v=20260727frames1"></script>
-    <script src="community.js?v=20260727notif1"></script>
+    <script src="community.js?v=20260728hdr1"></script>
     <script src="https://cdn.jsdelivr.net/npm/motion@12.42.2/dist/motion.js"></script>
     <script src="campfire-chat.js?v=20260727frames2"></script>
     <script src="community-notif-fix.js"></script>

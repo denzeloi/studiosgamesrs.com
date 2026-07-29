@@ -8,9 +8,11 @@
   <title>Dashboard Usuario - Studiosgamesrs</title>
   <link rel="icon" href="/dragon_profile_studiosgamesrs.png" type="image/png" />
 
-  <link rel="stylesheet" href="/dashboard-styles.css?v=20260728profile1">
-  <link rel="stylesheet" href="/shared-header.css">
+  <link rel="stylesheet" href="/dashboard-styles.css?v=20260728lvlui1">
+  <link rel="stylesheet" href="/shared-header.css?v=20260728hdr2">
   <link rel="stylesheet" href="/shared-notifications.css?v=20260728pm1">
+  <link rel="stylesheet" href="/sg-level-badge.css?v=20260728levels1">
+  <link rel="stylesheet" href="/shared-nexus-sensor.css?v=20260728wyvern1">
   <link rel="stylesheet" href="/tribunal-user-overlay.css?v=20260719c">
   <link rel="stylesheet" href="/welcome-overlay.css?v=20260728soldier1">
   <link rel="stylesheet" href="/site-engagement.css">
@@ -25,6 +27,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-check-compat.js"></script>
   <script src="/sg-firebase-init.js?v=20260724nocaptcha"></script>
   <script>sgInitFirebaseApp();</script>
+  <script src="/sg-levels.js?v=20260728levels1"></script>
+  <script src="/sg-level-badge.js?v=20260728levels1"></script>
   <script src="https://cdn.jsdelivr.net/npm/motion@12.42.2/dist/motion.js"></script>
   <script type="importmap">
   {
@@ -63,13 +67,11 @@
     </div>
     <div class="header-search">
       <div class="search-input-container">
-        <input type="text" id="userSearchInput" placeholder="üîç Buscar usuarios..." class="user-search-input">
+        <input type="text" id="userSearchInput" placeholder="?? Buscar usuarios..." class="user-search-input">
         <div id="searchResults" class="search-results"></div>
       </div>
     </div>
     <div class="header-actions">
-      <button type="button" class="icon-btn" id="audioAmbientToggle" title="Audio ambiental"><i class="fas fa-music"></i></button>
-      <button type="button" class="icon-btn" id="generatePlayerCardBtn" title="Carta de Jugador"><i class="fas fa-id-card"></i></button>
       <div class="header-notifications-wrap">
         <button type="button" class="icon-btn" id="notificationsToggleBtn" title="Notificaciones" aria-expanded="false" aria-haspopup="true">
           <i class="fas fa-bell"></i>
@@ -88,7 +90,7 @@
       <button class="dashboard-return-btn" id="dashboardReturnBtn" onclick="returnToDashboard()" style="display:none;">Volver</button>
       <a href="/commander-panel" class="icon-btn commander-panel-btn" id="commanderPanelBtn" title="Panel de Commander" aria-label="Panel de Commander" style="display:none;"><i class="fas fa-user-shield"></i></a>
       <button class="icon-btn" onclick="toggleTheme()" title="Cambiar tema"><i class="fas fa-palette" id="theme-icon"></i></button>
-      <div class="header-account-end" role="group" aria-label="Navegaci√≥n del sitio y sesi√≥n">
+      <div class="header-account-end" role="group" aria-label="NavegaciÛn del sitio y sesiÛn">
         <div class="nav-dropdown" id="navDropdown">
           <button type="button" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
             <i class="fas fa-dragon nav-dropdown-icon"></i>
@@ -103,7 +105,7 @@
             <a href="/competition-hub" role="menuitem"><i class="fas fa-trophy"></i> Competition</a>
           </div>
         </div>
-        <button class="logout-btn" onclick="logout()">Cerrar Sesi√≥n</button>
+        <button class="logout-btn" onclick="logout()">Cerrar SesiÛn</button>
       </div>
     </div>
   </header>
@@ -115,7 +117,7 @@
         <aside id="competitiveWidget" class="unified-widget competitive-widget collapsed" aria-label="Mi Estado Competitivo" style="display: none;">
           <button type="button" class="widget-hero-toggle" data-widget-toggle="competitiveWidget" aria-expanded="false" title="Mostrar Mi Estado Competitivo">
             <span class="widget-hero-main"><i class="fas fa-shield-alt"></i> Mi Estado Competitivo</span>
-            <span class="widget-hero-sub">Equipo, rol, invitaciones y pr√≥xima partida</span>
+            <span class="widget-hero-sub">Equipo, rol, invitaciones y prÛxima partida</span>
             <i class="fas fa-chevron-down widget-hero-chevron" aria-hidden="true"></i>
           </button>
           <div class="widget-collapsible-body competitive-section">
@@ -133,7 +135,7 @@
               <span id="competitiveInvitesEnhanced" class="competitive-invites-value skeleton skeleton-text skeleton-short">Cargando...</span>
             </div>
             <div class="competitive-divider" data-streamer-blur></div>
-            <div class="competitive-subtitle" data-streamer-blur>Pr√≥xima Partida</div>
+            <div class="competitive-subtitle" data-streamer-blur>PrÛxima Partida</div>
             <div id="upcomingMatchSectionEnhanced" data-streamer-blur>
               <div id="upcomingMatchDetailsEnhanced" class="competitive-match-details skeleton skeleton-text skeleton-medium">Buscando...</div>
               <div id="upcomingMatchTournamentEnhanced" class="competitive-match-tournament"></div>
@@ -144,14 +146,14 @@
         </aside>
 
         <div class="unified-widget-connector" id="unifiedWidgetConnector" style="display: none;"></div>
-        <aside id="playZoneWidget" class="unified-widget playzone-widget collapsed" aria-label="Estado de Misi√≥n PlayZone" style="display: none;">
+        <aside id="playZoneWidget" class="unified-widget playzone-widget collapsed" aria-label="Estado de MisiÛn PlayZone" style="display: none;">
             <button type="button" class="widget-hero-toggle" data-widget-toggle="playZoneWidget" aria-expanded="false" title="Mostrar estado PlayZone">
               <span class="widget-hero-main"><i class="fas fa-flag-checkered"></i> PlayZone</span>
-              <span class="widget-hero-sub">Misi√≥n activa, tiempo y acceso r√°pido</span>
+              <span class="widget-hero-sub">MisiÛn activa, tiempo y acceso r·pido</span>
               <i class="fas fa-chevron-down widget-hero-chevron" aria-hidden="true"></i>
             </button>
             <div class="widget-collapsible-body">
-            <div class="streamer-mode-placeholder" aria-hidden="true">Misi√≥n activa (datos ocultos en modo streamer)</div>
+            <div class="streamer-mode-placeholder" aria-hidden="true">MisiÛn activa (datos ocultos en modo streamer)</div>
             <div id="playZoneContent" data-streamer-blur>
               <div class="playzone-idle-container">
                 <a href="/playzone" class="playzone-redirect-btn playzone-redirect-btn--solo skeleton">
@@ -163,19 +165,19 @@
         </aside>
     </div>
 
-    <div id="dashboardSideModules" class="unified-command-panel dashboard-side-panel" style="display: none;" aria-label="M√≥dulos del dashboard">
+    <div id="dashboardSideModules" class="unified-command-panel dashboard-side-panel" style="display: none;" aria-label="MÛdulos del dashboard">
 
-        <aside id="dashboardEventsWidget" class="unified-widget events-widget collapsed" aria-label="Pr√≥ximos eventos">
-          <button type="button" class="widget-hero-toggle" data-widget-toggle="dashboardEventsWidget" aria-expanded="false" title="Mostrar pr√≥ximos eventos">
-            <span class="widget-hero-main"><i class="fas fa-calendar-alt"></i> Pr√≥ximos Eventos</span>
+        <aside id="dashboardEventsWidget" class="unified-widget events-widget collapsed" aria-label="PrÛximos eventos">
+          <button type="button" class="widget-hero-toggle" data-widget-toggle="dashboardEventsWidget" aria-expanded="false" title="Mostrar prÛximos eventos">
+            <span class="widget-hero-main"><i class="fas fa-calendar-alt"></i> PrÛximos Eventos</span>
             <span class="widget-hero-sub">Torneos, fechas y actividades</span>
             <i class="fas fa-chevron-down widget-hero-chevron" aria-hidden="true"></i>
           </button>
           <div class="widget-collapsible-body">
             <div class="dashboard-widget-section">
               <div class="dashboard-widget-title">
-                <span>Pr√≥ximos Eventos</span>
-                <button id="addContentBtn" class="add-content-btn" title="A√±adir nuevo contenido" style="display: none;">+</button>
+                <span>PrÛximos Eventos</span>
+                <button id="addContentBtn" class="add-content-btn" title="AÒadir nuevo contenido" style="display: none;">+</button>
               </div>
               <div id="eventsList" class="news-events-list dashboard-panel-list"></div>
             </div>
@@ -215,11 +217,11 @@
               <div class="dashboard-widget-title">Mis Amigos</div>
               <div id="dashboardFriendsGrid" class="dashboard-friends-list"></div>
               <div class="dashboard-friends-pager" id="dashboardFriendsPager" style="display: none;">
-                <button type="button" id="dashboardFriendsPrev" class="dashboard-friends-pager-btn" aria-label="P√°gina anterior" disabled>
+                <button type="button" id="dashboardFriendsPrev" class="dashboard-friends-pager-btn" aria-label="P·gina anterior" disabled>
                   <i class="fas fa-chevron-left"></i>
                 </button>
                 <span id="dashboardFriendsPageLabel" class="dashboard-friends-page-label">1 / 1</span>
-                <button type="button" id="dashboardFriendsNext" class="dashboard-friends-pager-btn" aria-label="P√°gina siguiente" disabled>
+                <button type="button" id="dashboardFriendsNext" class="dashboard-friends-pager-btn" aria-label="P·gina siguiente" disabled>
                   <i class="fas fa-chevron-right"></i>
                 </button>
               </div>
@@ -265,8 +267,8 @@
               <img id="profilePic" src="" alt="Profile Photo" loading="lazy" class="skeleton skeleton-circle" />
               <input type="file" id="photoInput" accept="image/*" style="display:none" aria-label="Cambiar foto de perfil" />
               <div class="photo-edit-mode" id="photoEditMode">
-                  <div class="tooltip"><button class="photo-upload-btn" id="photoUploadBtn" type="button">üìÅ</button></div>
-                  <div class="tooltip"><button class="photo-delete-btn" id="photoDeleteBtn" type="button">üóëÔ∏è</button></div>
+                  <div class="tooltip"><button class="photo-upload-btn" id="photoUploadBtn" type="button">??</button></div>
+                  <div class="tooltip"><button class="photo-delete-btn" id="photoDeleteBtn" type="button">???</button></div>
               </div>
           </div>
           <div class="profile-nexus-badges-strip" id="profileNexusBadgesStrip" aria-label="Insignias Nexus">
@@ -278,7 +280,7 @@
               <div class="profile-identity-cards-block">
               <div id="nicknameViewMode" class="nickname-row">
                   <span id="profileNickname" class="profile-nickname-text skeleton skeleton-text skeleton-medium">Cargando...</span>
-                  <button class="nickname-edit-btn" id="nicknameEditBtn" title="Editar nickname">‚ãÆ</button>
+                  <button class="nickname-edit-btn" id="nicknameEditBtn" title="Editar nickname">?</button>
               </div>
               <div id="nicknameMessage" class="nickname-message" style="display:none;"></div>
 
@@ -306,7 +308,7 @@
                       <div class="profile-insight-title" id="rankCardTitle">Rango</div>
                       <div class="profile-rank-level-row">
                           <span class="rango-display" id="userRangoDisplay">Tribal Warrior</span>
-                          <span class="profile-level-badge" id="profileLevelDisplay">LEVEL (0) "Novato"</span>
+                          <span class="profile-level-badge is-loading" id="profileLevelDisplay" aria-label="Cargando nivel"></span>
                           <span id="nexus-widget-level" style="display:none;">0</span>
                           <span id="nexus-widget-rank" class="nexus-tier-badge" style="display:none;">Novato</span>
                       </div>
@@ -323,7 +325,7 @@
                       <div class="hud-stat-box hud-stat-compact" id="tokensRow">
                           <div class="hud-icon"><i class="fas fa-coins"></i></div>
                           <div class="hud-value" id="tokensValue">...</div>
-                          <div class="hud-label"><span id="tokensLabel">TOKENS</span> <a id="tokensHelp" href="/tokens-help" target="_blank" class="tokens-help-link" title="¬øQu√© son los Tokens?">?</a></div>
+                          <div class="hud-label"><span id="tokensLabel">TOKENS</span> <a id="tokensHelp" href="/tokens-help" target="_blank" class="tokens-help-link" title="øQuÈ son los Tokens?">?</a></div>
                       </div>
                       <div class="hud-stat-box hud-stat-compact" onclick="showReferralInfo()">
                           <div class="hud-icon"><i class="fas fa-users"></i></div>
@@ -360,7 +362,7 @@
           </button>
           <button type="button" class="profile-panel-tab" id="profilePanelTabStats" role="tab" aria-selected="false" aria-controls="aportesSection" data-profile-panel="stats">
             <i class="fas fa-chart-bar" aria-hidden="true"></i>
-            <span id="profilePanelTabStatsLabel">Estad√≠sticas</span>
+            <span id="profilePanelTabStatsLabel">EstadÌsticas</span>
           </button>
         </div>
 
@@ -373,7 +375,7 @@
                   <button type="button" id="addBestMomentBtn" class="profile-moments-add-btn" style="display:none;">+ Add</button>
                 </div>
                 <div id="profileBestMomentsList" class="profile-best-moments-list">
-                  <div class="profile-match-skeleton">Loading moments‚Ä¶</div>
+                  <div class="profile-match-skeleton">Loading momentsÖ</div>
                 </div>
               </div>
 
@@ -407,7 +409,7 @@
                   <span class="cs2-stat-value" id="cs2WinsText">-</span>
                 </div>
                 <div class="cs2-last-match" id="cs2LastMatchWrap">
-                  <span class="cs2-last-badge" id="cs2LastMatchResult">√öltima: -</span>
+                  <span class="cs2-last-badge" id="cs2LastMatchResult">⁄ltima: -</span>
                   <span class="cs2-last-kd">K/D <strong id="cs2LastKdText">-</strong></span>
                 </div>
               </div>
@@ -417,7 +419,7 @@
               <h3 class="profile-subsection-title"><i class="fas fa-history"></i> <span id="latestMatchesTitle">Latest Verified Matches</span></h3>
             </div>
             <div id="profileMatchHistoryList" class="profile-match-history-list">
-              <div class="profile-match-skeleton">Loading match history‚Ä¶</div>
+              <div class="profile-match-skeleton">Loading match historyÖ</div>
             </div>
             <span id="recognitionsContainer" class="sr-only" aria-hidden="true"></span>
             <div id="recognitionsStatBox" style="display:none;" aria-hidden="true"></div>
@@ -437,7 +439,7 @@
     
     <section class="thoughts-wall-section">
       <div class="view-toggle-container">
-        <button id="thoughtsToggleBtn" class="toggle-btn active">√öltimos Pensamientos</button>
+        <button id="thoughtsToggleBtn" class="toggle-btn active">⁄ltimos Pensamientos</button>
         <button id="commentsToggleBtn" class="toggle-btn">Comentarios del Perfil</button>
       </div>
       <section id="thoughtsWallSection">
@@ -457,13 +459,13 @@
       </section>
     </section>
 
-    <button class="back-button" onclick="location.href='https://studiosgamesrs.com/home/'">‚Üê Volver al Home</button>
+    <button class="back-button" onclick="location.href='https://studiosgamesrs.com/home/'">? Volver al Home</button>
   </main>
 
   <div id="contentModal" class="modal-container" style="display: none;">
     <div class="modal-content">
       <span id="closeModal" class="modal-close">&times;</span>
-      <h3>A√±adir Nuevo Contenido</h3>
+      <h3>AÒadir Nuevo Contenido</h3>
 
       <div class="modal-input-group">
         <label for="contentType">Tipo de Contenido:</label>
@@ -473,9 +475,9 @@
         </select>
       </div>
 
-      <input type="text" id="contentTitle" placeholder="T√≠tulo" class="modal-input">
+      <input type="text" id="contentTitle" placeholder="TÌtulo" class="modal-input">
       <input type="date" id="contentDate" class="modal-input">
-      <textarea id="contentDescription" placeholder="Descripci√≥n corta" maxlength="120" class="modal-textarea"></textarea>
+      <textarea id="contentDescription" placeholder="DescripciÛn corta" maxlength="120" class="modal-textarea"></textarea>
       <input type="url" id="contentLink" placeholder="Enlace (Opcional)" class="modal-input">
       <button id="saveContentBtn" class="modal-save-btn">Guardar</button>
     </div>
@@ -489,7 +491,7 @@
         <button type="button" class="profile-customization-modal-close" onclick="typeof closeProfileCustomizationModal === 'function' && closeProfileCustomizationModal();" aria-label="Close">&times;</button>
       </div>
       <div id="profileCustomizationModalBody" class="profile-customization-modal-body">
-        <p class="profile-customization-modal-intro">Marcos y <strong>fondos de perfil</strong> (imagen dentro del panel superior con bordes). Las pesta√±as quedan fuera de ese fondo.</p>
+        <p class="profile-customization-modal-intro">Marcos y <strong>fondos de perfil</strong> (imagen dentro del panel superior con bordes). Las pestaÒas quedan fuera de ese fondo.</p>
         <div id="profileCustomizationLivePreview" class="profile-customization-live-preview" aria-hidden="true">
           <div class="profile-customization-live-preview-bg"></div>
           <div class="profile-customization-live-preview-card profile-customization-live-preview-mock-card">
@@ -497,7 +499,7 @@
               <img id="profileCustomizationLiveAvatar" src="" alt="">
             </div>
             <div class="profile-customization-live-preview-body">
-              <span class="profile-customization-live-preview-label">Tu tarjeta sigue igual ‚Äî solo cambia el banner del perfil</span>
+              <span class="profile-customization-live-preview-label">Tu tarjeta sigue igual ó solo cambia el banner del perfil</span>
             </div>
           </div>
         </div>
@@ -539,9 +541,10 @@
   <script src="/profile-customization.js?v=20260724stage"></script>
   <script src="/shared-unified-header.js?v=20260711d"></script>
   <script src="/shared-notifications.js?v=20260728pm1"></script>
-  <script src="/shared-header.js?v=20260719c"></script>
-  <script src="/dashboard-logic.js?v=20260728pm1"></script>
-  <script src="/welcome-overlay.js?v=20260728soldier1"></script>
+  <script src="/shared-nexus-sensor.js?v=20260729fix1"></script>
+  <script src="/shared-header.js?v=20260728hdr2"></script>
+  <script src="/dashboard-logic.js?v=20260728lvlui1"></script>
+  <script src="/welcome-overlay.js?v=20260729fix1"></script>
   <script src="/sg-visit-tracker.js?v=20260724a"></script>
   <script src="/site-engagement.js"></script>
   <script>
@@ -554,9 +557,9 @@
         <h3><i class="fas fa-user-plus"></i> Solicitud de amistad</h3>
         <button type="button" id="closeDashboardFriendRequestModal" class="dashboard-social-modal-close" aria-label="Cerrar">&times;</button>
       </div>
-      <p id="dashboardFriendRequestSubTitle" class="dashboard-social-modal-hint">Env√≠a una solicitud de amistad. Si acepta, podr√°n chatear en el sitio.</p>
+      <p id="dashboardFriendRequestSubTitle" class="dashboard-social-modal-hint">EnvÌa una solicitud de amistad. Si acepta, podr·n chatear en el sitio.</p>
       <form id="dashboardFriendRequestForm">
-        <textarea id="dashboardFriendRequestMessage" placeholder="Ej: Vi tu perfil, ¬øjugamos juntos?" required maxlength="200"></textarea>
+        <textarea id="dashboardFriendRequestMessage" placeholder="Ej: Vi tu perfil, øjugamos juntos?" required maxlength="200"></textarea>
         <button type="submit" id="sendDashboardFriendRequestBtn" class="dashboard-social-modal-submit">
           <i class="fas fa-paper-plane"></i> Enviar solicitud
         </button>
@@ -571,7 +574,7 @@
   <button id="floatingGlobalChatButton" class="floating-chat-btn floating-chat-btn-global" style="display: none;" title="Fuego de Campamento (Chat Global)">
     <img id="floatingGlobalChatEmblem" src="/dragon_profile_studiosgamesrs.png" alt="Comunidad" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIyMCIgZmlsbD0iIzMzMyIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMTUiIHI9IjYiIGZpbGw9IiM2NjYiLz48Y2lyY2xlIGN4PSIyMCIgY3k9IjMwIiByPSI5IiBmaWxsPSIjNjY2Ii8+PC9zdmc+'" />
   </button>
-  <button id="floatingPlayZoneChatButton" class="floating-chat-btn floating-chat-btn-playzone" style="display: none;" title="Chat de misi√≥n PlayZone">
+  <button id="floatingPlayZoneChatButton" class="floating-chat-btn floating-chat-btn-playzone" style="display: none;" title="Chat de misiÛn PlayZone">
     <img id="floatingPlayZoneChatEmblem" src="/dragon_profile_studiosgamesrs.png" alt="PlayZone Mission Chat" />
   </button>
 
@@ -609,7 +612,7 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // La l√≥gica Steam (vinculaci√≥n, persistencia, alerta) se maneja en dashboard-logic.js via updateSteamUI()
+    // La lÛgica Steam (vinculaciÛn, persistencia, alerta) se maneja en dashboard-logic.js via updateSteamUI()
     if (!window.editStatusPhrase) {
         window.editStatusPhrase = function() {
             var o = document.getElementById('phraseModalOverlay');
@@ -617,14 +620,14 @@ document.addEventListener("DOMContentLoaded", function() {
             var c = document.getElementById('phraseModalCounter');
             var txt = document.getElementById('userStatusPhraseText');
             if (!o || !i) return;
-            i.value = (txt && txt.textContent !== 'A√±adir frase...') ? txt.textContent : '';
+            i.value = (txt && txt.textContent !== 'AÒadir frase...') ? txt.textContent : '';
             if (c) c.textContent = i.value.length;
             o.classList.add('show');
             i.focus();
             var done = function() { o.classList.remove('show'); };
             var save = document.getElementById('phraseModalSave');
             var cancel = document.getElementById('phraseModalCancel');
-            var onS = function() { done(); if (txt) txt.textContent = i.value.trim().slice(0, 18) || 'A√±adir frase...'; save.removeEventListener('click', onS); cancel.removeEventListener('click', onC); };
+            var onS = function() { done(); if (txt) txt.textContent = i.value.trim().slice(0, 18) || 'AÒadir frase...'; save.removeEventListener('click', onS); cancel.removeEventListener('click', onC); };
             var onC = function() { done(); save.removeEventListener('click', onS); cancel.removeEventListener('click', onC); };
             save.addEventListener('click', onS);
             cancel.addEventListener('click', onC);

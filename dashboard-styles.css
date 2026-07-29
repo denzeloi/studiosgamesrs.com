@@ -923,6 +923,208 @@ header:not(.unified-header) {
   box-shadow: 0 4px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(255, 193, 7, 0.3), inset 0 0 20px rgba(255, 193, 7, 0.05);
 }
 
+/* ============================================================
+   MARCOS DE NIVEL NEXUS (CSS puro, sin imágenes)
+   ============================================================
+   El anillo se dibuja sobre .profile-photo-frame-overlay, el mismo div que ya
+   crean los marcos PNG, con dos pseudo-elementos enmascarados: ::after es el
+   anillo exterior y ::before el interior. Cada contexto (dashboard, chat, Play
+   Zone, comunidad) necesita una sola regla de dibujo y cada tramo solo aporta
+   su paleta en variables; si no, harían falta cuarenta bloques iguales.
+
+   --sg-frame-c1/c2/c3  color del tramo, su brillo y su sombra
+   --sg-frame-glow      halo exterior
+   --sg-frame-ring      degradado del anillo exterior
+   --sg-frame-inner     degradado del anillo interior (sin él no se pinta)
+   --sg-frame-spin      duración del giro del anillo exterior (0s = quieto)
+   --sg-frame-pulse     duración de la animación del anillo interior
+   --sg-frame-w         grosor del anillo, en % del radio (lo fija cada contexto)
+
+   Las recetas de degradado viven solo aquí: los demás archivos repiten nada más
+   los colores, para que cada página pinte su tramo aunque cambie el orden de
+   carga de las hojas de estilo. */
+
+/* Tramo 1 · nivel 10 — anillo limpio de un color */
+.profile-frame-nexus-tier-creador {
+  --sg-frame-c1: #a371f7;
+  --sg-frame-c2: #e0cdff;
+  --sg-frame-c3: #5b32a8;
+  --sg-frame-glow: rgba(163, 113, 247, 0.5);
+  --sg-frame-ring: linear-gradient(150deg, var(--sg-frame-c2), var(--sg-frame-c1) 45%, var(--sg-frame-c3));
+}
+
+/* Tramo 2 · nivel 20 — anillo limpio con un destello fijo */
+.profile-frame-nexus-tier-promotor {
+  --sg-frame-c1: #f778ba;
+  --sg-frame-c2: #ffcfe8;
+  --sg-frame-c3: #a52d6d;
+  --sg-frame-glow: rgba(247, 120, 186, 0.52);
+  --sg-frame-ring: conic-gradient(from 200deg, var(--sg-frame-c3), var(--sg-frame-c1) 25%, var(--sg-frame-c2) 45%, var(--sg-frame-c1) 68%, var(--sg-frame-c3));
+}
+
+/* Tramo 3 · nivel 30 — doble anillo con brillo */
+.profile-frame-nexus-tier-influencer {
+  --sg-frame-c1: #e3b341;
+  --sg-frame-c2: #fff0bd;
+  --sg-frame-c3: #8a6410;
+  --sg-frame-glow: rgba(227, 179, 65, 0.55);
+  --sg-frame-ring: linear-gradient(160deg, var(--sg-frame-c2), var(--sg-frame-c1) 50%, var(--sg-frame-c3));
+  --sg-frame-inner: linear-gradient(0deg, var(--sg-frame-c2), var(--sg-frame-c2));
+}
+
+/* Tramo 4 · nivel 40 — doble anillo con brillo más intenso */
+.profile-frame-nexus-tier-embajador {
+  --sg-frame-c1: #3fb950;
+  --sg-frame-c2: #b7f5c0;
+  --sg-frame-c3: #17632a;
+  --sg-frame-glow: rgba(63, 185, 80, 0.6);
+  --sg-frame-ring: conic-gradient(from 140deg, var(--sg-frame-c3), var(--sg-frame-c1) 20%, var(--sg-frame-c2) 48%, var(--sg-frame-c1) 76%, var(--sg-frame-c3));
+  --sg-frame-inner: linear-gradient(0deg, var(--sg-frame-c1), var(--sg-frame-c1));
+}
+
+/* Tramo 5 · nivel 50 — anillo segmentado */
+.profile-frame-nexus-tier-veterano {
+  --sg-frame-c1: #2dd4bf;
+  --sg-frame-c2: #c2fff5;
+  --sg-frame-c3: #0d6b61;
+  --sg-frame-glow: rgba(45, 212, 191, 0.55);
+  --sg-frame-ring: repeating-conic-gradient(from 0deg, var(--sg-frame-c1) 0 6deg, var(--sg-frame-c3) 6deg 12deg);
+}
+
+/* Tramo 6 · nivel 60 — muescas finas y anillo interior de refuerzo */
+.profile-frame-nexus-tier-elite {
+  --sg-frame-c1: #ff7b3d;
+  --sg-frame-c2: #ffd3ab;
+  --sg-frame-c3: #9c3a08;
+  --sg-frame-glow: rgba(255, 123, 61, 0.58);
+  --sg-frame-ring: repeating-conic-gradient(from 0deg, var(--sg-frame-c2) 0 2deg, var(--sg-frame-c1) 2deg 8deg, var(--sg-frame-c3) 8deg 14deg);
+  --sg-frame-inner: linear-gradient(0deg, var(--sg-frame-c1), var(--sg-frame-c1));
+}
+
+/* Tramo 7 · nivel 70 — anillo animado, giro lento */
+.profile-frame-nexus-tier-leyenda {
+  --sg-frame-c1: #ff4d6d;
+  --sg-frame-c2: #ffd0da;
+  --sg-frame-c3: #8c0f2c;
+  --sg-frame-glow: rgba(255, 77, 109, 0.6);
+  --sg-frame-ring: conic-gradient(from 0deg, var(--sg-frame-c3), var(--sg-frame-c1) 16%, var(--sg-frame-c2) 28%, var(--sg-frame-c1) 42%, var(--sg-frame-c3) 64%, var(--sg-frame-c1) 88%, var(--sg-frame-c3));
+  --sg-frame-spin: 11s;
+}
+
+/* Tramo 8 · nivel 80 — giro lento y destello del anillo interior */
+.profile-frame-nexus-tier-mitico {
+  --sg-frame-c1: #b48cff;
+  --sg-frame-c2: #eadfff;
+  --sg-frame-c3: #4b2a94;
+  --sg-frame-glow: rgba(180, 140, 255, 0.62);
+  --sg-frame-ring: conic-gradient(from 0deg, var(--sg-frame-c3), var(--sg-frame-c1) 14%, var(--sg-frame-c2) 26%, var(--sg-frame-c1) 40%, var(--sg-frame-c3) 58%, var(--sg-frame-c2) 74%, var(--sg-frame-c1) 88%, var(--sg-frame-c3));
+  --sg-frame-inner: linear-gradient(0deg, var(--sg-frame-c2), var(--sg-frame-c2));
+  --sg-frame-spin: 9s;
+  --sg-frame-pulse: 3.4s;
+}
+
+/* Tramo 9 · nivel 90 — degradado prismático animado */
+.profile-frame-nexus-tier-eterno {
+  --sg-frame-c1: #f2f4ff;
+  --sg-frame-c2: #ffffff;
+  --sg-frame-c3: #6d76b8;
+  --sg-frame-glow: rgba(210, 220, 255, 0.7);
+  --sg-frame-ring: conic-gradient(from 0deg, #f2f4ff, #a371f7 14%, #2dd4bf 30%, #ffe9a8 48%, #ff7b3d 64%, #ff4d6d 80%, #f2f4ff);
+  --sg-frame-inner: linear-gradient(0deg, var(--sg-frame-c2), var(--sg-frame-c2));
+  --sg-frame-spin: 13s;
+  --sg-frame-pulse: 3.8s;
+}
+
+/* Nivel 100 — prismático doble, los dos anillos giran en sentidos opuestos */
+.profile-frame-nexus-lv100-soberano {
+  --sg-frame-c1: #ffe9a8;
+  --sg-frame-c2: #ffffff;
+  --sg-frame-c3: #b48cff;
+  --sg-frame-glow: rgba(255, 233, 168, 0.75);
+  --sg-frame-ring: conic-gradient(from 0deg, #ffffff, #ffe9a8 10%, #ff4d6d 24%, #b48cff 38%, #2dd4bf 52%, #58a6ff 66%, #ffe9a8 82%, #ffffff);
+  --sg-frame-inner: conic-gradient(from 180deg, #ffe9a8, #ffffff 20%, #b48cff 45%, #58a6ff 70%, #ffe9a8);
+  --sg-frame-spin: 7.5s;
+  --sg-frame-pulse: 15s;
+  --sg-frame-inner-anim: sg-lvframe-spin-reverse;
+  --sg-frame-inner-ease: linear;
+}
+
+/* Animaciones compartidas por los cuatro contextos: dashboard-styles.css se
+   carga en todas las páginas que pintan marcos, así que se declaran una vez. */
+@keyframes sg-lvframe-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes sg-lvframe-spin-reverse {
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes sg-lvframe-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Dibujo del anillo en el dashboard y en la vista previa del modal */
+.profile-image-container.sg-lvl-frame > .profile-photo-frame-overlay {
+  --sg-frame-w: 7%;
+}
+
+.profile-customization-frame-preview-stage.sg-lvl-frame > .profile-photo-frame-overlay {
+  --sg-frame-w: 12%;
+}
+
+.profile-image-container.sg-lvl-frame > .profile-photo-frame-overlay,
+.profile-customization-frame-preview-stage.sg-lvl-frame > .profile-photo-frame-overlay {
+  border-radius: 50%;
+  background-image: none;
+}
+
+.profile-image-container.sg-lvl-frame > .profile-photo-frame-overlay::after,
+.profile-customization-frame-preview-stage.sg-lvl-frame > .profile-photo-frame-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background: var(--sg-frame-ring, var(--sg-frame-c1, transparent));
+  /* La máscara deja hueco el centro: el anillo nunca tapa la cara del avatar. */
+  -webkit-mask-image: radial-gradient(circle closest-side, transparent calc(100% - var(--sg-frame-w)), #000 calc(100% - var(--sg-frame-w)));
+  mask-image: radial-gradient(circle closest-side, transparent calc(100% - var(--sg-frame-w)), #000 calc(100% - var(--sg-frame-w)));
+  filter: drop-shadow(0 0 7px var(--sg-frame-glow, transparent));
+  animation: sg-lvframe-spin var(--sg-frame-spin, 0s) linear infinite;
+}
+
+.profile-image-container.sg-lvl-frame > .profile-photo-frame-overlay::before,
+.profile-customization-frame-preview-stage.sg-lvl-frame > .profile-photo-frame-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 7.5%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: var(--sg-frame-inner, none);
+  -webkit-mask-image: radial-gradient(circle closest-side, transparent 94%, #000 94%);
+  mask-image: radial-gradient(circle closest-side, transparent 94%, #000 94%);
+  animation-name: var(--sg-frame-inner-anim, sg-lvframe-pulse);
+  animation-duration: var(--sg-frame-pulse, 0s);
+  animation-timing-function: var(--sg-frame-inner-ease, ease-in-out);
+  animation-iteration-count: infinite;
+}
+
+/* La tarjeta de perfil hereda el color del tramo como halo */
+.profile-card.sg-lvl-frame {
+  box-shadow: 0 4px 50px rgba(0, 0, 0, 0.7), 0 0 28px var(--sg-frame-glow, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-image-container.sg-lvl-frame > .profile-photo-frame-overlay::before,
+  .profile-image-container.sg-lvl-frame > .profile-photo-frame-overlay::after,
+  .profile-customization-frame-preview-stage.sg-lvl-frame > .profile-photo-frame-overlay::before,
+  .profile-customization-frame-preview-stage.sg-lvl-frame > .profile-photo-frame-overlay::after,
+  .profile-customization-bg.sg-lvl-bg {
+    animation: none !important;
+  }
+}
+
 .profile-appearance-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1259,6 +1461,151 @@ img.profile-customization-item-preview {
   padding: 4px 8px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+/* Los premios de nivel que aún no tienes se enseñan bloqueados, no se esconden:
+   son el escaparate de lo que se gana subiendo. */
+.profile-customization-item.locked-level {
+  opacity: 1;
+  border-style: dashed;
+  border-color: rgba(255, 179, 71, 0.38);
+}
+
+.profile-customization-item.locked-level .profile-customization-bg-preview,
+.profile-customization-item.locked-level .profile-customization-frame-preview-wrap,
+.profile-customization-item.locked-level .profile-customization-item-preview {
+  filter: grayscale(0.5) brightness(0.78);
+  transition: filter 0.25s ease;
+}
+
+.profile-customization-item.locked-level:hover .profile-customization-bg-preview,
+.profile-customization-item.locked-level:hover .profile-customization-frame-preview-wrap,
+.profile-customization-item.locked-level:hover .profile-customization-item-preview {
+  filter: none;
+}
+
+.profile-customization-item-unlock {
+  color: #ffb347;
+  letter-spacing: 0.03em;
+}
+
+/* ============================================================
+   FONDOS DE PERFIL DE NIVEL NEXUS (degradados CSS, sin imágenes)
+   ============================================================
+   Van sobre .profile-customization-bg (banner del perfil) y también sobre las
+   vistas previas del modal, así que el selector es solo la clase del fondo.
+   Son deliberadamente oscuros: el nombre, el nivel y las estadísticas se leen
+   encima, y la legibilidad manda sobre el lucimiento. */
+
+/* Nivel 1 · NOVATO */
+.profile-bg-nexus-bg-novato {
+  background-image:
+    radial-gradient(circle at 20% 12%, rgba(88, 166, 255, 0.30), transparent 58%),
+    radial-gradient(circle at 86% 8%, rgba(88, 166, 255, 0.12), transparent 46%),
+    linear-gradient(160deg, #0e1622 0%, #0a0d13 74%);
+}
+
+/* Nivel 10 · CREADOR */
+.profile-bg-nexus-bg-creador {
+  background-image:
+    repeating-linear-gradient(118deg, rgba(163, 113, 247, 0.06) 0 2px, transparent 2px 11px),
+    radial-gradient(circle at 24% 14%, rgba(163, 113, 247, 0.32), transparent 60%),
+    linear-gradient(155deg, #150f26 0%, #0a0a12 76%);
+}
+
+/* Nivel 20 · PROMOTOR */
+.profile-bg-nexus-bg-promotor {
+  background-image:
+    radial-gradient(circle at 18% 10%, rgba(247, 120, 186, 0.30), transparent 56%),
+    radial-gradient(ellipse at 80% 20%, rgba(247, 120, 186, 0.14), transparent 52%),
+    linear-gradient(150deg, #1d1020 0%, #0c0810 78%);
+}
+
+/* Nivel 30 · INFLUENCER */
+.profile-bg-nexus-bg-influencer {
+  background-image:
+    radial-gradient(ellipse at 50% -20%, rgba(227, 179, 65, 0.28), transparent 62%),
+    radial-gradient(circle at 16% 18%, rgba(227, 179, 65, 0.16), transparent 50%),
+    linear-gradient(160deg, #1c1608 0%, #0c0a08 76%);
+}
+
+/* Nivel 40 · EMBAJADOR */
+.profile-bg-nexus-bg-embajador {
+  background-image:
+    radial-gradient(circle at 22% 16%, rgba(63, 185, 80, 0.26), transparent 58%),
+    radial-gradient(ellipse at 82% 90%, rgba(63, 185, 80, 0.14), transparent 54%),
+    linear-gradient(158deg, #0c1a12 0%, #080d0a 76%);
+}
+
+/* Nivel 50 · VETERANO — chapa de acero del Nexo */
+.profile-bg-nexus-bg-veterano {
+  background-image:
+    repeating-linear-gradient(115deg, rgba(45, 212, 191, 0.07) 0 2px, transparent 2px 9px),
+    radial-gradient(circle at 26% 12%, rgba(45, 212, 191, 0.24), transparent 56%),
+    linear-gradient(160deg, #0b1c1e 0%, #080d0f 78%);
+}
+
+/* Nivel 60 · ÉLITE — el resplandor sube desde la forja */
+.profile-bg-nexus-bg-elite {
+  background-image:
+    radial-gradient(ellipse at 50% 112%, rgba(255, 123, 61, 0.34), transparent 62%),
+    radial-gradient(circle at 18% 12%, rgba(255, 123, 61, 0.16), transparent 50%),
+    linear-gradient(160deg, #1d1109 0%, #0d0907 78%);
+}
+
+/* Nivel 70 · LEYENDA */
+.profile-bg-nexus-bg-leyenda {
+  background-image:
+    radial-gradient(ellipse at 50% -14%, rgba(255, 77, 109, 0.30), transparent 60%),
+    radial-gradient(circle at 84% 24%, rgba(255, 77, 109, 0.14), transparent 48%),
+    linear-gradient(158deg, #1f0d15 0%, #0d070a 78%);
+}
+
+/* Nivel 80 · MÍTICO — nebulosa */
+.profile-bg-nexus-bg-mitico {
+  background-image:
+    radial-gradient(circle at 16% 14%, rgba(180, 140, 255, 0.30), transparent 52%),
+    radial-gradient(circle at 74% 8%, rgba(88, 166, 255, 0.18), transparent 48%),
+    radial-gradient(ellipse at 46% 96%, rgba(180, 140, 255, 0.14), transparent 56%),
+    linear-gradient(155deg, #150f2a 0%, #0a0812 78%);
+}
+
+/* Nivel 90 · ETERNO — vacío prismático, aún contenido */
+.profile-bg-nexus-bg-eterno {
+  background-image:
+    radial-gradient(circle at 14% 12%, rgba(163, 113, 247, 0.22), transparent 46%),
+    radial-gradient(circle at 50% 4%, rgba(210, 220, 255, 0.20), transparent 44%),
+    radial-gradient(circle at 88% 18%, rgba(45, 212, 191, 0.18), transparent 46%),
+    linear-gradient(158deg, #141726 0%, #0a0b12 78%);
+}
+
+/* Nivel 100 · SOBERANO — el único fondo que se permite llamar la atención */
+.profile-bg-nexus-bg-soberano {
+  background-image:
+    radial-gradient(circle at 16% 10%, rgba(255, 233, 168, 0.30), transparent 50%),
+    radial-gradient(circle at 84% 16%, rgba(180, 140, 255, 0.26), transparent 50%),
+    radial-gradient(ellipse at 50% 108%, rgba(88, 166, 255, 0.22), transparent 58%),
+    linear-gradient(104deg, #1b1226 0%, #221533 24%, #12203a 48%, #1c1030 72%, #241a12 100%);
+  /* Se anima el filtro y no la posición del fondo: así no depende del
+     background-size que fija cada contenedor (banner, modal, vista previa). */
+  animation: sg-lvl-bg-shift 24s ease-in-out infinite;
+}
+
+@keyframes sg-lvl-bg-shift {
+  0%, 100% { filter: hue-rotate(0deg) saturate(1); }
+  50% { filter: hue-rotate(22deg) saturate(1.14); }
+}
+
+/* Los degradados ya son oscuros, así que el velo de integración del banner
+   puede ser más suave que con los PNG sin perder contraste en el texto. */
+.profile-stage > .profile-customization-bg.sg-lvl-bg::after {
+  background: linear-gradient(
+    180deg,
+    rgba(8, 10, 14, 0.20) 0%,
+    rgba(8, 10, 14, 0.36) 55%,
+    rgba(8, 10, 14, 0.76) 88%,
+    rgba(8, 10, 14, 0.92) 100%
+  );
 }
 
 @media (max-width: 700px) {
@@ -2468,17 +2815,39 @@ img.profile-customization-item-preview {
   gap: 8px;
 }
 
+/* Chapa roja del nivel: dentro solo va el escudo de sg-level-badge (sin el
+   nombre del tramo), así que el recuadro va ceñido al círculo. */
 .profile-level-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
-  padding: 3px 8px;
+  padding: 3px;
   border-radius: 999px;
   background: rgba(229, 57, 53, 0.16);
   border: 1px solid rgba(229, 57, 53, 0.32);
   color: #ffb3a8;
   font-weight: 700;
   font-size: 0.74rem;
+  line-height: 1;
+}
+
+/* Hueco reservado mientras llega el nivel real: sin número falso parpadeando. */
+.profile-level-badge.is-loading {
+  width: 40px;
+  height: 40px;
+  background: rgba(229, 57, 53, 0.08);
+  border-style: dashed;
+  animation: profile-level-badge-wait 1.4s ease-in-out infinite;
+}
+
+@keyframes profile-level-badge-wait {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.7; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-level-badge.is-loading { animation: none; }
 }
 
 .profile-rank-meta-row {
@@ -4394,12 +4763,23 @@ body.dashboard-theme-gold .dashboard-widget-count {
   gap: 4px;
 }
 
-.profile-top-cards-row .profile-meta-row.profile-meta-row-compact span {
+/* Solo las celdas directas ocupan la fila: si esto alcanza a los spans de
+   dentro (bandera, días), el icono se despega del texto hasta el borde. */
+.profile-top-cards-row .profile-meta-row.profile-meta-row-compact > span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
   width: 100%;
+}
+
+.profile-top-cards-row .profile-meta-row.profile-meta-row-compact > span > span,
+.profile-top-cards-row .profile-meta-row.profile-meta-row-compact > span > strong {
+  width: auto;
+}
+
+.profile-top-cards-row .profile-meta-row.profile-meta-row-compact > span > i {
+  flex: 0 0 auto;
 }
 
 .profile-top-cards-row .profile-rank-level-row {
@@ -4422,7 +4802,7 @@ body.dashboard-theme-gold .dashboard-widget-count {
   gap: 3px;
 }
 
-.profile-top-cards-row .profile-rank-meta-row span {
+.profile-top-cards-row .profile-rank-meta-row > span {
   display: block;
   width: 100%;
 }
@@ -7610,11 +7990,14 @@ body.dashboard-theme-gold .dashboard-widget-count {
       margin: 0;
     }
 
+    /* Misma rejilla que Comunidad/Rango: si esta franja se estira a todo el
+       ancho, Tokens/Referidos quedan centrados y desalineados con los de arriba. */
     .profile-header-nexus .profile-insights-grid {
       width: 100%;
-      max-width: 100%;
+      max-width: var(--profile-cols-w, 392px);
       margin-top: 0;
-      align-self: stretch;
+      align-self: flex-start;
+      justify-content: flex-start;
     }
 
     .nickname-row {
@@ -8044,10 +8427,14 @@ body.dashboard-theme-gold .dashboard-widget-count {
         grid-row: 2;
         align-items: center;
       }
+      /* En columna todo va centrado, pero la franja de abajo sigue midiendo lo
+         mismo que Comunidad/Rango para no romper la alineación. */
       .profile-header-nexus .profile-insights-grid {
         grid-column: 1;
         grid-row: auto;
-        max-width: 100%;
+        max-width: var(--profile-cols-w, 392px);
+        align-self: center;
+        justify-content: center;
       }
       .nickname-row {
         justify-content: center;
@@ -8077,20 +8464,8 @@ body.dashboard-theme-gold .dashboard-widget-count {
       .progress-labels { flex-wrap: wrap; }
     }
 
-/* Botón del Panel de Commander (solo visible para commanders vía JS) */
-.commander-panel-btn {
-  color: #ffd166 !important;
-  border: 1px solid rgba(255, 209, 102, 0.45) !important;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.commander-panel-btn:hover {
-  color: #fff !important;
-  background: rgba(255, 209, 102, 0.18) !important;
-  box-shadow: 0 0 12px rgba(255, 209, 102, 0.45);
-}
+/* El botón del Panel de Commander vive en shared-header.css para que Nexus,
+   que no carga esta hoja, muestre la misma cabecera. */
 
 /* ============================================================
    Panel superior: cuadros legibles sobre el fondo de perfil

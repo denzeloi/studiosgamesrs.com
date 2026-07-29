@@ -21,6 +21,148 @@
 
 'use strict';
 
+/** Silueta de reserva de la tarjeta del creador (la misma del resto del sitio). */
+const NEXUS_HERO_FALLBACK_AVATAR = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIyMCIgZmlsbD0iIzMzMyIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMTUiIHI9IjYiIGZpbGw9IiM2NjYiLz48Y2lyY2xlIGN4PSIyMCIgY3k9IjMwIiByPSI5IiBmaWxsPSIjNjY2Ii8+PC9zdmc+';
+
+// ═════════════════════════════════════════════════════════════════════════════
+// TABLA DE TRAMOS (derivada de sg-levels.js)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/** Atajo a la tabla única de niveles; null si el script no llegó a cargar. */
+function getSGLevels() {
+    const api = typeof window !== 'undefined' ? window.SGLevels : null;
+    return (api && typeof api.progress === 'function') ? api : null;
+}
+
+/**
+ * Textos de beneficios que ya estaban escritos a mano para los cinco primeros
+ * tramos. Se conservan palabra por palabra: describen accesos reales del sitio
+ * y los tramos nuevos ya traen su propio tagline.
+ */
+const LEGACY_TIER_COPY = [
+    {
+        benefits: [
+            'Acceso completo al Creator Nexus',
+            'Misiones diarias y de promoción SGRS',
+            'Ranking, rachas y progreso de XP',
+            'Insignia de bienvenida al completar tu primera tarea'
+        ],
+        profilePerks: ['Insignia Novato SGRS']
+    },
+    {
+        benefits: [
+            'Branding Studio: overlays y plantillas básicas',
+            'Temas de color para tu canvas',
+            '+22% XP extra en misiones',
+            'Recompensas de perfil por tareas completadas'
+        ],
+        profilePerks: ['Tema dashboard', 'Insignias de misiones']
+    },
+    {
+        benefits: [
+            'Misiones avanzadas de promoción con recompensas',
+            'Insignias exclusivas de perfil por logros',
+            '+25% XP en misiones',
+            'Vista previa del Creator Market'
+        ],
+        profilePerks: ['Marco de perfil estándar', 'Insignias especiales']
+    },
+    {
+        benefits: [
+            'Mercado Técnico desbloqueado',
+            'Marco de perfil personalizado Nexus',
+            'Plantillas premium y kit creador avanzado',
+            '+28% XP · soporte prioritario en comunidad'
+        ],
+        profilePerks: ['Marco Nexus personalizado', 'Kit plantillas premium']
+    },
+    {
+        benefits: [
+            'Acceso beta, contenido exclusivo y eventos anticipados',
+            'Marco de perfil único Embajador',
+            '+32% XP · destacado en promoción oficial SGRS',
+            'Ranura extra de misión diaria'
+        ],
+        profilePerks: ['Marco único Embajador', 'Contenido de perfil ampliado']
+    }
+];
+
+/** Nombre legible de cada llave de acceso de SGLevels.perksForLevel(). */
+const ACCESS_LABELS = {
+    profileCustomization: 'Personalización de perfil',
+    mercadoTecnico: 'Mercado Técnico',
+    prioritySupport: 'Soporte prioritario',
+    betaAccess: 'Acceso beta',
+    vipLounge: 'Sala VIP',
+    tournamentPriority: 'Prioridad en torneos',
+    customTitle: 'Título propio',
+    hallOfFame: 'Salón de la fama'
+};
+
+/** Beneficios legibles de un tramo cuando no hay copia escrita a mano. */
+function buildTierBenefits(tierIndex, perks) {
+    const list = [];
+    if (perks.xpBonusPct) list.push('+' + perks.xpBonusPct + '% XP en todo lo que hagas');
+    if (perks.missionTokenBonusPct) list.push('+' + perks.missionTokenBonusPct + '% tokens en misiones');
+    if (perks.extraMissionSlots) {
+        list.push(perks.extraMissionSlots === 1
+            ? 'Una ranura extra de misión diaria'
+            : perks.extraMissionSlots + ' ranuras extra de misión diaria');
+    }
+    (perks.access || []).forEach((key) => {
+        const label = ACCESS_LABELS[key];
+        if (label && list.length < 6) list.push(label);
+    });
+    return list.length ? list : ['Acceso completo al Creator Nexus'];
+}
+
+/**
+ * Construye CONFIG.xp.ranks a partir de SGLevels.TIERS. Cada entrada es un
+ * tramo de diez niveles y su índice coincide con State.stats.rank.
+ */
+function buildRankTable() {
+    const SGL = getSGLevels();
+    if (!SGL) {
+        // Sin la tabla no hay tramos: una entrada neutra evita que la página
+        // reviente al leer CONFIG.xp.ranks[0].
+        return [{
+            level: 1,
+            tierIndex: 0,
+            accessName: 'Acceso Básico',
+            name: 'NOVATO',
+            xp: 0,
+            color: '#58a6ff',
+            icon: 'fa-seedling',
+            tagline: 'Explora el Nexus y gana XP',
+            benefits: LEGACY_TIER_COPY[0].benefits.slice(),
+            profilePerks: LEGACY_TIER_COPY[0].profilePerks.slice()
+        }];
+    }
+
+    return SGL.TIERS.map((tier) => {
+        const perks = SGL.TIER_PERKS[tier.index] || { access: [] };
+        const cosmetics = (SGL.TIER_COSMETICS && SGL.TIER_COSMETICS[tier.index]) || {};
+        const legacy = LEGACY_TIER_COPY[tier.index];
+        const profilePerks = legacy
+            ? legacy.profilePerks.slice()
+            : [cosmetics.frameName, cosmetics.backgroundName].filter(Boolean);
+        return {
+            level: tier.from,
+            lastLevel: tier.to,
+            tierIndex: tier.index,
+            accessName: tier.accessName,
+            name: tier.name,
+            xp: SGL.xpForLevel(tier.from),
+            color: tier.color,
+            glow: tier.glow,
+            icon: tier.icon,
+            tagline: tier.tagline,
+            benefits: legacy ? legacy.benefits.slice() : buildTierBenefits(tier.index, perks),
+            profilePerks: profilePerks
+        };
+    });
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // CONFIGURACIÓN GLOBAL
 // ═════════════════════════════════════════════════════════════════════════════
@@ -31,96 +173,20 @@ const CONFIG = {
     },
     baseUrl: "https://studiosgamesrs.com",
     xp: {
-        ranks: [
-            {
-                level: 1,
-                accessName: 'Acceso Básico',
-                name: 'NOVATO',
-                xp: 0,
-                color: '#58a6ff',
-                icon: 'fa-seedling',
-                tagline: 'Explora el Nexus y gana XP con misiones de promoción',
-                benefits: [
-                    'Acceso completo al Creator Nexus',
-                    'Misiones diarias y de promoción SGRS',
-                    'Ranking, rachas y progreso de XP',
-                    'Insignia de bienvenida al completar tu primera tarea'
-                ],
-                profilePerks: ['Insignia Novato SGRS']
-            },
-            {
-                level: 2,
-                accessName: 'Creador Activo',
-                name: 'CREADOR',
-                xp: 500,
-                color: '#a371f7',
-                icon: 'fa-palette',
-                tagline: 'Diseña contenido y desbloquea personalización inicial',
-                benefits: [
-                    'Branding Studio: overlays y plantillas básicas',
-                    'Temas de color para tu canvas',
-                    '+5% XP extra en misiones',
-                    'Recompensas de perfil por tareas completadas'
-                ],
-                profilePerks: ['Tema dashboard', 'Insignias de misiones']
-            },
-            {
-                level: 3,
-                accessName: 'Promotor SGRS',
-                name: 'PROMOTOR',
-                xp: 1500,
-                color: '#f778ba',
-                icon: 'fa-bullhorn',
-                tagline: 'Promueve la página y gana personalización exclusiva',
-                benefits: [
-                    'Misiones avanzadas de promoción con recompensas',
-                    'Insignias exclusivas de perfil por logros',
-                    '+10% XP en misiones',
-                    'Vista previa del Creator Market'
-                ],
-                profilePerks: ['Marco de perfil estándar', 'Insignias especiales']
-            },
-            {
-                level: 4,
-                accessName: 'Influencer Nexus',
-                name: 'INFLUENCER',
-                xp: 3000,
-                color: '#e3b341',
-                icon: 'fa-shield-halved',
-                tagline: 'Acceso amplio y marco personalizado de Nexus',
-                benefits: [
-                    'Mercado Técnico desbloqueado',
-                    'Marco de perfil personalizado Nexus (próximamente)',
-                    'Plantillas premium y kit creador avanzado',
-                    '+15% XP · soporte prioritario en comunidad'
-                ],
-                profilePerks: ['Marco Nexus personalizado (Lv.4+)', 'Kit plantillas premium']
-            },
-            {
-                level: 5,
-                accessName: 'Embajador Élite',
-                name: 'EMBAJADOR',
-                xp: 6000,
-                color: '#3fb950',
-                icon: 'fa-crown',
-                tagline: 'Máximo nivel de acceso — todos los beneficios desbloqueados',
-                benefits: [
-                    'Todos los beneficios del Nexus desbloqueados',
-                    'Marco de perfil único Embajador (legendario)',
-                    'Acceso beta, contenido exclusivo y eventos anticipados',
-                    '+25% XP máximo · destacado en promoción oficial SGRS'
-                ],
-                profilePerks: ['Marco único Embajador', 'Todo el contenido de perfil desbloqueado']
-            }
-        ],
+        /** Los diez tramos salen de sg-levels.js; el índice coincide con stats.rank. */
+        ranks: buildRankTable(),
         dailyBonus: 100,
         referralBonus: 500,
         streakBonus: [0, 50, 100, 150, 200, 300, 500],
         multiplierPerRank: 0.05
     },
+    /**
+     * El desbloqueo se mide en XP, no en tramo. Con la curva de 100 niveles el
+     * tramo que concede 'mercadoTecnico' empieza en el nivel 30, así que un
+     * jugador con 3.000 XP (el antiguo Nivel 4) perdería un acceso que ya tenía
+     * si comparásemos tramos. minXp es el suelo histórico y no se toca.
+     */
     mercadoTecnico: {
-        minRankIndex: 3,
-        minRankName: 'INFLUENCER',
         minXp: 3000
     },
     quests: [
@@ -202,13 +268,13 @@ const CONFIG = {
         { id: 'profile_frame', name: 'Marco de Perfil', description: 'Marco exclusivo por misiones completadas', level: 3, icon: 'fa-image', type: 'badge' },
         { id: 'beta_access', name: 'Acceso Beta', description: 'Prueba funciones antes que nadie', level: 4, icon: 'fa-flask' },
         { id: 'priority_support', name: 'Soporte Prioritario', description: 'Atención prioritaria en la comunidad', level: 4, icon: 'fa-headset' },
-        { id: 'profile_frame_nexus', name: 'Marco Nexus', description: 'Marco personalizado de Influencer (Lv.4+)', level: 4, icon: 'fa-square-full', type: 'frame', comingSoon: true },
+        { id: 'profile_frame_nexus', name: 'Marco Dragon Guard', description: 'Marco Dragon Guard, gratis al llegar al nivel 4', level: 4, icon: 'fa-square-full', type: 'frame' },
         { id: 'badge_elite', name: 'Insignia Élite', description: 'Insignia difícil — requiere nivel 5', level: 5, icon: 'fa-certificate', type: 'badge', xpBonus: 2500, difficulty: 'legendary' },
         { id: 'exclusive_content', name: 'Contenido Exclusivo', description: 'Material exclusivo para embajadores', level: 5, icon: 'fa-star' },
         { id: 'event_early', name: 'Eventos Anticipados', description: 'Entrada anticipada a eventos SGRS', level: 5, icon: 'fa-calendar-alt', type: 'badge' },
         { id: 'custom_overlay', name: 'Overlay Personalizado', description: 'Diseño único para tu canal', level: 5, icon: 'fa-magic' },
         { id: 'creator_tools', name: 'Kit Creador', description: 'Plantillas y recursos extra para creadores', level: 5, icon: 'fa-toolbox', type: 'badge' },
-        { id: 'frame_ambassador', name: 'Marco Embajador', description: 'Marco único legendario — nivel máximo', level: 5, icon: 'fa-gem', type: 'frame', comingSoon: true },
+        { id: 'frame_ambassador', name: 'Marco Golden Nexus', description: 'Marco Golden Nexus, gratis al llegar al nivel 5', level: 5, icon: 'fa-gem', type: 'frame' },
         { id: 'vip_lounge', name: 'Sala VIP', description: 'Acceso a canal privado de la comunidad', level: 5, icon: 'fa-crown', type: 'badge', xpBonus: 1000 }
     ],
     themes: {
@@ -622,7 +688,12 @@ class NexusCore {
         const keepRefs = State.user.isDashboardUser ? State.stats.verifiedReferrals : undefined;
         State.stats.xp = stats.xp != null ? Number(stats.xp) : State.stats.xp;
         State.stats.level = stats.level != null ? Number(stats.level) : State.stats.level;
-        State.stats.rank = stats.rank != null ? Number(stats.rank) : State.stats.rank;
+        // El `rank` del servidor puede venir del sistema viejo de cinco escalones:
+        // el tramo real se deduce siempre del nivel con la tabla única.
+        const SGLsync = getSGLevels();
+        State.stats.rank = SGLsync
+            ? SGLsync.tierIndexForLevel(State.stats.level)
+            : (stats.rank != null ? Number(stats.rank) : State.stats.rank);
         State.stats.streak = stats.streak != null ? Number(stats.streak) : State.stats.streak;
         State.stats.maxStreak = stats.maxStreak != null ? Number(stats.maxStreak) : State.stats.maxStreak;
         State.stats.lastLogin = stats.lastLogin != null ? stats.lastLogin : State.stats.lastLogin;
@@ -982,24 +1053,95 @@ class NexusCore {
     }
 
     updateLevelFromXP() {
-        let newLevel = 1;
-        let newRank = 0;
-        
-        for (let i = CONFIG.xp.ranks.length - 1; i >= 0; i--) {
-            if (State.stats.xp >= CONFIG.xp.ranks[i].xp) {
-                newLevel = CONFIG.xp.ranks[i].level;
-                newRank = i;
-                break;
+        const SGL = getSGLevels();
+        if (!SGL) return;
+        State.stats.level = SGL.levelFromXp(State.stats.xp);
+        State.stats.rank = SGL.tierIndexForLevel(State.stats.level);
+    }
+
+    /** Tramo actual. Nunca devuelve undefined aunque stats.rank llegue desfasado. */
+    getCurrentRank() {
+        const ranks = CONFIG.xp.ranks;
+        return ranks[State.stats.rank] || ranks[ranks.length - 1] || ranks[0];
+    }
+
+    /** Progreso del jugador actual; null si la tabla de niveles no está cargada. */
+    getLevelProgress() {
+        const SGL = getSGLevels();
+        return SGL ? SGL.progress(State.stats.xp) : null;
+    }
+
+    /**
+     * Pinta (o refresca) la insignia de nivel en un contenedor. Si el
+     * contenedor no existe en el HTML no pasa nada: la página sigue igual.
+     */
+    paintLevelBadge(hostId, options) {
+        const host = document.getElementById(hostId);
+        if (!host || !window.SGLevelBadge) return null;
+        const opts = Object.assign({ xp: State.stats.xp, level: State.stats.level }, options || {});
+        return host.querySelector('.sg-lvl')
+            ? window.SGLevelBadge.update(host, opts)
+            : window.SGLevelBadge.render(host, opts);
+    }
+
+    /**
+     * Foto de perfil de la tarjeta del creador: la imagen del usuario con el
+     * marco que lleva equipado encima. El marco lo pinta
+     * SGProfileCustomization, el mismo helper del dashboard, la Play Zone y el
+     * chat de la comunidad, así que un cambio de marco se ve sin recargar.
+     */
+    updateHeroAvatar(displayName) {
+        const img = document.getElementById('nexus-hero-avatar-img');
+        if (!img) return;
+        const photo = State.user.photoURL || NEXUS_HERO_FALLBACK_AVATAR;
+        if (img.getAttribute('src') !== photo) img.setAttribute('src', photo);
+        img.alt = displayName || 'Tu foto de perfil';
+        img.onerror = function() {
+            if (img.getAttribute('src') !== NEXUS_HERO_FALLBACK_AVATAR) {
+                img.setAttribute('src', NEXUS_HERO_FALLBACK_AVATAR);
             }
+        };
+
+        // El color del tramo tiñe la ambientación de la tarjeta.
+        const card = document.querySelector('.nexus-hero-cine');
+        const rank = this.getCurrentRank();
+        if (card && rank && rank.color) card.style.setProperty('--nexus-hero-accent', rank.color);
+
+        this.watchHeroFrame();
+        this.paintHeroFrame();
+    }
+
+    /** Escucha el marco equipado una sola vez y repinta en cuanto cambie. */
+    watchHeroFrame() {
+        if (this.heroFrameBound) return;
+        const uid = State.user && State.user.id;
+        const SG = window.SGProfileCustomization;
+        if (!uid || !this.db || !SG) return;
+        this.heroFrameBound = true;
+
+        if (typeof SG.loadAssets === 'function') {
+            SG.loadAssets(this.db).then(() => this.paintHeroFrame()).catch(() => {});
         }
-        
-        State.stats.level = newLevel;
-        State.stats.rank = newRank;
+        this.db.ref(`users/${uid}/profileCustomization/equippedFrame`).on('value', (snap) => {
+            const id = snap.val();
+            this.heroFrameId = (id && id !== 'default') ? String(id) : null;
+            this.paintHeroFrame();
+        }, () => {});
+    }
+
+    paintHeroFrame() {
+        const wrap = document.getElementById('nexus-hero-avatar');
+        const SG = window.SGProfileCustomization;
+        if (!wrap || !SG || typeof SG.applyFrameId !== 'function') return;
+        SG.applyFrameId(wrap, this.heroFrameId || 'default');
     }
 
     onLevelUp(newLevel) {
-        const rank = CONFIG.xp.ranks[State.stats.rank];
+        const rank = this.getCurrentRank();
         this.pushActivity('fa-arrow-up', `${State.user.username} subió al Nivel ${newLevel}`);
+        // La insignia grande vive ahora en la cabecera; aquí se celebra la
+        // pequeña de la etiqueta de acceso, que sigue en esta tarjeta.
+        if (window.SGLevelBadge) window.SGLevelBadge.celebrate('nexus-access-tag-badge');
         
         // Sonido
         this.playSound('levelup');
@@ -1827,13 +1969,10 @@ class NexusCore {
     }
 
     updateXPBar() {
-        const currentRank = CONFIG.xp.ranks[State.stats.rank];
-        const nextRank = CONFIG.xp.ranks[State.stats.rank + 1];
-        
-        const xpInRank = State.stats.xp - currentRank.xp;
-        const xpNeeded = nextRank ? nextRank.xp - currentRank.xp : 1000;
-        const progress = Math.min((xpInRank / xpNeeded) * 100, 100);
-        
+        const prog = this.getLevelProgress();
+        const progress = prog ? prog.pct : 0;
+        const nextXpLabel = prog && !prog.maxed ? prog.nextLevelXp.toLocaleString() : 'MAX';
+
         // Barra principal
         const xpFill = document.getElementById('xp-fill-dynamic');
         if (xpFill) xpFill.style.width = `${progress}%`;
@@ -1845,32 +1984,57 @@ class NexusCore {
         // Texto
         const xpRatio = document.getElementById('xp-ratio');
         if (xpRatio) {
-            xpRatio.textContent = `${State.stats.xp.toLocaleString()} / ${nextRank ? nextRank.xp.toLocaleString() : 'MAX'} XP`;
+            xpRatio.textContent = `${State.stats.xp.toLocaleString()} / ${nextXpLabel} EXP`;
         }
         
-        // Anillo SVG
-        const ring = document.getElementById('main-progress-ring');
-        if (ring) {
-            const ringRadius = parseFloat(ring.getAttribute('r')) || 42;
-            const c = 2 * Math.PI * ringRadius;
-            const offset = c - (progress / 100) * c;
-            ring.style.strokeDasharray = `${c} ${c}`;
-            ring.style.strokeDashoffset = offset;
-        }
-
         this.updateXPMilestones();
     }
 
+    /**
+     * Hitos de la barra: ya no son los cinco tramos viejos sino los próximos
+     * niveles que traen premio, según SGLevels.nextRewardLevel().
+     */
     updateXPMilestones() {
         const container = document.querySelector('.xp-milestones');
         if (!container) return;
-        const ranks = CONFIG.xp.ranks;
-        const maxXp = ranks[ranks.length - 1].xp || 6000;
-        container.innerHTML = ranks.map((r) => {
-            const left = maxXp > 0 ? (r.xp / maxXp) * 100 : 0;
-            const reached = State.stats.level >= r.level;
-            return `<div class="milestone${reached ? ' reached' : ''}" style="left: ${left}%;" data-xp="${r.xp}" title="${r.xp.toLocaleString()} XP">Niv. ${r.level}</div>`;
+        const SGL = getSGLevels();
+        if (!SGL) {
+            container.innerHTML = '';
+            return;
+        }
+
+        const level = State.stats.level;
+        const fromXp = SGL.xpForLevel(level);
+        const stops = [];
+        let cursor = level;
+        while (stops.length < 4) {
+            const next = SGL.nextRewardLevel(cursor);
+            if (!next) break;
+            stops.push(next);
+            cursor = next;
+        }
+        if (!stops.length) {
+            container.innerHTML = '<div class="milestone reached" style="left: 100%;">Nivel máximo</div>';
+            return;
+        }
+
+        const spanXp = SGL.xpForLevel(stops[stops.length - 1]) - fromXp;
+        container.innerHTML = stops.map((lv) => {
+            const xp = SGL.xpForLevel(lv);
+            const left = spanXp > 0 ? Math.min(100, ((xp - fromXp) / spanXp) * 100) : 100;
+            const rewards = SGL.rewardsForLevel(lv).map((r) => r.name).join(' · ');
+            const title = `${xp.toLocaleString()} EXP — ${rewards}`;
+            return `<div class="milestone" style="left: ${left}%;" data-xp="${xp}" title="${this.escapeAttr(title)}">Niv. ${lv}</div>`;
         }).join('');
+    }
+
+    /** Escapa un texto para meterlo en un atributo HTML. */
+    escapeAttr(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
     }
 
     updateStatsDisplay() {
@@ -1897,7 +2061,7 @@ class NexusCore {
     }
 
     updateRankDisplay() {
-        const rank = CONFIG.xp.ranks[State.stats.rank];
+        const rank = this.getCurrentRank();
         const displayName = State.user.displayName || State.user.username || 'Usuario';
         
         const title = document.getElementById('current-rank-title');
@@ -1907,38 +2071,26 @@ class NexusCore {
         
         const nextName = document.getElementById('next-rank-name');
         if (nextName) {
-            nextName.textContent = rank.accessName || `Nivel ${State.stats.level}`;
+            nextName.textContent = `Nivel ${State.stats.level} · ${rank.accessName || rank.name}`;
         }
 
         const nextTarget = document.getElementById('next-rank-target');
+        const prog = this.getLevelProgress();
         const nextRank = CONFIG.xp.ranks[State.stats.rank + 1];
         if (nextTarget) {
-            nextTarget.textContent = nextRank
-                ? `Siguiente: ${nextRank.accessName} (${nextRank.xp.toLocaleString()} XP)`
-                : 'Has alcanzado el acceso máximo del Nexus';
-        }
-        
-        const letter = document.getElementById('rank-letter');
-        if (letter) {
-            if (State.user.photoURL) {
-                letter.innerHTML = '';
-                const img = document.createElement('img');
-                img.src = State.user.photoURL;
-                img.alt = displayName;
-                img.className = 'rank-avatar-img';
-                img.onerror = function() {
-                    letter.innerHTML = rank.icon && rank.icon.startsWith('fa-')
-                        ? `<i class="fas ${rank.icon}" style="font-size:1.4em;"></i>`
-                        : (rank.icon || '⚔️');
-                };
-                letter.appendChild(img);
-            } else if (rank.icon && rank.icon.startsWith('fa-')) {
-                letter.innerHTML = `<i class="fas ${rank.icon}" style="font-size:1.4em;"></i>`;
+            if (!prog || prog.maxed) {
+                nextTarget.textContent = 'Has alcanzado el nivel máximo del Nexus';
             } else {
-                letter.textContent = rank.icon || '⚔️';
+                const tierNote = nextRank && nextRank.level === prog.nextLevel
+                    ? ` · estrenas ${nextRank.accessName}`
+                    : '';
+                nextTarget.textContent =
+                    `Faltan ${prog.remaining.toLocaleString()} EXP para el nivel ${prog.nextLevel}${tierNote}`;
             }
         }
         
+        this.updateHeroAvatar(displayName);
+
         const communityRank = document.getElementById('community-rank');
         if (communityRank) communityRank.textContent = `Nivel ${State.stats.level}`;
 
@@ -1946,14 +2098,25 @@ class NexusCore {
     }
 
     updateAccessTag() {
-        const rank = CONFIG.xp.ranks[State.stats.rank] || CONFIG.xp.ranks[0];
+        const rank = this.getCurrentRank();
         const label = document.getElementById('nexus-access-tag-label');
-        if (label) label.textContent = rank.accessName || rank.name;
+        if (label) label.textContent = `Nivel ${State.stats.level} · ${rank.accessName || rank.name}`;
         const tag = document.getElementById('nexus-access-tag');
         if (tag) {
             tag.style.borderColor = rank.color + '55';
             tag.dataset.level = String(State.stats.level);
+            this.ensureAccessTagBadgeHost(tag);
+            this.paintLevelBadge('nexus-access-tag-badge', { size: 'sm' });
         }
+    }
+
+    /** Hueco de la insignia dentro de la etiqueta de acceso, si el HTML no lo trae. */
+    ensureAccessTagBadgeHost(tag) {
+        if (document.getElementById('nexus-access-tag-badge')) return;
+        const host = document.createElement('span');
+        host.id = 'nexus-access-tag-badge';
+        host.className = 'nexus-access-tag-badge';
+        tag.insertBefore(host, tag.firstChild);
     }
 
     openAccessOverlay() {
@@ -1974,31 +2137,35 @@ class NexusCore {
     }
 
     renderAccessOverlay() {
-        const rank = CONFIG.xp.ranks[State.stats.rank] || CONFIG.xp.ranks[0];
-        const nextRank = CONFIG.xp.ranks[State.stats.rank + 1];
+        const rank = this.getCurrentRank();
         const currentEl = document.getElementById('nexus-access-current');
         const tiersEl = document.getElementById('nexus-access-tiers');
         const progressEl = document.getElementById('nexus-access-progress-text');
         if (!currentEl || !tiersEl) return;
 
-        const xpInRank = State.stats.xp - rank.xp;
-        const xpNeeded = nextRank ? nextRank.xp - rank.xp : 0;
-        const progress = nextRank && xpNeeded > 0 ? Math.min((xpInRank / xpNeeded) * 100, 100) : 100;
+        const SGL = getSGLevels();
+        const maxLevel = SGL ? SGL.MAX_LEVEL : 100;
+        const prog = this.getLevelProgress();
+        const progress = prog ? prog.pct : 0;
 
         if (progressEl) {
-            progressEl.textContent = nextRank
-                ? `${State.stats.xp.toLocaleString()} / ${nextRank.xp.toLocaleString()} XP para ${nextRank.accessName}`
-                : `${State.stats.xp.toLocaleString()} XP — nivel máximo alcanzado`;
+            progressEl.textContent = prog && !prog.maxed
+                ? `${State.stats.xp.toLocaleString()} / ${prog.nextLevelXp.toLocaleString()} EXP para el nivel ${prog.nextLevel}`
+                : `${State.stats.xp.toLocaleString()} EXP — nivel máximo alcanzado`;
         }
 
         const progressFill = document.getElementById('nexus-access-progress-fill');
         if (progressFill) progressFill.style.width = progress + '%';
 
+        const badgeHtml = window.SGLevelBadge
+            ? window.SGLevelBadge.html({ xp: State.stats.xp, level: State.stats.level, size: 'md', showTooltip: false })
+            : '<i class="fas ' + rank.icon + '"></i>';
+
         currentEl.innerHTML =
             '<div class="nexus-access-current-card" style="--tier-color:' + rank.color + '">' +
-                '<div class="nexus-access-current-seal"><i class="fas ' + rank.icon + '"></i></div>' +
+                '<div class="nexus-access-current-seal">' + badgeHtml + '</div>' +
                 '<div class="nexus-access-current-meta">' +
-                    '<span class="nexus-access-current-level">Nivel ' + State.stats.level + ' / 5</span>' +
+                    '<span class="nexus-access-current-level">Nivel ' + State.stats.level + ' / ' + maxLevel + '</span>' +
                     '<h3 class="nexus-access-current-name">' + (rank.accessName || rank.name) + '</h3>' +
                     '<p class="nexus-access-current-tagline">' + (rank.tagline || '') + '</p>' +
                 '</div>' +
@@ -2011,21 +2178,25 @@ class NexusCore {
                     : '') +
             '</div>';
 
+        const level = State.stats.level;
+        const escapeAttr = this.escapeAttr.bind(this);
         tiersEl.innerHTML = CONFIG.xp.ranks.map(function(r, idx) {
-            const unlocked = State.stats.level >= r.level;
+            const unlocked = level >= r.level;
             const isCurrent = State.stats.rank === idx;
             const statusClass = unlocked ? (isCurrent ? ' is-current' : ' is-unlocked') : ' is-locked';
             const statusIcon = unlocked ? (isCurrent ? 'fa-star' : 'fa-check-circle') : 'fa-lock';
             const perks = (r.benefits || []).slice(0, 3).map(function(b) { return '<li>' + b + '</li>'; }).join('');
-            const frameNote = (r.level >= 4 && r.profilePerks && r.profilePerks.some(function(p) { return /marco/i.test(p); }))
+            const frameNote = (r.profilePerks && r.profilePerks.some(function(p) { return /marco/i.test(p); }))
                 ? '<span class="nexus-access-frame-note"><i class="fas fa-image"></i> Marco de perfil incluido</span>'
                 : '';
-            return '<article class="nexus-access-tier' + statusClass + '" style="--tier-color:' + r.color + '">' +
+            const range = r.lastLevel ? 'Niveles ' + r.level + '–' + r.lastLevel : 'Nivel ' + r.level;
+            const status = isCurrent ? 'Estás aquí' : (unlocked ? 'Superado' : 'Bloqueado');
+            return '<article class="nexus-access-tier' + statusClass + '" style="--tier-color:' + r.color + '" title="' + escapeAttr(status) + '">' +
                 '<div class="nexus-access-tier-head">' +
                     '<span class="nexus-access-tier-badge"><i class="fas ' + statusIcon + '"></i></span>' +
-                    '<div><span class="nexus-access-tier-num">Nivel ' + r.level + '</span>' +
+                    '<div><span class="nexus-access-tier-num">' + range + '</span>' +
                     '<h4>' + (r.accessName || r.name) + '</h4>' +
-                    '<span class="nexus-access-tier-xp">' + r.xp.toLocaleString() + ' XP</span></div>' +
+                    '<span class="nexus-access-tier-xp">' + r.xp.toLocaleString() + ' EXP</span></div>' +
                 '</div>' +
                 '<p class="nexus-access-tier-desc">' + (r.tagline || '') + '</p>' +
                 '<ul class="nexus-access-tier-list">' + perks + '</ul>' +
@@ -2034,8 +2205,16 @@ class NexusCore {
         }).join('');
     }
 
-    hasNexusAccess(minLevel) {
-        return State.stats.level >= minLevel;
+    /**
+     * Comprueba un acceso del Nexus. Admite un nivel mínimo (número) o una
+     * llave de SGLevels.perksForLevel().access (por ejemplo 'vipLounge').
+     */
+    hasNexusAccess(requirement) {
+        if (typeof requirement === 'string') {
+            const SGL = getSGLevels();
+            return SGL ? SGL.hasAccess(State.stats.level, requirement) : false;
+        }
+        return State.stats.level >= (Number(requirement) || 1);
     }
 
     updateReferralDisplay(skipTableRender) {
@@ -2267,6 +2446,78 @@ class NexusCore {
         
         const counter = document.getElementById('unlocked-rewards');
         if (counter) counter.textContent = `${unlockedCount}/${rewards.length}`;
+
+        this.renderLevelRewards(grid);
+    }
+
+    /**
+     * Recompensas de la curva de 100 niveles: lo que ya tienes, lo que viene y
+     * lo que estrena el próximo tramo. Se cuelga de la misma .rewards-grid que
+     * las recompensas reclamables para no partir la sección en dos.
+     */
+    renderLevelRewards(grid) {
+        const SGL = getSGLevels();
+        if (!grid || !SGL) return;
+
+        const level = State.stats.level;
+        const owned = SGL.unlocksUpTo(level);
+        const ownedCount = owned.frames.length + owned.backgrounds.length + owned.badges.length;
+
+        const upcoming = [];
+        let cursor = level;
+        while (upcoming.length < 4) {
+            const next = SGL.nextRewardLevel(cursor);
+            if (!next) break;
+            upcoming.push({ level: next, rewards: SGL.rewardsForLevel(next) });
+            cursor = next;
+        }
+
+        const nextTier = CONFIG.xp.ranks.find((r) => r.level > level) || null;
+        const escapeAttr = this.escapeAttr.bind(this);
+        const typeIcons = { frame: 'fa-square-full', background: 'fa-image', badge: 'fa-certificate', tokens: 'fa-coins', perk: 'fa-bolt' };
+
+        const summary =
+            '<article class="sg-lvl-reward-card is-owned">' +
+                '<div class="sg-lvl-reward-head"><i class="fas fa-box-open"></i><h4>Ya desbloqueado</h4></div>' +
+                '<p class="sg-lvl-reward-desc">' + ownedCount + ' piezas conseguidas hasta el nivel ' + level + ': ' +
+                    owned.frames.length + ' marcos, ' + owned.backgrounds.length + ' fondos y ' +
+                    owned.badges.length + ' insignias.</p>' +
+            '</article>';
+
+        const upcomingHtml = upcoming.map((entry) => {
+            const items = entry.rewards.map((r) =>
+                '<li><i class="fas ' + (typeIcons[r.type] || 'fa-gift') + '"></i> ' + escapeAttr(r.name) + '</li>'
+            ).join('');
+            const missing = SGL.xpForLevel(entry.level) - State.stats.xp;
+            return '<article class="sg-lvl-reward-card">' +
+                '<div class="sg-lvl-reward-head"><span class="sg-lvl-reward-level">Nivel ' + entry.level + '</span></div>' +
+                '<ul class="sg-lvl-reward-list">' + items + '</ul>' +
+                '<p class="sg-lvl-reward-desc">' +
+                    (missing > 0 ? 'Faltan ' + missing.toLocaleString() + ' EXP' : 'Ya alcanzado') +
+                '</p>' +
+            '</article>';
+        }).join('');
+
+        const tierHtml = nextTier
+            ? '<article class="sg-lvl-reward-card is-tier" style="--tier-color:' + nextTier.color + '">' +
+                '<div class="sg-lvl-reward-head"><i class="fas ' + nextTier.icon + '"></i><h4>' + escapeAttr(nextTier.accessName) + '</h4></div>' +
+                '<p class="sg-lvl-reward-desc">' + escapeAttr(nextTier.tagline || '') + '</p>' +
+                '<ul class="sg-lvl-reward-list">' +
+                    nextTier.benefits.slice(0, 3).map((b) => '<li><i class="fas fa-check"></i> ' + escapeAttr(b) + '</li>').join('') +
+                '</ul>' +
+            '</article>'
+            : '';
+
+        let host = document.getElementById('nexus-level-rewards');
+        if (!host) {
+            host = document.createElement('div');
+            host.id = 'nexus-level-rewards';
+            host.className = 'nexus-level-rewards';
+            grid.parentNode.insertBefore(host, grid.nextSibling);
+        }
+        host.innerHTML =
+            '<h4 class="nexus-level-rewards-title"><i class="fas fa-route"></i> Recompensas por nivel</h4>' +
+            '<div class="nexus-level-rewards-grid">' + summary + upcomingHtml + tierHtml + '</div>';
     }
 
     async claimReward(rewardId) {
@@ -2355,9 +2606,14 @@ class NexusCore {
     // ═════════════════════════════════════════════════════════════════════════
     // RANKING Y MERCADO TÉCNICO
     // ═════════════════════════════════════════════════════════════════════════
+    /**
+     * El acceso se conserva por XP: quien ya tenía 3.000 EXP con el sistema de
+     * cinco niveles sigue dentro aunque su tramo nuevo sea NOVATO. La llave del
+     * tramo solo suma, nunca resta.
+     */
     isMercadoTecnicoUnlocked() {
         const cfg = CONFIG.mercadoTecnico;
-        return State.stats.rank >= cfg.minRankIndex || State.stats.xp >= cfg.minXp;
+        return State.stats.xp >= cfg.minXp || this.hasNexusAccess('mercadoTecnico');
     }
 
     updateMercadoTecnico() {
@@ -3240,19 +3496,26 @@ class NexusCore {
             return;
         }
 
+        const SGL = getSGLevels();
         listEl.innerHTML = list.slice(0, 25).map((entry, i) => {
             const isMe = entry.uid === State.user.id;
-            const rankCfg = CONFIG.xp.ranks[entry.rankIndex] || CONFIG.xp.ranks[0];
+            // El rankIndex del servidor puede venir viejo: el tramo se deduce del nivel.
+            const tierIndex = SGL ? SGL.tierIndexForLevel(entry.level) : (entry.rankIndex || 0);
+            const rankCfg = CONFIG.xp.ranks[tierIndex] || CONFIG.xp.ranks[0];
             const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '#' + (i + 1);
             const avatar = entry.photoURL
                 ? '<img src="' + entry.photoURL + '" alt="" class="leaderboard-avatar">'
                 : '<span class="leaderboard-avatar-fallback"><i class="fas ' + rankCfg.icon + '"></i></span>';
+            const badge = window.SGLevelBadge
+                ? window.SGLevelBadge.html({ xp: entry.xp, level: entry.level, size: 'sm' })
+                : '';
             return '<div class="leaderboard-row' + (isMe ? ' is-me' : '') + '">' +
                 '<span class="leaderboard-pos">' + medal + '</span>' +
                 avatar +
+                badge +
                 '<div class="leaderboard-info"><strong>' + entry.name + '</strong>' +
                 '<span>Nivel ' + entry.level + '</span></div>' +
-                '<span class="leaderboard-xp">' + entry.xp.toLocaleString() + ' XP</span></div>';
+                '<span class="leaderboard-xp">' + entry.xp.toLocaleString() + ' EXP</span></div>';
         }).join('');
     }
 
@@ -3265,7 +3528,7 @@ class NexusCore {
     async submitMercadoTecnico(event) {
         if (event) event.preventDefault();
         if (!this.isMercadoTecnicoUnlocked()) {
-            this.showToast('Mercado Técnico', 'warning', 'Alcanza Influencer Nexus (Nivel 4 · 3.000 XP) para desbloquear.');
+            this.showToast('Mercado Técnico', 'warning', 'Necesitas ' + CONFIG.mercadoTecnico.minXp.toLocaleString() + ' EXP para desbloquearlo.');
             return;
         }
         if (State.creatorMarket.status !== 'approved') {
@@ -3700,8 +3963,8 @@ window.Nexus = Nexus;
 // Navegación
 function showXpHistory() { Nexus.showToast('Historial XP', 'info', 'Próximamente disponible'); }
 function showRankInfo() { 
-    const rank = CONFIG.xp.ranks[State.stats.rank];
-    Nexus.showToast(`Nivel ${State.stats.level}`, 'info', `Beneficios: ${rank.benefits.join(', ')}`); 
+    const rank = Nexus.getCurrentRank();
+    Nexus.showToast(`Nivel ${State.stats.level} · ${rank.name}`, 'info', `Beneficios: ${(rank.benefits || []).join(', ')}`); 
 }
 function showReferralModal() { 
     copyReferralLink();

@@ -1,0 +1,472 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   INSIGNIA DE NIVEL NEXUS (1–100) — estilo Steam, 100% CSS, cero imágenes.
+
+   Todo el aspecto sale de variables que escribe sg-level-badge.js:
+     --sg-lvl-color     color del tramo
+     --sg-lvl-glow      halo del tramo
+     --sg-lvl-pct       progreso dentro del nivel (para la barra)
+     --sg-lvl-deg       ese mismo progreso en grados (para el anillo)
+     --sg-lvl-seg-deg   ancho de un segmento del anillo
+     --sg-lvl-gap-deg   hueco entre segmentos
+     --sg-lvl-lit-deg   cuántos grados de segmentos están encendidos
+
+   Prefijo sg-lvl- para no chocar con el CSS del sitio.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sg-lvl {
+    --sg-lvl-color: #58a6ff;
+    --sg-lvl-glow: rgba(88, 166, 255, 0.55);
+    --sg-lvl-pct: 0%;
+    --sg-lvl-deg: 0deg;
+    --sg-lvl-seg-deg: 36deg;
+    --sg-lvl-gap-deg: 6deg;
+    --sg-lvl-lit-deg: 36deg;
+    --sg-lvl-size: 64px;
+    --sg-lvl-ring: 5px;
+    --sg-lvl-num: 1.45rem;
+
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    vertical-align: middle;
+    font-family: inherit;
+    line-height: 1.2;
+}
+
+.sg-lvl--sm { --sg-lvl-size: 34px; --sg-lvl-ring: 3px; --sg-lvl-num: 0.82rem; gap: 8px; }
+.sg-lvl--md { --sg-lvl-size: 64px; --sg-lvl-ring: 5px; --sg-lvl-num: 1.45rem; }
+.sg-lvl--lg { --sg-lvl-size: 104px; --sg-lvl-ring: 7px; --sg-lvl-num: 2.3rem; gap: 16px; }
+
+/* ── Escudo ───────────────────────────────────────────────────────────────── */
+.sg-lvl__shield {
+    position: relative;
+    flex: 0 0 auto;
+    width: var(--sg-lvl-size);
+    height: var(--sg-lvl-size);
+    display: block;
+    isolation: isolate;
+}
+
+/* Capas decorativas del escudo. El núcleo va aparte: si entrara en esta regla,
+   su especificidad ganaría y el número dejaría de estar centrado. */
+.sg-lvl__halo,
+.sg-lvl__ring,
+.sg-lvl__ornament,
+.sg-lvl__segments {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    display: block;
+}
+
+/* Halo difuso del tramo. */
+.sg-lvl__halo {
+    background: radial-gradient(circle at 50% 50%, var(--sg-lvl-glow) 0%, transparent 68%);
+    opacity: 0.55;
+    transform: scale(1.22);
+    filter: blur(2px);
+    z-index: 0;
+}
+
+/* Anillo base: arco de progreso del nivel actual sobre pista apagada. */
+.sg-lvl__ring {
+    z-index: 2;
+    background:
+        conic-gradient(from -90deg,
+            var(--sg-lvl-color) 0deg,
+            var(--sg-lvl-color) var(--sg-lvl-deg),
+            rgba(255, 255, 255, 0.11) var(--sg-lvl-deg),
+            rgba(255, 255, 255, 0.11) 360deg);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--sg-lvl-ring)), #000 calc(100% - var(--sg-lvl-ring)));
+    mask: radial-gradient(farthest-side, transparent calc(100% - var(--sg-lvl-ring)), #000 calc(100% - var(--sg-lvl-ring)));
+}
+
+/* Muescas: se encienden una a una conforme sube el nivel dentro del tramo. */
+.sg-lvl__segments {
+    z-index: 3;
+    opacity: 0;
+    background:
+        conic-gradient(from -90deg,
+            var(--sg-lvl-color) 0deg,
+            var(--sg-lvl-color) var(--sg-lvl-lit-deg),
+            transparent var(--sg-lvl-lit-deg),
+            transparent 360deg);
+    -webkit-mask:
+        radial-gradient(farthest-side, transparent calc(100% - var(--sg-lvl-ring)), #000 calc(100% - var(--sg-lvl-ring))),
+        repeating-conic-gradient(from -90deg,
+            #000 0deg,
+            #000 calc(var(--sg-lvl-seg-deg) - var(--sg-lvl-gap-deg)),
+            transparent calc(var(--sg-lvl-seg-deg) - var(--sg-lvl-gap-deg)),
+            transparent var(--sg-lvl-seg-deg));
+    -webkit-mask-composite: source-in;
+    mask:
+        radial-gradient(farthest-side, transparent calc(100% - var(--sg-lvl-ring)), #000 calc(100% - var(--sg-lvl-ring))),
+        repeating-conic-gradient(from -90deg,
+            #000 0deg,
+            #000 calc(var(--sg-lvl-seg-deg) - var(--sg-lvl-gap-deg)),
+            transparent calc(var(--sg-lvl-seg-deg) - var(--sg-lvl-gap-deg)),
+            transparent var(--sg-lvl-seg-deg));
+    mask-composite: intersect;
+}
+
+/* Ornamento: capa extra que cada tramo usa a su manera. */
+.sg-lvl__ornament {
+    z-index: 1;
+    opacity: 0;
+}
+
+/* Núcleo con el número. */
+.sg-lvl__core {
+    position: absolute;
+    inset: calc(var(--sg-lvl-ring) + 2px);
+    z-index: 4;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background:
+        radial-gradient(circle at 50% 22%, rgba(255, 255, 255, 0.16), transparent 62%),
+        linear-gradient(160deg, #171d29 0%, #0b0e15 100%);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+        inset 0 6px 14px rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+}
+
+.sg-lvl__num {
+    font-weight: 800;
+    font-size: var(--sg-lvl-num);
+    letter-spacing: -0.02em;
+    color: #fff;
+    text-shadow: 0 0 10px var(--sg-lvl-glow);
+    font-variant-numeric: tabular-nums;
+}
+
+.sg-lvl__icon {
+    color: var(--sg-lvl-color);
+    font-size: calc(var(--sg-lvl-size) * 0.17);
+    opacity: 0.85;
+    margin-bottom: calc(var(--sg-lvl-size) * 0.01);
+    line-height: 1;
+}
+
+.sg-lvl--sm .sg-lvl__icon { display: none; }
+
+/* ── Progresión por tramo ─────────────────────────────────────────────────── */
+
+/* T0 NOVATO · T1 CREADOR: anillo liso, el segundo con brillo interior. */
+.sg-lvl--t1 .sg-lvl__core {
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+        inset 0 0 16px var(--sg-lvl-glow),
+        inset 0 6px 14px rgba(0, 0, 0, 0.5);
+}
+
+/* T2 PROMOTOR · T3 INFLUENCER: anillo doble. */
+.sg-lvl--t2 .sg-lvl__ornament,
+.sg-lvl--t3 .sg-lvl__ornament,
+.sg-lvl--t4 .sg-lvl__ornament,
+.sg-lvl--t5 .sg-lvl__ornament,
+.sg-lvl--t6 .sg-lvl__ornament,
+.sg-lvl--t7 .sg-lvl__ornament,
+.sg-lvl--t8 .sg-lvl__ornament,
+.sg-lvl--t9 .sg-lvl__ornament {
+    opacity: 1;
+    inset: calc(var(--sg-lvl-ring) * -0.9);
+    border: 1px solid color-mix(in srgb, var(--sg-lvl-color) 55%, transparent);
+    background: none;
+}
+
+/* Reserva para navegadores sin color-mix. */
+@supports not (color: color-mix(in srgb, red 50%, blue)) {
+    .sg-lvl--t2 .sg-lvl__ornament,
+    .sg-lvl--t3 .sg-lvl__ornament,
+    .sg-lvl--t4 .sg-lvl__ornament,
+    .sg-lvl--t5 .sg-lvl__ornament,
+    .sg-lvl--t6 .sg-lvl__ornament,
+    .sg-lvl--t7 .sg-lvl__ornament,
+    .sg-lvl--t8 .sg-lvl__ornament,
+    .sg-lvl--t9 .sg-lvl__ornament {
+        border-color: var(--sg-lvl-color);
+    }
+}
+
+/* T3 INFLUENCER: el anillo doble se marca más y suma puntos cardinales. */
+.sg-lvl--t3 .sg-lvl__ornament::after,
+.sg-lvl--t4 .sg-lvl__ornament::after,
+.sg-lvl--t5 .sg-lvl__ornament::after,
+.sg-lvl--t6 .sg-lvl__ornament::after,
+.sg-lvl--t7 .sg-lvl__ornament::after,
+.sg-lvl--t8 .sg-lvl__ornament::after,
+.sg-lvl--t9 .sg-lvl__ornament::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    background:
+        conic-gradient(from -90deg,
+            var(--sg-lvl-color) 0deg 4deg,
+            transparent 4deg 86deg,
+            var(--sg-lvl-color) 86deg 94deg,
+            transparent 94deg 176deg,
+            var(--sg-lvl-color) 176deg 184deg,
+            transparent 184deg 266deg,
+            var(--sg-lvl-color) 266deg 274deg,
+            transparent 274deg 356deg,
+            var(--sg-lvl-color) 356deg 360deg);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+}
+
+/* T4 EMBAJADOR en adelante: el anillo se corta en muescas por nivel. */
+.sg-lvl--t4 .sg-lvl__segments,
+.sg-lvl--t5 .sg-lvl__segments,
+.sg-lvl--t6 .sg-lvl__segments,
+.sg-lvl--t7 .sg-lvl__segments,
+.sg-lvl--t8 .sg-lvl__segments,
+.sg-lvl--t9 .sg-lvl__segments {
+    opacity: 1;
+}
+
+/* T5 VETERANO: halo más denso. */
+.sg-lvl--t5 .sg-lvl__halo,
+.sg-lvl--t6 .sg-lvl__halo,
+.sg-lvl--t7 .sg-lvl__halo,
+.sg-lvl--t8 .sg-lvl__halo,
+.sg-lvl--t9 .sg-lvl__halo {
+    opacity: 0.9;
+    transform: scale(1.32);
+}
+
+/* T6 ÉLITE: destello que recorre el anillo. */
+.sg-lvl--t6 .sg-lvl__ornament,
+.sg-lvl--t7 .sg-lvl__ornament,
+.sg-lvl--t8 .sg-lvl__ornament {
+    animation: sg-lvl-spin 9s linear infinite;
+}
+
+.sg-lvl--t6 .sg-lvl__shield::before,
+.sg-lvl--t7 .sg-lvl__shield::before,
+.sg-lvl--t8 .sg-lvl__shield::before,
+.sg-lvl--t9 .sg-lvl__shield::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(255, 255, 255, 0.85) 14deg, transparent 34deg);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--sg-lvl-ring)), #000 calc(100% - var(--sg-lvl-ring)));
+    mask: radial-gradient(farthest-side, transparent calc(100% - var(--sg-lvl-ring)), #000 calc(100% - var(--sg-lvl-ring)));
+    animation: sg-lvl-spin 4.5s linear infinite;
+    pointer-events: none;
+}
+
+/* T7 LEYENDA: el destello gira más rápido y el giro del anillo se invierte. */
+.sg-lvl--t7 .sg-lvl__shield::before { animation-duration: 3s; }
+.sg-lvl--t8 .sg-lvl__shield::before { animation-duration: 2.4s; }
+.sg-lvl--t8 .sg-lvl__ornament { animation-direction: reverse; animation-duration: 6s; }
+
+/* T8 MÍTICO: segundo anillo contrarrotante. */
+.sg-lvl--t8 .sg-lvl__shield::after,
+.sg-lvl--t9 .sg-lvl__shield::after {
+    content: '';
+    position: absolute;
+    inset: -7px;
+    z-index: 1;
+    border-radius: 50%;
+    background: conic-gradient(from -90deg,
+        transparent 0deg 12deg, var(--sg-lvl-color) 12deg 26deg,
+        transparent 26deg 102deg, var(--sg-lvl-color) 102deg 116deg,
+        transparent 116deg 192deg, var(--sg-lvl-color) 192deg 206deg,
+        transparent 206deg 282deg, var(--sg-lvl-color) 282deg 296deg,
+        transparent 296deg 360deg);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+    animation: sg-lvl-spin 14s linear infinite reverse;
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+/* T9 ETERNO: anillo prismático animado. */
+.sg-lvl--t9 .sg-lvl__ring {
+    background:
+        conic-gradient(from -90deg,
+            #ff4d6d 0deg, #e3b341 60deg, #3fb950 120deg,
+            #2dd4bf 180deg, #58a6ff 240deg, #b48cff 300deg, #ff4d6d 360deg);
+    animation: sg-lvl-prism 6s linear infinite;
+}
+
+.sg-lvl--t9 .sg-lvl__segments { mix-blend-mode: overlay; }
+.sg-lvl--t9 .sg-lvl__num { text-shadow: 0 0 12px rgba(255, 255, 255, 0.85); }
+
+/* Nivel 100: el número se queda quieto en blanco puro. */
+.sg-lvl--maxed .sg-lvl__core {
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+        inset 0 0 22px rgba(255, 255, 255, 0.22),
+        inset 0 6px 14px rgba(0, 0, 0, 0.5);
+}
+
+/* Destello puntual de subida de nivel (lo dispara SGLevelBadge.celebrate). */
+.sg-lvl--levelup .sg-lvl__shield {
+    animation: sg-lvl-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 2;
+}
+
+@keyframes sg-lvl-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes sg-lvl-prism {
+    to { filter: hue-rotate(360deg); }
+}
+
+@keyframes sg-lvl-pop {
+    0% { transform: scale(1); }
+    45% { transform: scale(1.14); }
+    100% { transform: scale(1); }
+}
+
+/* ── Barra de progreso ────────────────────────────────────────────────────── */
+.sg-lvl__bar {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.sg-lvl__bar--tier-only { gap: 0; }
+
+.sg-lvl__tier {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--sg-lvl-color);
+}
+
+.sg-lvl--lg .sg-lvl__tier { font-size: 0.8rem; }
+
+.sg-lvl__track {
+    position: relative;
+    display: block;
+    height: 7px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.sg-lvl--sm .sg-lvl__track { height: 5px; }
+.sg-lvl--lg .sg-lvl__track { height: 10px; }
+
+.sg-lvl__fill {
+    display: block;
+    height: 100%;
+    width: var(--sg-lvl-pct);
+    border-radius: 99px;
+    background: linear-gradient(90deg,
+        color-mix(in srgb, var(--sg-lvl-color) 60%, #000) 0%,
+        var(--sg-lvl-color) 100%);
+    box-shadow: 0 0 12px var(--sg-lvl-glow);
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@supports not (color: color-mix(in srgb, red 50%, blue)) {
+    .sg-lvl__fill { background: var(--sg-lvl-color); }
+}
+
+.sg-lvl__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    font-size: 0.7rem;
+    color: rgba(230, 237, 243, 0.62);
+}
+
+.sg-lvl--lg .sg-lvl__meta { font-size: 0.78rem; }
+
+.sg-lvl__ratio {
+    font-weight: 700;
+    color: rgba(230, 237, 243, 0.92);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Tooltip ──────────────────────────────────────────────────────────────── */
+.sg-lvl__tip {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 10px);
+    z-index: 50;
+    min-width: 190px;
+    max-width: 260px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(9, 12, 18, 0.97);
+    border: 1px solid color-mix(in srgb, var(--sg-lvl-color) 45%, transparent);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(4px);
+    transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s;
+    pointer-events: none;
+    text-align: left;
+    white-space: normal;
+}
+
+@supports not (color: color-mix(in srgb, red 50%, blue)) {
+    .sg-lvl__tip { border-color: rgba(255, 255, 255, 0.18); }
+}
+
+.sg-lvl__tip strong {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--sg-lvl-color);
+}
+
+.sg-lvl__tip em {
+    font-style: normal;
+    font-size: 0.72rem;
+    color: rgba(230, 237, 243, 0.75);
+    line-height: 1.35;
+}
+
+.sg-lvl__tip b {
+    font-size: 0.72rem;
+    color: #fff;
+}
+
+.sg-lvl:hover .sg-lvl__tip,
+.sg-lvl:focus-visible .sg-lvl__tip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Contenedor genérico para colar la insignia en listas y fichas existentes. */
+.sg-lvl-row {
+    display: flex;
+    align-items: center;
+    margin: 6px 0 0;
+    min-width: 0;
+}
+
+.sg-lvl-row > .sg-lvl { max-width: 100%; }
+
+/* ── Accesibilidad ────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .sg-lvl *,
+    .sg-lvl *::before,
+    .sg-lvl *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}

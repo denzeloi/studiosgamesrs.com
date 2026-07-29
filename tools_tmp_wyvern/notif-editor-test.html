@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<!--
+  Banco de pruebas SOLO para el editor avanzado "Probar cualquier
+  notificacion" del Commander Panel. No arranca Firebase/auth: carga el
+  mismo markup y las mismas funciones (fillCharacterSelect/fillClipSelect/
+  initNotifAdvancedPanel) copiadas de commander-panel.js para validar la
+  interaccion sin depender del resto del panel.
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Test editor avanzado</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<link rel="stylesheet" href="/commander-panel.css" />
+<style>
+  body { background:#0d1117; color:#c9d1d9; font-family:sans-serif; padding:24px; }
+  .comms-input, .comms-select { background:#161b22; color:#c9d1d9; border:1px solid #30363d; border-radius:6px; }
+  .comms-btn { background:#21262d; color:#c9d1d9; border:1px solid #30363d; border-radius:6px; padding:8px 12px; cursor:pointer; }
+  .comms-btn-primary { background:#238636; border-color:#238636; color:#fff; }
+  .comms-label { display:block; font-size:0.8rem; margin-bottom:4px; color:#8b949e; }
+  .comms-field { margin-bottom:10px; }
+  .comms-actions { display:flex; gap:10px; margin-top:10px; }
+  #log { white-space:pre-wrap; background:#161b22; padding:10px; margin-top:20px; border-radius:8px; font-size:0.8rem; }
+</style>
+</head>
+<body>
+  <div id="secNotifAdvancedBlock" style="max-width:640px;">
+    <div class="sg-notif-adv-grid">
+      <div class="comms-field">
+        <label class="comms-label" for="notifAdvLevel">Nivel a simular</label>
+        <input type="number" id="notifAdvLevel" class="comms-input" min="1" max="100" value="10">
+      </div>
+      <div class="comms-field">
+        <label class="comms-label" for="notifAdvCharacter">Personaje</label>
+        <select id="notifAdvCharacter" class="comms-input comms-select"></select>
+      </div>
+      <div class="comms-field">
+        <label class="comms-label" for="notifAdvClip">Animación</label>
+        <select id="notifAdvClip" class="comms-input comms-select"></select>
+      </div>
+    </div>
+    <div class="sg-notif-adv-grid sg-notif-adv-grid-2">
+      <div class="comms-field">
+        <label class="comms-label" for="notifAdvTierName">Nombre del tramo</label>
+        <input type="text" id="notifAdvTierName" class="comms-input" maxlength="40">
+      </div>
+      <div class="comms-field">
+        <label class="comms-label" for="notifAdvAccessName">Nivel de acceso</label>
+        <input type="text" id="notifAdvAccessName" class="comms-input" maxlength="40">
+      </div>
+    </div>
+    <div class="comms-field">
+      <label class="comms-label" for="notifAdvTagline">Frase / descripción</label>
+      <textarea id="notifAdvTagline" class="comms-input comms-textarea" rows="2" maxlength="160"></textarea>
+    </div>
+    <div class="sg-notif-rewards-editor">
+      <div class="sg-notif-rewards-editor-header">
+        <span class="comms-label">Recompensas que se muestran</span>
+        <div class="sg-notif-rewards-editor-actions">
+          <button type="button" id="notifAdvLoadDefaultsBtn" class="comms-btn comms-btn-ghost">Cargar valores del nivel</button>
+          <button type="button" id="notifAdvAddRewardBtn" class="comms-btn comms-btn-ghost">Agregar recompensa</button>
+        </div>
+      </div>
+      <div id="notifAdvRewardsList" class="sg-notif-rewards-list"></div>
+    </div>
+    <div class="comms-actions">
+      <button type="button" id="notifAdvLaunchBtn" class="comms-btn comms-btn-primary">Lanzar vista previa completa</button>
+      <button type="button" id="notifAdvCloseBtn" class="comms-btn comms-btn-ghost">Cerrar vista previa</button>
+    </div>
+  </div>
+
+  <div id="log"></div>
+
+  <script src="/sg-levels.js"></script>
+  <script src="/sg-level-badge.js"></script>
+  <script src="/shared-nexus-sensor.js"></script>
+  <script src="/welcome-overlay.js"></script>
+  <link rel="stylesheet" href="/sg-level-badge.css" />
+  <link rel="stylesheet" href="/shared-nexus-sensor.css" />
+  <link rel="stylesheet" href="/welcome-overlay.css" />
+  <script>
+    // .glb locales, igual que en nexus-overlay-preview.html.
+    var chars = window.SGCreatureViewer && window.SGCreatureViewer.CHARACTERS;
+    if (chars) Object.keys(chars).forEach(function (id) { chars[id].basePath = '/models/' + id + '/'; });
+    new MutationObserver(function () {
+      var photo = document.querySelector('.sg-nexus-overlay-photo');
+      if (!photo) return;
+      var url = photo.style.backgroundImage || '';
+      var m = url.match(/\/([\w-]+\.jpg)/);
+      if (m && url.indexOf('studiosgamesrs') !== -1) photo.style.backgroundImage = "url('/" + m[1] + "')";
+    }).observe(document.body, { childList: true, subtree: true });
+
+    function log(msg) { document.getElementById('log').textContent += msg + '\n'; }
+
+    // --- Copiado de commander-panel.js (helpers compartidos) ---
+    var SG_CLIP_LABELS = {
+      idle: 'Reposo (idle)', awake: 'Despertar (awake)', roar: 'Rugido (roar)',
+      walk: 'Caminar (walk)', hurt: 'Herido (hurt)', faint: 'Desmayo (faint)',
+      rifle_pose: 'Pose de rifle (rifle_pose)', talk: 'Hablar (talk)', run: 'Correr (run)',
+      jump: 'Saltar (jump)', crouch_walk: 'Agachado (crouch_walk)', death: 'Muerte (death)',
+      alert: 'Alerta (alert)', landing: 'Aterrizar (landing)', takeoff: 'Despegar (takeoff)',
+      flying: 'Volar (flying)', gliding: 'Planear (gliding)', bite: 'Mordisco (bite)',
+      die: 'Morir (die)', walking: 'Caminar (walking)', sleep_out: 'Despertar del sueño (sleep_out)'
+    };
+    function sgClipLabel(clip) { return SG_CLIP_LABELS[clip] || clip; }
+    function fillClipSelect(selectEl, characterId, preferred) {
+      if (!selectEl || !window.SGCreatureViewer) return;
+      var character = window.SGCreatureViewer.CHARACTERS && window.SGCreatureViewer.CHARACTERS[characterId];
+      var clips = (character && character.clips) || {};
+      var keys = Object.keys(clips);
+      selectEl.innerHTML = keys.map(function(key) { return '<option value="' + key + '">' + sgClipLabel(key) + '</option>'; }).join('');
+      if (preferred && clips[preferred]) selectEl.value = preferred;
+      else if (character && character.loopClip && clips[character.loopClip]) selectEl.value = character.loopClip;
+    }
+    function fillCharacterSelect(selectEl, preferred) {
+      if (!selectEl || !window.SGCreatureViewer) return;
+      var chars2 = window.SGCreatureViewer.CHARACTERS || {};
+      var ids = Object.keys(chars2);
+      selectEl.innerHTML = ids.map(function(id) { return '<option value="' + id + '">' + ((chars2[id] && chars2[id].label) || id) + '</option>'; }).join('');
+      if (preferred && chars2[preferred]) selectEl.value = preferred;
+    }
+  </script>
+  <!-- La funcion real, tal cual vive en commander-panel.js -->
+  <script src="/tools_tmp_wyvern/notif-adv-panel.js"></script>
+  <script>
+    initNotifAdvancedPanel();
+    log('Panel inicializado. Personaje: ' + document.getElementById('notifAdvCharacter').value +
+      ' | Clip: ' + document.getElementById('notifAdvClip').value +
+      ' | Filas de recompensa: ' + document.querySelectorAll('.sg-notif-reward-row').length);
+  </script>
+</body>
+</html>
