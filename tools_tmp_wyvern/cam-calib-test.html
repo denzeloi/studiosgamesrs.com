@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<!--
+  Banco de pruebas SOLO para "Calibrar camara del personaje" del Commander
+  Panel. No arranca Firebase/auth reales: usa un mock de la base de datos en
+  memoria y carga la funcion real (copiada de commander-panel.js a
+  cam-calib-panel.js) para validar rotacion/zoom/guardar/restablecer.
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Test calibrar camara</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<link rel="stylesheet" href="/commander-panel.css" />
+<style>
+  body { background:#0d1117; color:#c9d1d9; font-family:sans-serif; padding:24px; }
+  #log { white-space:pre-wrap; background:#161b22; padding:10px; margin-top:20px; border-radius:8px; font-size:0.8rem; max-width:900px; }
+  #secCamCalibrateBlock { max-width:900px; }
+</style>
+</head>
+<body>
+
+  <div class="commander-block nexus-dashboard-widget comms-card comms-card-wide" id="secCamCalibrateBlock">
+    <div class="nexus-widget-header">
+      <div class="nexus-widget-icon"><i class="fas fa-camera-retro"></i></div>
+      <div class="nexus-widget-title">
+        <h3>Calibrar camara del personaje</h3>
+        <p>Gira el modelo y ajusta que tan grande se ve, pruebalo con distintas animaciones y guarda el resultado.</p>
+      </div>
+    </div>
+
+    <div class="sg-cam-layout">
+      <div class="sg-cam-preview-col">
+        <div class="sg-welcome-stage sg-broadcast-preview-stage">
+          <div class="sg-welcome-stage-glow"></div>
+          <canvas id="camCalibCanvas" class="sg-welcome-canvas"></canvas>
+          <div class="sg-welcome-stage-loading" id="camCalibLoading">Cargando...</div>
+        </div>
+        <div id="camCalibStatus" class="sg-hint">Usando el angulo/tamano de fabrica.</div>
+      </div>
+      <div class="sg-cam-controls-col">
+        <div class="comms-field-row">
+          <div class="comms-field">
+            <label class="comms-label" for="camCalibCharacter">Personaje</label>
+            <select id="camCalibCharacter" class="comms-input comms-select"></select>
+          </div>
+          <div class="comms-field">
+            <label class="comms-label" for="camCalibClip">Animacion (para probar)</label>
+            <select id="camCalibClip" class="comms-input comms-select"></select>
+          </div>
+        </div>
+
+        <div class="sg-cam-slider-field">
+          <div class="sg-cam-slider-label">
+            <span><i class="fas fa-sync-alt"></i> Rotacion</span>
+            <span id="camCalibYawValue">0</span>
+          </div>
+          <input type="range" id="camCalibYaw" min="-180" max="180" step="1" value="0" class="sg-cam-slider">
+          <div class="sg-cam-slider-buttons">
+            <button type="button" class="comms-btn comms-btn-ghost" data-yaw-step="-15">-15</button>
+            <button type="button" class="comms-btn comms-btn-ghost" data-yaw-step="-1">-1</button>
+            <button type="button" class="comms-btn comms-btn-ghost" data-yaw-step="1">+1</button>
+            <button type="button" class="comms-btn comms-btn-ghost" data-yaw-step="15">+15</button>
+          </div>
+        </div>
+
+        <div class="sg-cam-slider-field">
+          <div class="sg-cam-slider-label">
+            <span><i class="fas fa-expand-alt"></i> Tamano en pantalla</span>
+            <span id="camCalibSizeValue">100%</span>
+          </div>
+          <input type="range" id="camCalibSize" min="40" max="220" step="5" value="100" class="sg-cam-slider">
+        </div>
+
+        <div class="comms-actions">
+          <button type="button" id="camCalibSaveBtn" class="comms-btn comms-btn-primary"><i class="fas fa-save"></i> Guardar para este personaje</button>
+          <button type="button" id="camCalibResetBtn" class="comms-btn comms-btn-ghost"><i class="fas fa-undo"></i> Restablecer de fabrica</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="log"></div>
+
+  <script>
+    // --- Mock de Firebase RTDB en memoria (solo para esta prueba) ---
+    var mockStore = {};
+    function makeRef(path) {
+      return {
+        child: function (key) { return makeRef(path + '/' + key); },
+        once: function () {
+          return Promise.resolve({ val: function () { return mockStore[path] || null; } });
+        },
+        set: function (val) { mockStore[path] = val; return Promise.resolve(); },
+        remove: function () { delete mockStore[path]; return Promise.resolve(); },
+        on: function (evt, cb) { cb({ val: function () { return mockStore[path] || {}; } }); return this; }
+      };
+    }
+    var db = { ref: function (path) { return makeRef(path); } };
+    window.firebase = { database: function () { return db; } };
+    window.firebase.database.ServerValue = { TIMESTAMP: 12345 };
+    var currentCommanderUid = 'test-admin-uid';
+  </script>
+
+  <script src="/sg-levels.js"></script>
+  <script src="/sg-level-badge.js"></script>
+  <script src="/shared-nexus-sensor.js"></script>
+  <script src="/welcome-overlay.js"></script>
+  <link rel="stylesheet" href="/sg-level-badge.css" />
+  <link rel="stylesheet" href="/shared-nexus-sensor.css" />
+  <link rel="stylesheet" href="/welcome-overlay.css" />
+  <script>
+    // .glb locales, igual que en nexus-overlay-preview.html.
+    var chars = window.SGCreatureViewer && window.SGCreatureViewer.CHARACTERS;
+    if (chars) Object.keys(chars).forEach(function (id) { chars[id].basePath = '/models/' + id + '/'; });
+
+    function log(msg) { document.getElementById('log').textContent += msg + '\n'; }
+
+    // --- Copiado de commander-panel.js (helpers compartidos) ---
+    var SG_CLIP_LABELS = {
+      idle: 'Reposo (idle)', awake: 'Despertar (awake)', roar: 'Rugido (roar)',
+      walk: 'Caminar (walk)', hurt: 'Herido (hurt)', faint: 'Desmayo (faint)',
+      rifle_pose: 'Pose de rifle (rifle_pose)', talk: 'Hablar (talk)', run: 'Correr (run)',
+      jump: 'Saltar (jump)', crouch_walk: 'Agachado (crouch_walk)', death: 'Muerte (death)',
+      alert: 'Alerta (alert)', landing: 'Aterrizar (landing)', takeoff: 'Despegar (takeoff)',
+      flying: 'Volar (flying)', gliding: 'Planear (gliding)', bite: 'Mordisco (bite)',
+      die: 'Morir (die)', walking: 'Caminar (walking)', sleep_out: 'Despertar del sueno (sleep_out)'
+    };
+    function sgClipLabel(clip) { return SG_CLIP_LABELS[clip] || clip; }
+    function fillClipSelect(selectEl, characterId, preferred) {
+      if (!selectEl || !window.SGCreatureViewer) return;
+      var character = window.SGCreatureViewer.CHARACTERS && window.SGCreatureViewer.CHARACTERS[characterId];
+      var clips = (character && character.clips) || {};
+      var keys = Object.keys(clips);
+      selectEl.innerHTML = keys.map(function (key) { return '<option value="' + key + '">' + sgClipLabel(key) + '</option>'; }).join('');
+      if (preferred && clips[preferred]) selectEl.value = preferred;
+      else if (character && character.loopClip && clips[character.loopClip]) selectEl.value = character.loopClip;
+    }
+    function fillCharacterSelect(selectEl, preferred) {
+      if (!selectEl || !window.SGCreatureViewer) return;
+      var chars2 = window.SGCreatureViewer.CHARACTERS || {};
+      var ids = Object.keys(chars2);
+      selectEl.innerHTML = ids.map(function (id) { return '<option value="' + id + '">' + ((chars2[id] && chars2[id].label) || id) + '</option>'; }).join('');
+      if (preferred && chars2[preferred]) selectEl.value = preferred;
+    }
+  </script>
+  <!-- La funcion real, copiada tal cual de commander-panel.js -->
+  <script src="/tools_tmp_wyvern/cam-calib-panel.js"></script>
+  <script>
+    initCamCalibratePanel();
+    log('Panel inicializado. Personaje: ' + document.getElementById('camCalibCharacter').value +
+      ' | Clip: ' + document.getElementById('camCalibClip').value);
+  </script>
+</body>
+</html>

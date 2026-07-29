@@ -2756,6 +2756,86 @@ body.commander-panel-page .header-search .search-results.open {
 }
 
 /* ============================================================
+   Calibrar camara del personaje (rotacion + tamano en pantalla)
+   ============================================================ */
+.sg-cam-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.sg-cam-preview-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sg-cam-controls-col {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sg-cam-slider-field {
+  margin: 10px 0;
+}
+.sg-cam-slider-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #8b949e;
+  margin-bottom: 6px;
+}
+.sg-cam-slider-label span:first-child i { margin-right: 6px; color: #ffb347; }
+.sg-cam-slider-label span:last-child {
+  font-weight: 700;
+  color: #c9d1d9;
+  font-family: 'Orbitron', monospace;
+}
+.sg-cam-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.sg-cam-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffb347;
+  box-shadow: 0 0 8px rgba(255, 179, 71, 0.7);
+  cursor: pointer;
+}
+.sg-cam-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: #ffb347;
+  box-shadow: 0 0 8px rgba(255, 179, 71, 0.7);
+  cursor: pointer;
+}
+.sg-cam-slider-buttons {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.sg-cam-slider-buttons .comms-btn {
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  flex: 1;
+  min-width: 60px;
+}
+@media (max-width: 900px) {
+  .sg-cam-layout { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
    Editor avanzado ? "Probar cualquier notificaci?n"
    ============================================================ */
 .sg-notif-adv-grid {

@@ -51,7 +51,7 @@
     </div>
     <div class="header-search">
       <div class="search-input-container">
-        <input type="text" id="commanderHeaderSearchInput" placeholder="?? Buscar usuarios..." class="user-search-input">
+        <input type="text" id="commanderHeaderSearchInput" placeholder="🔍 Buscar usuarios..." class="user-search-input">
         <div id="commanderHeaderSearchResults" class="search-results"></div>
       </div>
     </div>
@@ -85,7 +85,7 @@
       </div>
       <a href="/dashboard" class="icon-btn header-back-btn" title="Volver al Dashboard" aria-label="Volver al Dashboard"><i class="fas fa-arrow-left"></i></a>
       <button class="icon-btn" onclick="toggleTheme()" title="Cambiar tema"><i class="fas fa-palette" id="theme-icon"></i></button>
-      <div class="header-account-end" role="group" aria-label="Navegaci?n del sitio y sesi?n">
+      <div class="header-account-end" role="group" aria-label="Navegación del sitio y sesión">
         <div class="nav-dropdown" id="navDropdown">
           <button type="button" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
             <i class="fas fa-dragon nav-dropdown-icon"></i>
@@ -100,7 +100,7 @@
             <a href="/competition-hub" role="menuitem"><i class="fas fa-trophy"></i> Competition</a>
           </div>
         </div>
-        <button class="logout-btn" onclick="logout()">Cerrar Sesi?n</button>
+        <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
       </div>
     </div>
   </header>
@@ -124,7 +124,7 @@
       <!-- Tabs (secciones principales del Control Center) -->
       <div class="commander-tabs">
         <button class="commander-tab active" data-tab="telemetry">
-          <i class="fas fa-satellite-dish"></i><span>Telemetr?a</span>
+          <i class="fas fa-satellite-dish"></i><span>Telemetría</span>
         </button>
         <button class="commander-tab" data-tab="users">
           <i class="fas fa-users-cog"></i><span>Usuarios</span>
@@ -146,9 +146,9 @@
         </button>
       </div>
 
-      <!-- PANEL: TELEMETR?A -->
+      <!-- PANEL: TELEMETRÍA -->
       <section class="commander-panel-section" id="tab-telemetry">
-        <h2 class="commander-page-title">Telemetr?a en vivo</h2>
+        <h2 class="commander-page-title">Telemetría en vivo</h2>
 
         <!-- Consola arriba para que siempre sea visible -->
         <div class="commander-block nexus-dashboard-widget commander-cli-block">
@@ -175,34 +175,34 @@
             <div class="nexus-widget-icon"><i class="fas fa-eye"></i></div>
             <div class="nexus-widget-title">
               <h3>Ojo que Todo lo Ve</h3>
-              <p>Telemetr?a global en tiempo real de Studiosgamesrs.</p>
+              <p>Telemetría global en tiempo real de Studiosgamesrs.</p>
             </div>
             <span class="nexus-widget-badge">Live</span>
           </div>
 
           <div class="commander-telemetry-grid">
             <div class="telemetry-card">
-              <div class="telemetry-title">Usuarios en l?nea</div>
+              <div class="telemetry-title">Usuarios en línea</div>
               <div class="telemetry-value" id="telemetryOnlineUsers">?</div>
               <div class="telemetry-sub">Conectados ahora mismo</div>
               <div class="telemetry-sub telemetry-sub-extra" id="telemetryOnlineUsersSub" style="margin-top:2px;font-size:0.75rem;opacity:0.85;"></div>
             </div>
             <div class="telemetry-card">
-              <div class="telemetry-title">Iniciaron sesi?n hoy</div>
+              <div class="telemetry-title">Iniciaron sesión hoy</div>
               <div class="telemetry-value" id="telemetryLoginsToday">?</div>
-              <div class="telemetry-sub">Usuarios ?nicos activos hoy</div>
+              <div class="telemetry-sub">Usuarios únicos activos hoy</div>
               <div class="telemetry-sub telemetry-sub-extra" id="telemetryLoginsTodaySub" style="margin-top:2px;font-size:0.75rem;opacity:0.85;"></div>
             </div>
             <div class="telemetry-card">
               <div class="telemetry-title">Visitas hoy</div>
               <div class="telemetry-value" id="telemetryVisitsToday">?</div>
-              <div class="telemetry-sub">Todas las p?ginas (incluye home)</div>
+              <div class="telemetry-sub">Todas las páginas (incluye home)</div>
               <div class="telemetry-sub telemetry-sub-extra" id="telemetryVisitsHomeSub" style="margin-top:2px;font-size:0.75rem;opacity:0.85;"></div>
             </div>
             <div class="telemetry-card">
               <div class="telemetry-title">Permanencia media</div>
               <div class="telemetry-value" id="telemetryDwell">?</div>
-              <div class="telemetry-sub">Tiempo medio de sesi?n (en l?nea)</div>
+              <div class="telemetry-sub">Tiempo medio de sesión (en línea)</div>
             </div>
           </div>
 
@@ -230,7 +230,7 @@
                 <span>Estado de servidores</span>
               </div>
               <div id="telemetryServers" class="telemetry-servers">
-                <!-- Placeholder, se llenar? desde commander-panel.js con datos mock/realtime -->
+                <!-- Placeholder, se llenará desde commander-panel.js con datos mock/realtime -->
               </div>
             </div>
           </div>
@@ -239,7 +239,7 @@
 
       <!-- PANEL: USUARIOS -->
       <section class="commander-panel-section" id="tab-users" style="display:none;">
-        <h2 class="commander-page-title">Gesti?n de usuarios y personalizaci?n</h2>
+        <h2 class="commander-page-title">Gestión de usuarios y personalización</h2>
         <div class="commander-block nexus-dashboard-widget">
         <div class="nexus-widget-header">
           <div class="nexus-widget-icon"><i class="fas fa-users-cog"></i></div>
@@ -258,21 +258,21 @@
             <i class="fas fa-search"></i> Buscar
           </button>
           <button id="loadRecentUsersBtn" class="nexus-main-btn" type="button">
-            <i class="fas fa-history"></i> ?ltimos registrados
+            <i class="fas fa-history"></i> Últimos registrados
           </button>
         </div>
         <div class="commander-permissions-help">
           <strong>Top-level authority (Commanders only):</strong>
-          <span class="help-item" title="Blocked users cannot log in or use Dashboard, Community, or Playzone. Enforced on every page."><i class="fas fa-lock"></i> Block</span> ?
-          <span class="help-item" title="User sees the site as normal; only Commanders see they are sanctioned."><i class="fas fa-user-secret"></i> Shadowban</span> ?
-          <span class="help-item" title="Internal tag visible only to Commanders."><i class="fas fa-tag"></i> Tag</span> ?
+          <span class="help-item" title="Blocked users cannot log in or use Dashboard, Community, or Playzone. Enforced on every page."><i class="fas fa-lock"></i> Block</span> •
+          <span class="help-item" title="User sees the site as normal; only Commanders see they are sanctioned."><i class="fas fa-user-secret"></i> Shadowban</span> •
+          <span class="help-item" title="Internal tag visible only to Commanders."><i class="fas fa-tag"></i> Tag</span> •
           <span class="help-item" title="Open Tribunal of Appeals chat. User sees it as an overlay."><i class="fas fa-gavel"></i> Tribunal</span>
           <br><em>Ban is enforced at login and on Dashboard, Community, and Playzone.</em>
         </div>
 
         <div id="usersListContainer">
           <div id="usersListEmpty">
-            Usa la b?squeda o carga los ?ltimos usuarios registrados.
+            Usa la búsqueda o carga los últimos usuarios registrados.
           </div>
           <div id="usersList"></div>
         </div>
@@ -282,15 +282,15 @@
         <div class="nexus-widget-header">
           <div class="nexus-widget-icon"><i class="fas fa-palette"></i></div>
           <div class="nexus-widget-title">
-            <h3>Personalizaci?n de perfiles</h3>
+            <h3>Personalización de perfiles</h3>
             <p>Subir marcos/fondos y configurar costos de perfiles.</p>
           </div>
         </div>
         <div class="commander-customization-grid">
           <div class="commander-customization-uploader">
-            <h4 class="commander-customization-title">Nuevo ?tem de personalizaci?n</h4>
+            <h4 class="commander-customization-title">Nuevo ítem de personalización</h4>
             <div class="commander-customization-field">
-              <label for="assetTypeSelect">Tipo de ?tem</label>
+              <label for="assetTypeSelect">Tipo de ítem</label>
               <select id="assetTypeSelect">
                 <option value="frame">Marco (Frame)</option>
                 <option value="background">Fondo (Background)</option>
@@ -307,30 +307,30 @@
             <div class="commander-customization-field" id="assetFrameLayoutField">
               <label for="assetFrameLayoutSelect">Estilo de marco</label>
               <select id="assetFrameLayoutSelect">
-                <option value="wide" selected>Amplio ? alas y ornamentos a los lados</option>
-                <option value="standard">Est?ndar ? anillo alrededor de la foto</option>
-                <option value="ornate">Ornamentado ? m?ximo espacio lateral</option>
+                <option value="wide" selected>Amplio — alas y ornamentos a los lados</option>
+                <option value="standard">Estándar — anillo alrededor de la foto</option>
+                <option value="ornate">Ornamentado — máximo espacio lateral</option>
               </select>
             </div>
             <div class="commander-frame-design-guide" id="assetFrameDesignGuide">
-              <strong>Gu?a para dise?ar marcos</strong>
+              <strong>Guía para diseñar marcos</strong>
               <ul>
-                <li>Lienzo <b>1024 ? 1024 px</b>, PNG con transparencia.</li>
+                <li>Lienzo <b>1024 × 1024 px</b>, PNG con transparencia.</li>
                 <li>Centro circular <b>transparente de 420 px</b> (el sistema lo alinea solo con la foto).</li>
-                <li>La foto del jugador queda <b>un poco m?s peque?a</b> dentro del hueco; el borde del marco la cubre.</li>
-                <li>Coloca alas, runas, espadas u otros detalles en los <b>lados izquierdo y derecho</b>, fuera del c?rculo.</li>
-                <li>El estilo <em>Amplio</em> es el recomendado para marcos con decoraci?n lateral.</li>
+                <li>La foto del jugador queda <b>un poco más pequeña</b> dentro del hueco; el borde del marco la cubre.</li>
+                <li>Coloca alas, runas, espadas u otros detalles en los <b>lados izquierdo y derecho</b>, fuera del círculo.</li>
+                <li>El estilo <em>Amplio</em> es el recomendado para marcos con decoración lateral.</li>
               </ul>
             </div>
             <div class="commander-customization-field">
               <label for="assetFileInput">Archivo de imagen</label>
               <input id="assetFileInput" type="file" accept="image/png,image/jpeg,image/webp">
-              <small>PNG transparente recomendado. Se normaliza a 1024?1024 al subir.</small>
+              <small>PNG transparente recomendado. Se normaliza a 1024×1024 al subir.</small>
             </div>
             <div class="commander-customization-preview" id="assetPreviewBox">
               <div class="commander-customization-preview-head">
                 <span>Preview en perfil</span>
-                <small id="assetPreviewHint">Sube un frame para ver c?mo se integra.</small>
+                <small id="assetPreviewHint">Sube un frame para ver cómo se integra.</small>
               </div>
               <div class="commander-customization-preview-stage" id="assetPreviewStage">
                 <div class="commander-bg-preview-layer" id="assetPreviewBgLayer" aria-hidden="true"></div>
@@ -341,15 +341,15 @@
               </div>
             </div>
             <button id="assetSubmitBtn" class="nexus-main-btn" type="button">
-              <i class="fas fa-cloud-upload-alt"></i> Subir y registrar ?tem
+              <i class="fas fa-cloud-upload-alt"></i> Subir y registrar ítem
             </button>
             <div id="assetUploadStatus" class="commander-customization-status"></div>
           </div>
 
           <div class="commander-customization-list-panel">
-            <h4 class="commander-customization-title">?tems registrados</h4>
+            <h4 class="commander-customization-title">Ítems registrados</h4>
             <div id="customizationItemsListEmpty" class="commander-customization-empty">
-              A?n no hay ?tems registrados desde el panel de Commander.
+              Aún no hay ítems registrados desde el panel de Commander.
             </div>
             <div id="customizationItemsList" class="commander-customization-list"></div>
           </div>
@@ -371,12 +371,12 @@
           <div class="comms-field">
             <label class="comms-label" for="cmdTourInviteSelect">Torneo activo</label>
             <select id="cmdTourInviteSelect" class="comms-input comms-select">
-              <option value="">Cargando torneos?</option>
+              <option value="">Cargando torneos…</option>
             </select>
           </div>
           <div class="comms-actions" style="margin-top:0.75rem;">
             <button type="button" id="cmdTourOpenCenterBtn" class="comms-btn comms-btn-primary">
-              <i class="fas fa-external-link-alt"></i> Abrir centro de gesti?n
+              <i class="fas fa-external-link-alt"></i> Abrir centro de gestión
             </button>
             <button type="button" id="cmdTourCreateBtn" class="comms-btn comms-btn-primary">
               <i class="fas fa-plus-circle"></i> Crear torneo
@@ -386,7 +386,7 @@
             </button>
           </div>
           <p id="cmdTourInviteHint" class="commander-placeholder-text" style="margin-top:0.85rem;">
-            El centro incluye pesta?as: resumen, invitar equipos (filtros inteligentes), invitaciones pendientes con opci?n de retirar, y equipos ya inscritos.
+            El centro incluye pestañas: resumen, invitar equipos (filtros inteligentes), invitaciones pendientes con opción de retirar, y equipos ya inscritos.
           </p>
         </div>
         <div class="commander-block nexus-dashboard-widget">
@@ -442,15 +442,15 @@
 
       <!-- PANEL: ENCUESTAS + PUBLICIDAD -->
       <section class="commander-panel-section" id="tab-comms" style="display:none;">
-        <h2 class="commander-page-title">Encuestas, publicidad y difusi?n</h2>
-        <p class="commander-comms-intro">Centro ?nico para <strong>Studiosgamesrs</strong>: encuestas emergentes, slots promo (Dashboard/Nexus) y kit de marca para compartir. Datos en <code>siteEngagement/</code> (Realtime Database).</p>
+        <h2 class="commander-page-title">Encuestas, publicidad y difusión</h2>
+        <p class="commander-comms-intro">Centro único para <strong>Studiosgamesrs</strong>: encuestas emergentes, slots promo (Dashboard/Nexus) y kit de marca para compartir. Datos en <code>siteEngagement/</code> (Realtime Database).</p>
 
         <div class="commander-comms-grid">
           <div class="commander-block nexus-dashboard-widget comms-card comms-card-wide sg-broadcast-block" id="secBossBroadcastBlock" style="display:none;">
             <div class="nexus-widget-header">
               <div class="nexus-widget-icon"><i class="fas fa-broadcast-tower"></i></div>
               <div class="nexus-widget-title">
-                <h3>Notificaci?n ?pica 3D <span class="sg-boss-only-tag">Solo Boss of the State</span></h3>
+                <h3>Notificación Épica 3D <span class="sg-boss-only-tag">Solo Boss of the State</span></h3>
                 <p>Overlay legendario en vivo: aparece de inmediato para todos los usuarios en el Dashboard.</p>
               </div>
               <span class="nexus-widget-badge comms-badge-critical" id="broadcastLiveBadge" style="display:none;">En vivo</span>
@@ -462,7 +462,7 @@
                 <div class="sg-welcome-stage sg-broadcast-preview-stage">
                   <div class="sg-welcome-stage-glow"></div>
                   <canvas id="broadcastPreviewCanvas" class="sg-welcome-canvas"></canvas>
-                  <div class="sg-welcome-stage-loading" id="broadcastPreviewLoading">Cargando?</div>
+                  <div class="sg-welcome-stage-loading" id="broadcastPreviewLoading">Cargando…</div>
                 </div>
                 <div class="comms-field">
                   <label class="comms-label" for="broadcastCharacterSelect">Personaje</label>
@@ -471,25 +471,86 @@
                   </select>
                 </div>
                 <div class="comms-field">
-                  <label class="comms-label" for="broadcastAnimSelect">Animaci?n</label>
+                  <label class="comms-label" for="broadcastAnimSelect">Animación</label>
                   <select id="broadcastAnimSelect" class="comms-input comms-select"></select>
                 </div>
               </div>
               <div class="sg-broadcast-form-col">
                 <div class="comms-field">
-                  <label class="comms-label" for="broadcastTitleInput">T?tulo</label>
-                  <input type="text" id="broadcastTitleInput" class="comms-input" maxlength="80" placeholder="Ej.: ?Nuevo evento especial!">
+                  <label class="comms-label" for="broadcastTitleInput">Título</label>
+                  <input type="text" id="broadcastTitleInput" class="comms-input" maxlength="80" placeholder="Ej.: ¡Nuevo evento especial!">
                 </div>
                 <div class="comms-field">
                   <label class="comms-label" for="broadcastMessageInput">Mensaje corto</label>
-                  <textarea id="broadcastMessageInput" class="comms-input comms-textarea" rows="3" maxlength="400" placeholder="M?ximo unas pocas l?neas?"></textarea>
+                  <textarea id="broadcastMessageInput" class="comms-input comms-textarea" rows="3" maxlength="400" placeholder="Máximo unas pocas líneas…"></textarea>
                 </div>
-                <div id="broadcastActiveStatus" class="sg-hint">Sin transmisi?n activa.</div>
+                <div id="broadcastActiveStatus" class="sg-hint">Sin transmisión activa.</div>
                 <div class="comms-actions">
-                  <button type="button" id="broadcastActivateBtn" class="comms-btn comms-btn-primary"><i class="fas fa-satellite-dish"></i> Activar transmisi?n</button>
+                  <button type="button" id="broadcastActivateBtn" class="comms-btn comms-btn-primary"><i class="fas fa-satellite-dish"></i> Activar transmisión</button>
                   <button type="button" id="broadcastDeactivateBtn" class="comms-btn comms-btn-ghost" style="border-color:rgba(229,57,53,0.5);display:none;"><i class="fas fa-stop-circle"></i> Desactivar</button>
                 </div>
-                <p class="sg-hint">La vista previa de la izquierda usa exactamente el mismo render que ver?n los usuarios. Reglas: <code>siteBroadcast</code> en Firebase.</p>
+                <p class="sg-hint">La vista previa de la izquierda usa exactamente el mismo render que verán los usuarios. Reglas: <code>siteBroadcast</code> en Firebase.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="commander-block nexus-dashboard-widget comms-card comms-card-wide" id="secCamCalibrateBlock">
+            <div class="nexus-widget-header">
+              <div class="nexus-widget-icon"><i class="fas fa-camera-retro"></i></div>
+              <div class="nexus-widget-title">
+                <h3>Calibrar c&aacute;mara del personaje</h3>
+                <p>Gira el modelo y ajusta qu&eacute; tan grande se ve, pru&eacute;balo con distintas animaciones y guarda el resultado. Se aplica a <strong>todas</strong> sus animaciones y en todo el sitio (subida de nivel, torneos, transmisi&oacute;n en vivo) &mdash; sin tocar el tama&ntilde;o del recuadro donde aparece, que sigue siendo responsive.</p>
+              </div>
+            </div>
+
+            <div class="sg-cam-layout">
+              <div class="sg-cam-preview-col">
+                <div class="sg-welcome-stage sg-broadcast-preview-stage">
+                  <div class="sg-welcome-stage-glow"></div>
+                  <canvas id="camCalibCanvas" class="sg-welcome-canvas"></canvas>
+                  <div class="sg-welcome-stage-loading" id="camCalibLoading">Cargando&hellip;</div>
+                </div>
+                <div id="camCalibStatus" class="sg-hint">Usando el &aacute;ngulo/tama&ntilde;o de f&aacute;brica.</div>
+              </div>
+              <div class="sg-cam-controls-col">
+                <div class="comms-field-row">
+                  <div class="comms-field">
+                    <label class="comms-label" for="camCalibCharacter">Personaje</label>
+                    <select id="camCalibCharacter" class="comms-input comms-select"></select>
+                  </div>
+                  <div class="comms-field">
+                    <label class="comms-label" for="camCalibClip">Animaci&oacute;n (para probar)</label>
+                    <select id="camCalibClip" class="comms-input comms-select"></select>
+                  </div>
+                </div>
+
+                <div class="sg-cam-slider-field">
+                  <div class="sg-cam-slider-label">
+                    <span><i class="fas fa-sync-alt"></i> Rotaci&oacute;n</span>
+                    <span id="camCalibYawValue">0&deg;</span>
+                  </div>
+                  <input type="range" id="camCalibYaw" min="-180" max="180" step="1" value="0" class="sg-cam-slider">
+                  <div class="sg-cam-slider-buttons">
+                    <button type="button" class="comms-btn comms-btn-ghost" data-yaw-step="-15">&larr; 15&deg;</button>
+                    <button type="button" class="comms-btn comms-btn-ghost" data-yaw-step="-1">&larr; 1&deg;</button>
+                    <button type="button" class="comms-btn comms-btn-ghost" data-yaw-step="1">1&deg; &rarr;</button>
+                    <button type="button" class="comms-btn comms-btn-ghost" data-yaw-step="15">15&deg; &rarr;</button>
+                  </div>
+                </div>
+
+                <div class="sg-cam-slider-field">
+                  <div class="sg-cam-slider-label">
+                    <span><i class="fas fa-expand-alt"></i> Tama&ntilde;o en pantalla</span>
+                    <span id="camCalibSizeValue">100%</span>
+                  </div>
+                  <input type="range" id="camCalibSize" min="40" max="220" step="5" value="100" class="sg-cam-slider">
+                </div>
+
+                <div class="comms-actions">
+                  <button type="button" id="camCalibSaveBtn" class="comms-btn comms-btn-primary"><i class="fas fa-save"></i> Guardar para este personaje</button>
+                  <button type="button" id="camCalibResetBtn" class="comms-btn comms-btn-ghost"><i class="fas fa-undo"></i> Restablecer de f&aacute;brica</button>
+                </div>
+                <p class="sg-hint">Los cambios se ven en vivo mientras mueves los controles; solo quedan para todo el mundo cuando pulsas &ldquo;Guardar&rdquo;.</p>
               </div>
             </div>
           </div>
@@ -498,8 +559,8 @@
             <div class="nexus-widget-header">
               <div class="nexus-widget-icon"><i class="fas fa-bell"></i></div>
               <div class="nexus-widget-title">
-                <h3>Notificaciones autom?ticas de nivel</h3>
-                <p>Lo que ve cada jugador al llegar a un tramo del Nexus: qu? recompensa recibe y qu? personaje/animaci?n aparece en el escenario 3D. Editable por cualquier commander o superior.</p>
+                <h3>Notificaciones automáticas de nivel</h3>
+                <p>Lo que ve cada jugador al llegar a un tramo del Nexus: qué recompensa recibe y qué personaje/animación aparece en el escenario 3D. Editable por cualquier commander o superior.</p>
               </div>
             </div>
 
@@ -510,7 +571,7 @@
                   <canvas id="notifPreviewCanvas" class="sg-welcome-canvas"></canvas>
                   <div class="sg-welcome-stage-loading" id="notifPreviewLoading">Elige "Vista previa" en una fila</div>
                 </div>
-                <p class="sg-hint">Vista previa exacta de lo que ver? el jugador al subir a ese nivel.</p>
+                <p class="sg-hint">Vista previa exacta de lo que verá el jugador al subir a ese nivel.</p>
               </div>
               <div class="sg-notif-table-col">
                 <table class="sg-notif-table">
@@ -520,15 +581,15 @@
                       <th>Nivel</th>
                       <th>Se gana</th>
                       <th>Personaje</th>
-                      <th>Animaci?n</th>
+                      <th>Animación</th>
                       <th></th>
                     </tr>
                   </thead>
                   <tbody id="notifTierTableBody">
-                    <tr><td colspan="6" class="sg-hint">Cargando configuraci?n?</td></tr>
+                    <tr><td colspan="6" class="sg-hint">Cargando configuración…</td></tr>
                   </tbody>
                 </table>
-                <p class="sg-hint" id="notifStatusHint">Reglas: <code>nexusTierAnimations</code> en Firebase. Sin personalizar, cada tramo usa su animaci?n por defecto.</p>
+                <p class="sg-hint" id="notifStatusHint">Reglas: <code>nexusTierAnimations</code> en Firebase. Sin personalizar, cada tramo usa su animación por defecto.</p>
               </div>
             </div>
           </div>
@@ -537,8 +598,8 @@
             <div class="nexus-widget-header">
               <div class="nexus-widget-icon"><i class="fas fa-flask"></i></div>
               <div class="nexus-widget-title">
-                <h3>Probar cualquier notificaci?n</h3>
-                <p>Editor completo: elige nivel, personaje y animaci?n, cambia los textos y las recompensas que se muestran, y l?nzalo para verlo exactamente como lo ver?a un jugador. <strong>No env?a nada a nadie ni guarda cambios reales</strong> ? es solo una vista previa en tu pantalla.</p>
+                <h3>Probar cualquier notificación</h3>
+                <p>Editor completo: elige nivel, personaje y animación, cambia los textos y las recompensas que se muestran, y lánzalo para verlo exactamente como lo vería un jugador. <strong>No envía nada a nadie ni guarda cambios reales</strong> — es solo una vista previa en tu pantalla.</p>
               </div>
             </div>
 
@@ -552,7 +613,7 @@
                 <select id="notifAdvCharacter" class="comms-input comms-select"></select>
               </div>
               <div class="comms-field">
-                <label class="comms-label" for="notifAdvClip">Animaci?n</label>
+                <label class="comms-label" for="notifAdvClip">Animación</label>
                 <select id="notifAdvClip" class="comms-input comms-select"></select>
               </div>
             </div>
@@ -567,8 +628,8 @@
               </div>
             </div>
             <div class="comms-field">
-              <label class="comms-label" for="notifAdvTagline">Frase / descripci?n</label>
-              <textarea id="notifAdvTagline" class="comms-input comms-textarea" rows="2" maxlength="160" placeholder="Lo que se lee bajo el nombre del tramo?"></textarea>
+              <label class="comms-label" for="notifAdvTagline">Frase / descripción</label>
+              <textarea id="notifAdvTagline" class="comms-input comms-textarea" rows="2" maxlength="160" placeholder="Lo que se lee bajo el nombre del tramo…"></textarea>
             </div>
 
             <div class="sg-notif-rewards-editor">
@@ -586,15 +647,15 @@
               <button type="button" id="notifAdvLaunchBtn" class="comms-btn comms-btn-primary"><i class="fas fa-rocket"></i> Lanzar vista previa completa</button>
               <button type="button" id="notifAdvCloseBtn" class="comms-btn comms-btn-ghost"><i class="fas fa-times-circle"></i> Cerrar vista previa</button>
             </div>
-            <p class="sg-hint">Para cambiar lo que le llega <strong>de verdad</strong> a los jugadores en cada tramo (personaje/animaci?n), usa la tabla de arriba. Este editor es solo para probar c?mo se ver?a con textos y recompensas distintas.</p>
+            <p class="sg-hint">Para cambiar lo que le llega <strong>de verdad</strong> a los jugadores en cada tramo (personaje/animación), usa la tabla de arriba. Este editor es solo para probar cómo se vería con textos y recompensas distintas.</p>
           </div>
 
           <div class="commander-block nexus-dashboard-widget comms-card comms-card-wide sg-broadcast-block" id="secBossWelcomeCampaignBlock" style="display:none;">
             <div class="nexus-widget-header">
               <div class="nexus-widget-icon"><i class="fas fa-medal"></i></div>
               <div class="nexus-widget-title">
-                <h3>Campa?a de bienvenida <span class="sg-boss-only-tag">Solo Boss of the State</span></h3>
-                <p>Mientras est? abierta, cada usuario recibe una sola vez: 30 tokens, +15% de XP de Nexus por 30 d?as y la insignia <strong>Lealtad</strong>.</p>
+                <h3>Campaña de bienvenida <span class="sg-boss-only-tag">Solo Boss of the State</span></h3>
+                <p>Mientras esté abierta, cada usuario recibe una sola vez: 30 tokens, +15% de XP de Nexus por 30 días y la insignia <strong>Lealtad</strong>.</p>
               </div>
               <span class="nexus-widget-badge comms-badge-critical" id="welcomeCampaignBadge" style="display:none;">Abierta</span>
             </div>
@@ -605,17 +666,17 @@
                 <span>Lealtad</span>
               </div>
               <div class="sg-welcome-campaign-form">
-                <div id="welcomeCampaignStatus" class="sg-hint">Cargando estado?</div>
+                <div id="welcomeCampaignStatus" class="sg-hint">Cargando estado…</div>
                 <div class="comms-field">
-                  <label class="comms-label" for="welcomeCampaignEndsAt">Fecha l?mite (opcional)</label>
+                  <label class="comms-label" for="welcomeCampaignEndsAt">Fecha límite (opcional)</label>
                   <input type="datetime-local" id="welcomeCampaignEndsAt" class="comms-input">
                 </div>
                 <div class="comms-actions">
-                  <button type="button" id="welcomeCampaignOpenBtn" class="comms-btn comms-btn-primary"><i class="fas fa-play-circle"></i> Abrir campa?a</button>
-                  <button type="button" id="welcomeCampaignCloseBtn" class="comms-btn comms-btn-ghost" style="border-color:rgba(229,57,53,0.5);"><i class="fas fa-stop-circle"></i> Cerrar campa?a</button>
+                  <button type="button" id="welcomeCampaignOpenBtn" class="comms-btn comms-btn-primary"><i class="fas fa-play-circle"></i> Abrir campaña</button>
+                  <button type="button" id="welcomeCampaignCloseBtn" class="comms-btn comms-btn-ghost" style="border-color:rgba(229,57,53,0.5);"><i class="fas fa-stop-circle"></i> Cerrar campaña</button>
                   <button type="button" id="welcomeCampaignBackfillBtn" class="comms-btn comms-btn-ghost"><i class="fas fa-users"></i> Dar insignia a cuentas existentes</button>
                 </div>
-                <p class="sg-hint">Al cerrarla nadie m?s la recibe, pero quien ya la tenga la conserva. El bot?n de cuentas existentes solo reparte la insignia (sin tokens ni boost). Reglas: <code>siteCampaigns/welcome</code>.</p>
+                <p class="sg-hint">Al cerrarla nadie más la recibe, pero quien ya la tenga la conserva. El botón de cuentas existentes solo reparte la insignia (sin tokens ni boost). Reglas: <code>siteCampaigns/welcome</code>.</p>
               </div>
             </div>
           </div>
@@ -624,8 +685,8 @@
             <div class="nexus-widget-header">
               <div class="nexus-widget-icon"><i class="fas fa-palette"></i></div>
               <div class="nexus-widget-title">
-                <h3>Kit de marca &amp; difusi?n</h3>
-                <p>Textos oficiales, hashtags y enlaces listos para redes y campa?as Studiosgamesrs.</p>
+                <h3>Kit de marca &amp; difusión</h3>
+                <p>Textos oficiales, hashtags y enlaces listos para redes y campañas Studiosgamesrs.</p>
               </div>
             </div>
             <div class="sg-brand-grid">
@@ -639,7 +700,7 @@
               </div>
               <div class="comms-field">
                 <label class="comms-label" for="brandPitch">Pitch corto (bio / anuncio)</label>
-                <textarea id="brandPitch" class="comms-input comms-textarea" rows="3" maxlength="600" placeholder="2?3 l?neas?"></textarea>
+                <textarea id="brandPitch" class="comms-input comms-textarea" rows="3" maxlength="600" placeholder="2-3 l?neas?"></textarea>
               </div>
               <div class="comms-field">
                 <label class="comms-label" for="brandDiscord">Discord (URL)</label>
@@ -683,19 +744,19 @@
               </div>
               <span class="nexus-widget-badge comms-badge-critical">En vivo</span>
             </div>
-            <div id="sgActivePollSummary" class="sg-poll-summary">Cargando encuesta activa?</div>
+            <div id="sgActivePollSummary" class="sg-poll-summary">Cargando encuesta activa…</div>
             <div class="sg-poll-stats" id="sgPollStatsLive" aria-live="polite"></div>
             <div class="comms-field">
               <label class="comms-label" for="commsPollQuestion">Nueva pregunta</label>
-              <input type="text" id="commsPollQuestion" class="comms-input" maxlength="200" placeholder="?Tu pregunta?">
+              <input type="text" id="commsPollQuestion" class="comms-input" maxlength="200" placeholder="¿Tu pregunta?">
             </div>
             <div class="comms-field">
-              <label class="comms-label" for="commsPollOptions">Opciones (una por l?nea, m?x. 25)</label>
-              <textarea id="commsPollOptions" class="comms-input comms-textarea" rows="4" maxlength="2000" placeholder="Opci?n A&#10;Opci?n B&#10;Opci?n C"></textarea>
+              <label class="comms-label" for="commsPollOptions">Opciones (una por línea, máx. 25)</label>
+              <textarea id="commsPollOptions" class="comms-input comms-textarea" rows="4" maxlength="2000" placeholder="Opción A&#10;Opción B&#10;Opción C"></textarea>
             </div>
             <div class="comms-field-row">
               <div class="comms-field">
-                <label class="comms-label" for="commsPollDurationMin">Duraci?n (minutos)</label>
+                <label class="comms-label" for="commsPollDurationMin">Duración (minutos)</label>
                 <input type="number" id="commsPollDurationMin" class="comms-input" min="5" max="10080" value="1440">
               </div>
               <div class="comms-field">
@@ -727,7 +788,7 @@
               <div class="sg-ad-slot-card">
                 <h4 class="sg-ad-slot-title"><i class="fas fa-th-large"></i> dashboard_sidebar</h4>
                 <div class="comms-field">
-                  <label class="comms-label" for="adDashTitle">T?tulo</label>
+                  <label class="comms-label" for="adDashTitle">Título</label>
                   <input type="text" id="adDashTitle" class="comms-input" maxlength="120">
                 </div>
                 <div class="comms-field">
@@ -736,12 +797,12 @@
                 </div>
                 <div class="comms-field">
                   <label class="comms-label" for="adDashImage">Imagen (URL)</label>
-                  <input type="url" id="adDashImage" class="comms-input" maxlength="500" placeholder="https://?">
+                  <input type="url" id="adDashImage" class="comms-input" maxlength="500" placeholder="https://...">
                 </div>
                 <div class="comms-field-row">
                   <div class="comms-field">
-                    <label class="comms-label" for="adDashCtaLabel">Bot?n</label>
-                    <input type="text" id="adDashCtaLabel" class="comms-input" maxlength="40" placeholder="Ver m?s">
+                    <label class="comms-label" for="adDashCtaLabel">Botón</label>
+                    <input type="text" id="adDashCtaLabel" class="comms-input" maxlength="40" placeholder="Ver más">
                   </div>
                   <div class="comms-field">
                     <label class="comms-label" for="adDashCtaUrl">Enlace CTA</label>
@@ -753,7 +814,7 @@
               <div class="sg-ad-slot-card">
                 <h4 class="sg-ad-slot-title"><i class="fas fa-bolt"></i> nexus_hero</h4>
                 <div class="comms-field">
-                  <label class="comms-label" for="adNexusTitle">T?tulo</label>
+                  <label class="comms-label" for="adNexusTitle">Título</label>
                   <input type="text" id="adNexusTitle" class="comms-input" maxlength="120">
                 </div>
                 <div class="comms-field">
@@ -762,11 +823,11 @@
                 </div>
                 <div class="comms-field">
                   <label class="comms-label" for="adNexusImage">Imagen (URL)</label>
-                  <input type="url" id="adNexusImage" class="comms-input" maxlength="500" placeholder="https://?">
+                  <input type="url" id="adNexusImage" class="comms-input" maxlength="500" placeholder="https://...">
                 </div>
                 <div class="comms-field-row">
                   <div class="comms-field">
-                    <label class="comms-label" for="adNexusCtaLabel">Bot?n</label>
+                    <label class="comms-label" for="adNexusCtaLabel">Botón</label>
                     <input type="text" id="adNexusCtaLabel" class="comms-input" maxlength="40" placeholder="Participar">
                   </div>
                   <div class="comms-field">
@@ -790,19 +851,19 @@
                 <p>Archivo al cerrar o al publicar otra.</p>
               </div>
             </div>
-            <div id="sgPollArchiveList" class="sg-archive-list">Cargando?</div>
+            <div id="sgPollArchiveList" class="sg-archive-list">Cargando…</div>
           </div>
         </div>
       </section>
 
       <!-- PANEL: TOKENS -->
       <section class="commander-panel-section" id="tab-tokens" style="display:none;">
-        <h2 class="commander-page-title">Tokens &amp; econom?a</h2>
-        <p class="commander-comms-intro">Control total de la econom?a de tokens: estad?sticas globales, ajustes manuales, entregas premium y log de auditor?a detallado.</p>
+        <h2 class="commander-page-title">Tokens &amp; economía</h2>
+        <p class="commander-comms-intro">Control total de la economía de tokens: estadísticas globales, ajustes manuales, entregas premium y log de auditoría detallado.</p>
 
         <div class="token-stats-grid">
           <div class="token-stat-card">
-            <span class="token-stat-label"><i class="fas fa-globe-americas"></i> En circulaci?n (mercado)</span>
+            <span class="token-stat-label"><i class="fas fa-globe-americas"></i> En circulación (mercado)</span>
             <span class="token-stat-value" id="tokStatCirculation">?</span>
             <span class="token-stat-hint">Suma de saldos de todos los usuarios</span>
           </div>
@@ -845,22 +906,22 @@
             <div class="token-stat-card">
               <span class="token-stat-label"><i class="fas fa-user-clock"></i> Cupo diario por jugador</span>
               <span class="token-stat-value" id="tokPzBudgetCap">?</span>
-              <span class="token-stat-hint">M?ximo de tokens de misiones al d?a</span>
+              <span class="token-stat-hint">Máximo de tokens de misiones al día</span>
             </div>
             <div class="token-stat-card">
-              <span class="token-stat-label"><i class="fas fa-history"></i> ?ltima recarga</span>
+              <span class="token-stat-label"><i class="fas fa-history"></i> Última recarga</span>
               <span class="token-stat-value" id="tokPzBudgetLast">?</span>
               <span class="token-stat-hint" id="tokPzBudgetLastBy">Sin registros</span>
             </div>
           </div>
           <div class="sec-form-row" style="margin-top:14px;">
             <input id="tokPzBudgetAmount" class="comms-input" type="number" step="1" placeholder="Cantidad (negativo para retirar)">
-            <input id="tokPzBudgetReason" class="comms-input" type="text" maxlength="300" placeholder="Motivo (obligatorio para auditor?a)">
+            <input id="tokPzBudgetReason" class="comms-input" type="text" maxlength="300" placeholder="Motivo (obligatorio para auditoría)">
           </div>
           <div class="sec-form-actions">
             <button type="button" id="tokPzBudgetRefillBtn" class="comms-btn comms-btn-primary"><i class="fas fa-plus-circle"></i> Aplicar a la bolsa</button>
           </div>
-          <p class="sec-hint">Solo Commander o Boss. M?ximo 100 000 tokens por operaci?n; cada movimiento queda en el log de auditor?a.</p>
+          <p class="sec-hint">Solo Commander o Boss. Máximo 100 000 tokens por operación; cada movimiento queda en el log de auditoría.</p>
         </div>
 
         <div class="commander-block nexus-dashboard-widget sec-block tok-ranking-block">
@@ -868,26 +929,26 @@
             <div class="nexus-widget-icon"><i class="fas fa-crown"></i></div>
             <div class="nexus-widget-title">
               <h3>Ranking de tokens</h3>
-              <p>Los jugadores con m?s tokens en StudiosGamesRS. Pulsa para gestionar o descontar al instante.</p>
+              <p>Los jugadores con más tokens en StudiosGamesRS. Pulsa para gestionar o descontar al instante.</p>
             </div>
             <button type="button" id="tokTopHoldersRefreshBtn" class="comms-btn comms-btn-ghost"><i class="fas fa-sync-alt"></i></button>
           </div>
           <div id="tokTopHoldersPanel" class="tok-top-holders tok-top-holders-open">
-            <div class="sec-empty"><i class="fas fa-spinner fa-spin"></i> Cargando ranking?</div>
+            <div class="sec-empty"><i class="fas fa-spinner fa-spin"></i> Cargando ranking…</div>
           </div>
         </div>
 
         <div class="sec-form-actions tok-stats-actions" style="margin-bottom:18px;">
-          <button type="button" id="tokStatsRefreshBtn" class="comms-btn comms-btn-primary"><i class="fas fa-sync-alt"></i> Actualizar estad?sticas</button>
+          <button type="button" id="tokStatsRefreshBtn" class="comms-btn comms-btn-primary"><i class="fas fa-sync-alt"></i> Actualizar estadísticas</button>
           <span class="tok-boss-badge" id="tokBossBadge" style="display:none;"><i class="fas fa-skull-crossbones"></i> Boss of the State</span>
           <button type="button" id="tokClaimBossBtn" class="comms-btn tok-claim-boss-btn" style="display:none;"><i class="fas fa-bolt"></i> Reclamar Boss of the State</button>
-          <span class="sec-hint" id="tokStatsMeta">?ltima actualizaci?n: ?</span>
+          <span class="sec-hint" id="tokStatsMeta">Última actualización: ?</span>
         </div>
         <p class="tok-protected-hint sec-hint" id="tokBossHint"></p>
 
         <div id="tokBossAlertsPanel" class="tok-boss-alerts-panel" style="display:none;">
           <div class="tok-boss-alerts-header">
-            <h4><i class="fas fa-bell"></i> Alertas Boss ? entregas de Commanders</h4>
+            <h4><i class="fas fa-bell"></i> Alertas Boss — entregas de Commanders</h4>
             <span class="tok-boss-alerts-badge" id="tokBossAlertsBadge"></span>
           </div>
           <div id="tokBossAlertsList" class="tok-boss-alerts-list">
@@ -899,12 +960,12 @@
           <div class="nexus-widget-header">
             <div class="nexus-widget-icon"><i class="fas fa-user-edit"></i></div>
             <div class="nexus-widget-title">
-              <h3>Gesti?n de usuario</h3>
+              <h3>Gestión de usuario</h3>
               <p>Busca un jugador para ver su historial, agregar o descontar tokens manualmente.</p>
             </div>
           </div>
           <div class="sec-form-row">
-            <input id="tokUserSearchInput" class="comms-input" type="text" placeholder="Nick o UID del usuario?" autocomplete="off">
+            <input id="tokUserSearchInput" class="comms-input" type="text" placeholder="Nick o UID del usuario…" autocomplete="off">
             <button type="button" id="tokUserSearchBtn" class="comms-btn comms-btn-primary"><i class="fas fa-search"></i> Buscar</button>
           </div>
           <div id="tokUserSearchResults" class="tok-user-results">
@@ -928,7 +989,7 @@
               </div>
               <div class="comms-field">
                 <label class="comms-label" for="tokAdjustReason">Motivo (obligatorio)</label>
-                <input id="tokAdjustReason" class="comms-input" type="text" maxlength="200" placeholder="Ej: Compensaci?n por bug en misi?n #123">
+                <input id="tokAdjustReason" class="comms-input" type="text" maxlength="200" placeholder="Ej: Compensación por bug en misión #123">
               </div>
             </div>
             <div class="sec-form-actions" id="tokAdjustActions">
@@ -950,7 +1011,7 @@
             <div class="nexus-widget-icon"><i class="fas fa-gem"></i></div>
             <div class="nexus-widget-title">
               <h3>Entregas premium StudiosGamesRS</h3>
-              <p>Entrega recompensas valiosas adem?s de tokens. Todo queda registrado en el log.</p>
+              <p>Entrega recompensas valiosas además de tokens. Todo queda registrado en el log.</p>
             </div>
           </div>
           <div class="tok-adjust-grid">
@@ -958,26 +1019,26 @@
               <label class="comms-label" for="tokRewardType">Tipo de entrega</label>
               <select id="tokRewardType" class="comms-input comms-select">
                 <option value="honor">Honor comunitario (+puntos)</option>
-                <option value="notification">Notificaci?n especial al usuario</option>
+                <option value="notification">Notificación especial al usuario</option>
                 <option value="nexus_badge">Badge Creator Nexus</option>
-                <option value="inventory">?tem en inventario</option>
+                <option value="inventory">Ítem en inventario</option>
                 <option value="internal_tag">Etiqueta interna VIP</option>
                 <option value="tokens_bonus">Bonus masivo de tokens (al usuario seleccionado)</option>
               </select>
             </div>
             <div class="comms-field">
               <label class="comms-label" for="tokRewardValue">Valor / cantidad</label>
-              <input id="tokRewardValue" class="comms-input" type="text" maxlength="120" placeholder="Ej: 500 honor, badge_elite, nombre del ?tem?">
+              <input id="tokRewardValue" class="comms-input" type="text" maxlength="120" placeholder="Ej: 500 honor, badge_elite, nombre del ítem…">
             </div>
           </div>
           <div class="comms-field">
-            <label class="comms-label" for="tokRewardDetail">Descripci?n de la entrega</label>
-            <textarea id="tokRewardDetail" class="comms-input comms-textarea" rows="2" maxlength="400" placeholder="Detalle visible en el log y para el usuario?"></textarea>
+            <label class="comms-label" for="tokRewardDetail">Descripción de la entrega</label>
+            <textarea id="tokRewardDetail" class="comms-input comms-textarea" rows="2" maxlength="400" placeholder="Detalle visible en el log y para el usuario…"></textarea>
           </div>
           <div class="sec-form-actions">
             <button type="button" id="tokRewardDeliverBtn" class="comms-btn comms-btn-primary"><i class="fas fa-gift"></i> Entregar recompensa</button>
           </div>
-          <p class="sec-hint">Primero selecciona un usuario en la b?squeda de arriba. Las entregas premium requieren usuario activo.</p>
+          <p class="sec-hint">Primero selecciona un usuario en la búsqueda de arriba. Las entregas premium requieren usuario activo.</p>
         </div>
 
         <div class="commander-block nexus-dashboard-widget sec-block" id="tokNexusStaffBlock">
@@ -1002,7 +1063,7 @@
             <button type="button" id="tokNexusXpGrantBtn" class="comms-btn comms-btn-primary" style="display:none;"><i class="fas fa-bolt"></i> Dar XP Nexus</button>
             <button type="button" id="tokNexusBoostGrantBtn" class="comms-btn comms-btn-primary"><i class="fas fa-rocket"></i> Boost x2 (1h)</button>
           </div>
-          <p class="sec-hint">Selecciona un jugador arriba, o selecci?nate a ti mismo para asignarte XP sin tope (el nivel 100 son 254 500 XP). XP Nexus a otros: Boss, m?x. 5?000/entrega y 15?000/d?a. Boost: Commanders, no a ti mismo.</p>
+          <p class="sec-hint">Selecciona un jugador arriba, o selecciónate a ti mismo para asignarte XP sin tope (el nivel 100 son 254 500 XP). XP Nexus a otros: Boss, máx. 5.000/entrega y 15.000/día. Boost: Commanders, no a ti mismo.</p>
         </div>
 
         <div class="commander-block nexus-dashboard-widget sec-block">
@@ -1010,12 +1071,12 @@
             <div class="nexus-widget-icon"><i class="fas fa-award"></i></div>
             <div class="nexus-widget-title">
               <h3>Registro de entregas</h3>
-              <p>Historial destacado: a qui?n se entreg?, qu? recompensa y el motivo exacto.</p>
+              <p>Historial destacado: a quién se entregó, qué recompensa y el motivo exacto.</p>
             </div>
             <span class="nexus-widget-badge" id="tokRewardGrantsCount">?</span>
           </div>
           <div id="tokRewardGrantsList" class="tok-reward-grants-list">
-            <div class="sec-empty">Cargando entregas?</div>
+            <div class="sec-empty">Cargando entregas…</div>
           </div>
         </div>
 
@@ -1023,8 +1084,8 @@
           <div class="nexus-widget-header">
             <div class="nexus-widget-icon"><i class="fas fa-clipboard-list"></i></div>
             <div class="nexus-widget-title">
-              <h3>Log de tokens (auditor?a)</h3>
-              <p>Registro espec?fico: qui?n entr?, a qui?n toc?, qu? entreg? y cu?ndo.</p>
+              <h3>Log de tokens (auditoría)</h3>
+              <p>Registro específico: quién entró, a quién tocó, qué entregó y cuándo.</p>
             </div>
             <span class="nexus-widget-badge" id="tokAuditCount">?</span>
           </div>
@@ -1037,7 +1098,7 @@
             <button type="button" class="sec-filter-btn" data-tok-filter="tokens_tab_open">Accesos</button>
           </div>
           <div id="tokAuditList" class="sec-audit-list">
-            <div class="sec-empty">Cargando log de tokens?</div>
+            <div class="sec-empty">Cargando log de tokens…</div>
           </div>
         </div>
       </section>
@@ -1045,33 +1106,33 @@
       <!-- PANEL: CREATOR MARKET -->
       <section class="commander-panel-section" id="tab-creators" style="display:none;">
         <h2 class="commander-page-title">Creator Market</h2>
-        <p class="commander-comms-intro">Aprueba contenido con un clic: se publica autom?ticamente en la p?gina de Facebook y las m?tricas (vistas, me gusta, comentarios) se leen desde la API de Meta.</p>
+        <p class="commander-comms-intro">Aprueba contenido con un clic: se publica automáticamente en la página de Facebook y las métricas (vistas, me gusta, comentarios) se leen desde la API de Meta.</p>
 
         <div class="commander-block nexus-dashboard-widget sec-block">
           <div class="nexus-widget-header">
             <div class="nexus-widget-icon"><i class="fab fa-facebook"></i></div>
             <div class="nexus-widget-title">
-              <h3>Configuraci?n Facebook (obligatorio)</h3>
-              <p>Page ID y token de <strong>p?gina</strong> (no de usuario). Permisos requeridos: <code>pages_show_list</code>, <code>pages_read_engagement</code>, <code>pages_manage_posts</code> (+ <code>publish_video</code> para videos).</p>
+              <h3>Configuración Facebook (obligatorio)</h3>
+              <p>Page ID y token de <strong>página</strong> (no de usuario). Permisos requeridos: <code>pages_show_list</code>, <code>pages_read_engagement</code>, <code>pages_manage_posts</code> (+ <code>publish_video</code> para videos).</p>
             </div>
           </div>
           <details class="cm-fb-setup-guide">
             <summary><i class="fas fa-link"></i> Conectar token (una sola vez)</summary>
             <ol class="cm-fb-setup-steps">
-              <li><a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener">Graph API Explorer</a> ? elige tu app ? <strong>Generate Access Token</strong> ? marca <code>pages_manage_posts</code>, <code>pages_read_engagement</code>, <code>pages_show_list</code>.</li>
-              <li>Consulta <code>GET me/accounts</code> ? copia el <code>access_token</code> de la fila de tu p?gina (token de <strong>P?GINA</strong>, no el de usuario).</li>
-              <li>Pega el Page ID y ese token abajo ? <strong>Guardar token</strong>. No tendr?s que volver a pegarlo salvo que revoques permisos.</li>
+              <li><a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener">Graph API Explorer</a> → elige tu app → <strong>Generate Access Token</strong> → marca <code>pages_manage_posts</code>, <code>pages_read_engagement</code>, <code>pages_show_list</code>.</li>
+              <li>Consulta <code>GET me/accounts</code> → copia el <code>access_token</code> de la fila de tu página (token de <strong>PÁGINA</strong>, no el de usuario).</li>
+              <li>Pega el Page ID y ese token abajo → <strong>Guardar token</strong>. No tendrás que volver a pegarlo salvo que revoques permisos.</li>
             </ol>
           </details>
           <details class="cm-fb-setup-guide">
-            <summary><i class="fas fa-book"></i> Gu?a: error (#200) pages_manage_posts</summary>
+            <summary><i class="fas fa-book"></i> Guía: error (#200) pages_manage_posts</summary>
             <ol class="cm-fb-setup-steps">
-              <li>Entra a <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener">Meta for Developers ? tu app</a>.</li>
-              <li><strong>Permisos:</strong> Casos de uso / Permisos ? a?ade <code>pages_manage_posts</code>, <code>pages_read_engagement</code>, <code>pages_show_list</code>.</li>
-              <li><strong>Roles:</strong> tu cuenta debe ser <em>Administrador</em> de la app Y de la p?gina StudiosGamesRS.</li>
-              <li><a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener">Graph API Explorer</a> ? elige tu app ? <strong>Generate Access Token</strong> ? marca los 3 permisos (y publish_video si hay clips).</li>
-              <li>En el Explorer, consulta <code>GET me/accounts</code> ? copia el <code>access_token</code> de la fila <strong>StudiosGamesRS</strong> (ese es el token de P?GINA).</li>
-              <li>P?galo abajo y pulsa <strong>Guardar token</strong>, luego <strong>Probar token</strong>.</li>
+              <li>Entra a <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener">Meta for Developers → tu app</a>.</li>
+              <li><strong>Permisos:</strong> Casos de uso / Permisos → añade <code>pages_manage_posts</code>, <code>pages_read_engagement</code>, <code>pages_show_list</code>.</li>
+              <li><strong>Roles:</strong> tu cuenta debe ser <em>Administrador</em> de la app Y de la página StudiosGamesRS.</li>
+              <li><a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener">Graph API Explorer</a> → elige tu app → <strong>Generate Access Token</strong> → marca los 3 permisos (y publish_video si hay clips).</li>
+              <li>En el Explorer, consulta <code>GET me/accounts</code> → copia el <code>access_token</code> de la fila <strong>StudiosGamesRS</strong> (ese es el token de PÁGINA).</li>
+              <li>Pégalo abajo y pulsa <strong>Guardar token</strong>, luego <strong>Probar token</strong>.</li>
             </ol>
             <p class="sec-hint">Modo <strong>Desarrollo</strong>: solo usuarios con rol en la app. Modo <strong>Live</strong> + otros usuarios: requiere App Review de Meta para <code>pages_manage_posts</code>.</p>
           </details>
@@ -1081,11 +1142,11 @@
               <input id="cmFbPageId" class="comms-input" type="text" inputmode="numeric" placeholder="Ej: 123456789012345 (campo id en me/accounts)">
             </div>
             <div class="comms-field">
-              <label class="comms-label" for="cmFbPageUrl">URL p?blica de la p?gina</label>
+              <label class="comms-label" for="cmFbPageUrl">URL pública de la página</label>
               <input id="cmFbPageUrl" class="comms-input" type="url" placeholder="https://facebook.com/StudiosGamesRS">
             </div>
             <div class="comms-field" style="grid-column: 1 / -1;">
-              <label class="comms-label" for="cmFbPageToken">Token de acceso de la p?gina</label>
+              <label class="comms-label" for="cmFbPageToken">Token de acceso de la página</label>
               <input id="cmFbPageToken" class="comms-input" type="password" autocomplete="off" placeholder="Pega el access_token de me/accounts (una sola vez)">
             </div>
           </div>
@@ -1102,12 +1163,12 @@
             <div class="nexus-widget-icon"><i class="fas fa-cloud-upload-alt"></i></div>
             <div class="nexus-widget-title">
               <h3>Contenido pendiente de publicar</h3>
-              <p>Env?os de creadores aprobados. Al pulsar <strong>Aprobar y publicar</strong> se sube a Facebook autom?ticamente.</p>
+              <p>Envíos de creadores aprobados. Al pulsar <strong>Aprobar y publicar</strong> se sube a Facebook automáticamente.</p>
             </div>
             <span class="nexus-widget-badge" id="cmContentPendingCount">0</span>
           </div>
           <div id="cmSubmissionQueueList" class="cm-cmd-apps-list">
-            <div class="sec-empty">Cargando env?os?</div>
+            <div class="sec-empty">Cargando envíos…</div>
           </div>
         </div>
 
@@ -1116,12 +1177,12 @@
             <div class="nexus-widget-icon"><i class="fas fa-inbox"></i></div>
             <div class="nexus-widget-title">
               <h3>Solicitudes de ingreso</h3>
-              <p>Cuestionarios enviados por usuarios nivel 4+ (3.000 XP). Aprueba para habilitar env?o de contenido.</p>
+              <p>Cuestionarios enviados por usuarios nivel 4+ (3.000 XP). Aprueba para habilitar envío de contenido.</p>
             </div>
             <span class="nexus-widget-badge" id="cmAppsPendingCount">0</span>
           </div>
           <div id="cmApplicationsList" class="cm-cmd-apps-list">
-            <div class="sec-empty">Cargando solicitudes?</div>
+            <div class="sec-empty">Cargando solicitudes…</div>
           </div>
         </div>
 
@@ -1129,13 +1190,13 @@
           <div class="nexus-widget-header">
             <div class="nexus-widget-icon"><i class="fas fa-coins"></i></div>
             <div class="nexus-widget-title">
-              <h3>Pagos pendientes de verificaci?n</h3>
+              <h3>Pagos pendientes de verificación</h3>
               <p>Solo Boss of the State. Revisa el contenido publicado y aprueba cada movimiento de la cartera del creador.</p>
             </div>
             <span class="nexus-widget-badge" id="cmPayoutsPendingCount">0</span>
           </div>
           <div id="cmPendingPayoutsList" class="cm-cmd-apps-list">
-            <div class="sec-empty">Cargando pagos pendientes?</div>
+            <div class="sec-empty">Cargando pagos pendientes…</div>
           </div>
         </div>
 
@@ -1144,11 +1205,11 @@
             <div class="nexus-widget-icon"><i class="fas fa-chart-line"></i></div>
             <div class="nexus-widget-title">
               <h3>Publicaciones en Facebook</h3>
-              <p>M?tricas reales desde Meta. Actualiza cuando quieras o tras aprobar un env?o.</p>
+              <p>Métricas reales desde Meta. Actualiza cuando quieras o tras aprobar un envío.</p>
             </div>
-            <button type="button" id="cmScanAllBtn" class="comms-btn comms-btn-primary"><i class="fas fa-sync-alt"></i> Actualizar m?tricas</button>
+            <button type="button" id="cmScanAllBtn" class="comms-btn comms-btn-primary"><i class="fas fa-sync-alt"></i> Actualizar métricas</button>
           </div>
-          <p class="sec-hint" id="cmScanMeta">?ltima actualizaci?n: ?</p>
+          <p class="sec-hint" id="cmScanMeta">Última actualización: ?</p>
           <div id="cmPublicationsAdminList" class="cm-cmd-pubs-list">
             <div class="sec-empty">Sin publicaciones registradas.</div>
           </div>
@@ -1157,14 +1218,14 @@
 
       <!-- PANEL: SEGURIDAD -->
       <section class="commander-panel-section" id="tab-security" style="display:none;">
-        <h2 class="commander-page-title">Seguridad y auditor?a</h2>
+        <h2 class="commander-page-title">Seguridad y auditoría</h2>
 
-        <!-- AUDITOR?A CR?TICA ? SOLO BOSS OF THE STATE -->
+        <!-- AUDITORÍA CRÍTICA — SOLO BOSS OF THE STATE -->
         <div id="secBossAuditBlock" class="commander-block nexus-dashboard-widget sec-block sec-boss-audit-block" style="display:none;">
           <div class="nexus-widget-header">
             <div class="nexus-widget-icon"><i class="fas fa-shield-virus"></i></div>
             <div class="nexus-widget-title">
-              <h3>Auditor?a cr?tica del sistema</h3>
+              <h3>Auditoría crítica del sistema</h3>
               <p>Hallazgos reales ordenados por prioridad (tokens, Nexus XP y fallos graves). Solo visible para Boss of the State.</p>
             </div>
             <span class="nexus-widget-badge sec-audit-boss-badge"><i class="fas fa-crown"></i> BOSS</span>
@@ -1175,13 +1236,13 @@
           </div>
         </div>
 
-        <!-- AUDITOR?A COMPETITION HUB ? SOLO BOSS -->
+        <!-- AUDITORÍA COMPETITION HUB — SOLO BOSS -->
         <div id="secCompetitionAuditBlock" class="commander-block nexus-dashboard-widget sec-block sec-boss-audit-block" style="display:none;">
           <div class="nexus-widget-header">
             <div class="nexus-widget-icon"><i class="fas fa-trophy"></i></div>
             <div class="nexus-widget-title">
-              <h3>Auditor?a Competition Hub</h3>
-              <p>Equipos, torneos, invitaciones, verificaci?n, chat y Storage. Escaneo de competition-hub-logic.js y reglas RTDB relacionadas.</p>
+              <h3>Auditoría Competition Hub</h3>
+              <p>Equipos, torneos, invitaciones, verificación, chat y Storage. Escaneo de competition-hub-logic.js y reglas RTDB relacionadas.</p>
             </div>
             <span class="nexus-widget-badge sec-audit-boss-badge"><i class="fas fa-crown"></i> BOSS</span>
           </div>
@@ -1191,13 +1252,13 @@
           </div>
         </div>
 
-        <!-- AUDITOR?A PLAY ZONE ? SOLO BOSS -->
+        <!-- AUDITORÍA PLAY ZONE — SOLO BOSS -->
         <div id="secPlayzoneAuditBlock" class="commander-block nexus-dashboard-widget sec-block sec-boss-audit-block" style="display:none;">
           <div class="nexus-widget-header">
             <div class="nexus-widget-icon"><i class="fas fa-gamepad"></i></div>
             <div class="nexus-widget-title">
-              <h3>Auditor?a Play Zone</h3>
-              <p>Misiones, cupos, econom?a de tokens en garant?a, verificaci?n CS2 por Steam, chats de misi?n y privados. Escaneo de playzone.js, awardMissionTokens, cs2FriendsMission y reglas RTDB/Storage.</p>
+              <h3>Auditoría Play Zone</h3>
+              <p>Misiones, cupos, economía de tokens en garantía, verificación CS2 por Steam, chats de misión y privados. Escaneo de playzone.js, awardMissionTokens, cs2FriendsMission y reglas RTDB/Storage.</p>
             </div>
             <span class="nexus-widget-badge sec-audit-boss-badge"><i class="fas fa-crown"></i> BOSS</span>
           </div>
@@ -1207,28 +1268,28 @@
           </div>
         </div>
 
-        <!-- M?DULO: ?RDENES DE BUGS DE SEGURIDAD (COMUNIDAD) -->
+        <!-- MÓDULO: ÓRDENES DE BUGS DE SEGURIDAD (COMUNIDAD) -->
         <div class="commander-block nexus-dashboard-widget sec-block">
           <div class="nexus-widget-header">
             <div class="nexus-widget-icon"><i class="fas fa-bug"></i></div>
             <div class="nexus-widget-title">
-              <h3>?rdenes de seguridad de la comunidad</h3>
-              <p>Bugs y problemas de seguridad de studiosgamesrs.com, ordenados de m?s cr?tico a normal. Abre una orden, revisa el problema y m?rcala como reparada (queda constancia de qui?n y cu?ndo).</p>
+              <h3>Órdenes de seguridad de la comunidad</h3>
+              <p>Bugs y problemas de seguridad de studiosgamesrs.com, ordenados de más crítico a normal. Abre una orden, revisa el problema y márcala como reparada (queda constancia de quién y cuándo).</p>
             </div>
             <span class="nexus-widget-badge" id="secBugsOpenCount">?</span>
           </div>
 
           <div class="sec-bug-form">
             <div class="sec-form-row">
-              <input id="secBugTitle" class="comms-input" type="text" maxlength="120" placeholder="T?tulo del problema (ej: XSS en chat de misiones)">
+              <input id="secBugTitle" class="comms-input" type="text" maxlength="120" placeholder="Título del problema (ej: XSS en chat de misiones)">
               <select id="secBugSeverity" class="comms-input comms-select">
-                <option value="critical">Cr?tico</option>
+                <option value="critical">Crítico</option>
                 <option value="high">Alto</option>
                 <option value="medium" selected>Medio</option>
                 <option value="normal">Normal</option>
               </select>
             </div>
-            <textarea id="secBugDescription" class="comms-input comms-textarea" rows="3" maxlength="1200" placeholder="Describe el problema, c?mo reproducirlo y el impacto..."></textarea>
+            <textarea id="secBugDescription" class="comms-input comms-textarea" rows="3" maxlength="1200" placeholder="Describe el problema, cómo reproducirlo y el impacto..."></textarea>
             <div class="sec-form-actions">
               <button id="secBugAddBtn" type="button" class="comms-btn comms-btn-primary"><i class="fas fa-plus-circle"></i> Crear orden</button>
             </div>
@@ -1241,12 +1302,12 @@
           </div>
 
           <div id="secBugsList" class="sec-bugs-list">
-            <div class="sec-empty">Cargando ?rdenes?</div>
+            <div class="sec-empty">Cargando órdenes…</div>
           </div>
         </div>
 
         <div class="sec-grid">
-          <!-- M?DULO: MODO MANTENIMIENTO -->
+          <!-- MÓDULO: MODO MANTENIMIENTO -->
           <div class="commander-block nexus-dashboard-widget sec-block">
             <div class="nexus-widget-header">
               <div class="nexus-widget-icon"><i class="fas fa-tools"></i></div>
@@ -1270,13 +1331,13 @@
             <p class="sec-hint" id="secMaintenanceMeta"></p>
           </div>
 
-          <!-- M?DULO: VARIABLES GLOBALES -->
+          <!-- MÓDULO: VARIABLES GLOBALES -->
           <div class="commander-block nexus-dashboard-widget sec-block">
             <div class="nexus-widget-header">
               <div class="nexus-widget-icon"><i class="fas fa-sliders-h"></i></div>
               <div class="nexus-widget-title">
                 <h3>Variables globales</h3>
-                <p>Configuraci?n clave/valor para todo el sitio.</p>
+                <p>Configuración clave/valor para todo el sitio.</p>
               </div>
             </div>
             <div class="sec-form-row">
@@ -1287,11 +1348,11 @@
               <button id="secGlobalAddBtn" type="button" class="comms-btn comms-btn-primary"><i class="fas fa-plus"></i> Guardar variable</button>
             </div>
             <div id="secGlobalsList" class="sec-list">
-              <div class="sec-empty">Sin variables a?n.</div>
+              <div class="sec-empty">Sin variables aún.</div>
             </div>
           </div>
 
-          <!-- M?DULO: PALABRAS PROHIBIDAS -->
+          <!-- MÓDULO: PALABRAS PROHIBIDAS -->
           <div class="commander-block nexus-dashboard-widget sec-block">
             <div class="nexus-widget-header">
               <div class="nexus-widget-icon"><i class="fas fa-comment-slash"></i></div>
@@ -1303,51 +1364,51 @@
             </div>
             <div class="sec-form-row">
               <input id="secBannedWord" class="comms-input" type="text" maxlength="40" placeholder="Palabra o frase a bloquear">
-              <button id="secBannedAddBtn" type="button" class="comms-btn comms-btn-primary"><i class="fas fa-plus"></i> A?adir</button>
+              <button id="secBannedAddBtn" type="button" class="comms-btn comms-btn-primary"><i class="fas fa-plus"></i> Añadir</button>
             </div>
             <div id="secBannedList" class="sec-chips">
               <div class="sec-empty">Sin palabras prohibidas.</div>
             </div>
           </div>
 
-          <!-- M?DULO: TRANSACCIONES MARCADAS POR FRAUDE -->
+          <!-- MÓDULO: TRANSACCIONES MARCADAS POR FRAUDE -->
           <div class="commander-block nexus-dashboard-widget sec-block">
             <div class="nexus-widget-header">
               <div class="nexus-widget-icon"><i class="fas fa-hand-holding-usd"></i></div>
               <div class="nexus-widget-title">
                 <h3>Transacciones marcadas por fraude</h3>
-                <p>Revisi?n manual de movimientos sospechosos de tokens.</p>
+                <p>Revisión manual de movimientos sospechosos de tokens.</p>
               </div>
               <span class="nexus-widget-badge" id="secFraudCount">?</span>
             </div>
             <div id="secFraudList" class="sec-list">
-              <div class="sec-empty">No hay transacciones pendientes de revisi?n.</div>
+              <div class="sec-empty">No hay transacciones pendientes de revisión.</div>
             </div>
           </div>
         </div>
 
-        <!-- M?DULO: LOG DE AUDITOR?A -->
+        <!-- MÓDULO: LOG DE AUDITORÍA -->
         <div class="commander-block nexus-dashboard-widget sec-block">
           <div class="nexus-widget-header">
             <div class="nexus-widget-icon"><i class="fas fa-clipboard-list"></i></div>
             <div class="nexus-widget-title">
-              <h3>Log de auditor?a</h3>
-              <p>Registro de todas las acciones de seguridad (qui?n y cu?ndo). Solo lectura.</p>
+              <h3>Log de auditoría</h3>
+              <p>Registro de todas las acciones de seguridad (quién y cuándo). Solo lectura.</p>
             </div>
           </div>
           <div id="secAuditList" class="sec-audit-list">
-            <div class="sec-empty">Cargando registro?</div>
+            <div class="sec-empty">Cargando registro…</div>
           </div>
         </div>
       </section>
     </section>
 
     <footer class="commander-footer">
-      <button class="back-button" onclick="returnToDashboard()">? Volver al Dashboard</button>
+      <button class="back-button" onclick="returnToDashboard()">← Volver al Dashboard</button>
     </footer>
   </main>
 
-  <!-- Modal: Tribunal of Appeals (chat Commander ? usuario) -->
+  <!-- Modal: Tribunal of Appeals (chat Commander — usuario) -->
   <div id="tribunalModal" class="tribunal-modal" role="dialog" aria-labelledby="tribunalModalTitle" aria-modal="true" style="display:none;">
     <div class="tribunal-modal-backdrop"></div>
     <div class="tribunal-modal-box">
@@ -1366,8 +1427,8 @@
         <button type="button" id="tribunalBan1h" class="tribunal-ban-btn">1h</button>
         <button type="button" id="tribunalBan6h" class="tribunal-ban-btn">6h</button>
         <button type="button" id="tribunalBan24h" class="tribunal-ban-btn">24h</button>
-        <button type="button" id="tribunalBan3d" class="tribunal-ban-btn">3 d?as</button>
-        <button type="button" id="tribunalBan7d" class="tribunal-ban-btn">7 d?as</button>
+        <button type="button" id="tribunalBan3d" class="tribunal-ban-btn">3 días</button>
+        <button type="button" id="tribunalBan7d" class="tribunal-ban-btn">7 días</button>
         <button type="button" id="tribunalBanRemove" class="tribunal-ban-remove">Quitar</button>
       </div>
       <div class="tribunal-input-row">
@@ -1382,7 +1443,7 @@
       <span id="sgTourCloseCommandCenter" class="modal-close" aria-label="Cerrar">&times;</span>
       <div class="sg-tour-cc-header">
         <h2 id="sgTourCcTitle" class="sg-tour-cc-title">Centro de torneo</h2>
-        <p id="sgTourCcSubtitle" class="sg-tour-cc-sub">Gesti?n profesional de invitaciones</p>
+        <p id="sgTourCcSubtitle" class="sg-tour-cc-sub">Gestión profesional de invitaciones</p>
         <div class="sg-tour-stats">
           <div class="sg-tour-stat"><span class="sg-tour-stat-label">Inscritos</span><span class="sg-tour-stat-value" id="sgTourStatRegistered">?</span></div>
           <div class="sg-tour-stat"><span class="sg-tour-stat-label">Pendientes</span><span class="sg-tour-stat-value" id="sgTourStatPending">?</span></div>
@@ -1416,14 +1477,14 @@
           </div>
           <div class="sg-tour-search-wrap">
             <i class="fas fa-search" aria-hidden="true"></i>
-            <input type="search" id="sgTourTeamSearchInput" placeholder="Buscar equipo por nombre (m?n. 2 letras)?" maxlength="40" autocomplete="off" aria-label="Buscar equipos">
-            <button type="button" id="sgTourSearchClear" class="sg-tour-search-clear" aria-label="Limpiar b?squeda" title="Limpiar">&times;</button>
+            <input type="search" id="sgTourTeamSearchInput" placeholder="Buscar equipo por nombre (mín. 2 letras)…" maxlength="40" autocomplete="off" aria-label="Buscar equipos">
+            <button type="button" id="sgTourSearchClear" class="sg-tour-search-clear" aria-label="Limpiar búsqueda" title="Limpiar">&times;</button>
           </div>
-          <p id="sgTourSearchHint" class="sg-tour-inline-hint">Los capitanes reciben la invitaci?n en su panel de equipo en Competition Hub.</p>
+          <p id="sgTourSearchHint" class="sg-tour-inline-hint">Los capitanes reciben la invitación en su panel de equipo en Competition Hub.</p>
           <div id="sgTourSearchResults" class="sg-tour-list"></div>
         </div>
         <div id="sgTourPanelPending" class="sg-tour-panel" role="tabpanel">
-          <p class="sg-tour-inline-hint">Invitaciones enviadas y a?n no aceptadas. Puedes retirarlas antes de que el capit?n responda.</p>
+          <p class="sg-tour-inline-hint">Invitaciones enviadas y aún no aceptadas. Puedes retirarlas antes de que el capitán responda.</p>
           <div id="sgTourOutboundList" class="sg-tour-list"></div>
         </div>
         <div id="sgTourPanelRegistered" class="sg-tour-panel" role="tabpanel">
@@ -1452,22 +1513,22 @@
           <div class="modal-input-group" style="flex: 1; min-width: 140px;">
             <label for="tournamentFormatSelect">Formato</label>
             <select id="tournamentFormatSelect" class="modal-input" required>
-              <option value="SingleElim">Eliminaci?n simple</option>
-              <option value="DoubleElim">Doble eliminaci?n</option>
+              <option value="SingleElim">Eliminación simple</option>
+              <option value="DoubleElim">Doble eliminación</option>
               <option value="RoundRobin">Round Robin</option>
             </select>
           </div>
           <div class="modal-input-group" style="flex: 1; min-width: 140px;">
-            <label for="tournamentRegionSelect">Regi?n</label>
+            <label for="tournamentRegionSelect">Región</label>
             <select id="tournamentRegionSelect" class="modal-input" required>
               <option value="LATAM">LATAM</option>
-              <option value="NorthAmerica">Norteam?rica</option>
+              <option value="NorthAmerica">Norteamérica</option>
               <option value="Europe">Europa</option>
             </select>
           </div>
         </div>
         <div class="modal-input-group">
-          <label for="tournamentMaxTeamsInput">M?ximo de equipos (m?n. 2)</label>
+          <label for="tournamentMaxTeamsInput">Máximo de equipos (mín. 2)</label>
           <input type="number" id="tournamentMaxTeamsInput" class="modal-input" placeholder="16" min="2" required>
         </div>
         <div class="modal-input-group">

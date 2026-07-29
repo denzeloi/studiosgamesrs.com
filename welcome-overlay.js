@@ -868,6 +868,16 @@
         var clip = action ? action.getClip() : null;
         var wasTime = action ? action.time : 0;
         var wasPaused = paused;
+        // frameModel/frameHero miden la silueta asumiendo un root "en blanco"
+        // (escala 1, sin mover, sin girar) tal como llega recién cargado del
+        // GLTFLoader: si se reencuadra sin resetear esto primero, la segunda
+        // vez mide un modelo YA escalado/rotado y el factor de corrección se
+        // aplica encima del anterior en vez de reemplazarlo, dejando al
+        // personaje gigante o diminuto según cuántas veces se haya tocado un
+        // control.
+        currentModelRoot.scale.set(1, 1, 1);
+        currentModelRoot.position.set(0, 0, 0);
+        currentModelRoot.rotation.set(0, 0, 0);
         frameModel(currentModelRoot, character, mixer, clip, currentCharacterId);
         // frameHero (vía posedBox) para medir la silueta deja el mixer parado
         // en t=0; se retoma justo donde iba para que no se note el salto.
