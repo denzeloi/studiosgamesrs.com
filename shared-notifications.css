@@ -222,7 +222,7 @@
   font-style: normal;
 }
 
-/* Toasts unificados (cualquier pgina) */
+/* Toasts unificados (cualquier pÃ¡gina) */
 .sg-notif-toast-host {
   position: fixed;
   top: 72px;
@@ -359,9 +359,9 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Invitación a misión: copia del aviso de Play Zone (#privateChatNotificationContainer
-   + .notification-item.success) para que se vea igual en todas las páginas.
-   Nombres propios porque cada página define .notification-item a su manera.
+   InvitaciÃ³n a misiÃ³n: copia del aviso de Play Zone (#privateChatNotificationContainer
+   + .notification-item.success) para que se vea igual en todas las pÃ¡ginas.
+   Nombres propios porque cada pÃ¡gina define .notification-item a su manera.
    --------------------------------------------------------------------------- */
 #sgMissionInviteHost {
   position: fixed;

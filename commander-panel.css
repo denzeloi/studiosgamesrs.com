@@ -1,5 +1,5 @@
 /* ============================================================
-   COMMANDER PANEL - Estilos dedicados (modo oscuro, acentos ne?n)
+   COMMANDER PANEL - Estilos dedicados (modo oscuro, acentos neón)
    Solo afecta a commander-panel.html
    Layout: una sola columna a ancho completo, sin sidebar.
    ============================================================ */
@@ -19,7 +19,7 @@ body.commander-panel-page main {
   min-width: 0;
 }
 
-/* Main: contenido justo bajo el men?; bot?n Volver al final */
+/* Main: contenido justo bajo el menú; botón Volver al final */
 body.commander-panel-page .dashboard-container.commander-main-wrap,
 .commander-panel-page main.commander-main-wrap {
   display: flex;
@@ -34,7 +34,7 @@ body.commander-panel-page .dashboard-container.commander-main-wrap,
   z-index: 1;
 }
 
-/* Footer con el bot?n Volver: siempre al final de la p?gina */
+/* Footer con el botón Volver: siempre al final de la página */
 .commander-footer {
   margin-top: auto;
   padding-top: 32px;
@@ -59,7 +59,7 @@ body.commander-panel-page .dashboard-container.commander-main-wrap,
   box-sizing: border-box;
 }
 
-/* T?tulo de p?gina dentro de cada pesta?a */
+/* Título de página dentro de cada pestaña */
 .commander-page-title {
   font-family: 'Orbitron', sans-serif;
   font-size: 1.25rem;
@@ -73,7 +73,7 @@ body.commander-panel-page .dashboard-container.commander-main-wrap,
   box-sizing: border-box;
 }
 
-/* Cada secci?n de pesta?a */
+/* Cada sección de pestaña */
 .commander-panel-section {
   display: block;
   width: 100%;
@@ -249,7 +249,7 @@ body.commander-panel-page .nexus-widget-header {
   min-height: 60px;
 }
 
-/* Filas inferiores de telemetr?a (actividad, registros, servidores) */
+/* Filas inferiores de telemetría (actividad, registros, servidores) */
 .commander-telemetry-bottom {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -335,7 +335,7 @@ body.commander-panel-page .nexus-widget-header {
   font-size: 0.8rem;
 }
 
-/* Commander CLI: siempre visible, su propio espacio debajo del t?tulo */
+/* Commander CLI: siempre visible, su propio espacio debajo del título */
 .commander-cli-block {
   display: block !important;
   visibility: visible !important;
@@ -432,7 +432,7 @@ body.commander-panel-page .nexus-widget-header {
 .commander-toast-error { border-left: 4px solid #f85149; }
 .commander-toast-info { border-left: 4px solid #58a6ff; }
 
-/* ========== USUARIOS (mismo bloque que telemetr?a/torneos/comms/security) ========== */
+/* ========== USUARIOS (mismo bloque que telemetría/torneos/comms/security) ========== */
 .commander-users-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -919,7 +919,7 @@ body.commander-panel-page .header-search .search-results.open {
   border-color: rgba(229, 57, 53, 0.65);
 }
 
-/* Bot?n volver (siempre al final, con espacio) */
+/* Botón volver (siempre al final, con espacio) */
 .commander-main-wrap .back-button,
 .dashboard-container .back-button {
   display: block;
@@ -936,7 +936,7 @@ body.commander-panel-page .header-search .search-results.open {
   width: auto;
 }
 
-/* Placeholder sections: m?s aire (Torneos, Comunicaciones, Seguridad) */
+/* Placeholder sections: más aire (Torneos, Comunicaciones, Seguridad) */
 .commander-panel-section .commander-placeholder-text {
   margin-top: 12px;
   padding-right: 20px;
@@ -957,7 +957,7 @@ body.commander-panel-page .header-search .search-results.open {
   max-width: 100%;
 }
 
-/* --- Estilo unificado para m?dulos placeholder (Torneos, Comunicaciones, Seguridad) --- */
+/* --- Estilo unificado para módulos placeholder (Torneos, Comunicaciones, Seguridad) --- */
 .commander-panel-section .commander-block .nexus-widget-header {
   margin-bottom: 20px;
   padding-bottom: 16px;
@@ -1592,7 +1592,7 @@ body.commander-panel-page .header-search .search-results.open {
 .sec-repaired-meta { color: #58f658; }
 .sec-bug-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 
-/* Auditor?a cr?tica ? dossier timeline (solo Boss) */
+/* Auditoría crítica — dossier timeline (solo Boss) */
 .sec-boss-audit-block {
   border: 1px solid rgba(227, 179, 65, 0.28);
   border-radius: 16px;
@@ -2068,7 +2068,7 @@ body.commander-panel-page .header-search .search-results.open {
 .sec-fraud-meta { color: #8b949e; font-size: 0.78rem; }
 .sec-fraud-actions { display: flex; gap: 8px; }
 
-/* Auditor?a */
+/* Auditoría */
 .sec-audit-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; margin-top: 10px; }
 .sec-audit-row {
   display: grid;
@@ -2608,7 +2608,7 @@ body.commander-panel-page .header-search .search-results.open {
 }
 
 /* ============================================================
-   Broadcast / Notificaci?n ?pica 3D ? Solo Boss of the State
+   Broadcast / Notificación épica 3D — Solo Boss of the State
    (usa .sg-welcome-stage / .sg-welcome-canvas de welcome-overlay.css)
    ============================================================ */
 .sg-boss-only-tag {
@@ -2661,7 +2661,7 @@ body.commander-panel-page .header-search .search-results.open {
 }
 
 /* ============================================================
-   Notificaciones autom?ticas de nivel (tabla editable por tramo)
+   Notificaciones automáticas de nivel (tabla editable por tramo)
    ============================================================ */
 .sg-notif-layout {
   display: grid;
@@ -2836,7 +2836,7 @@ body.commander-panel-page .header-search .search-results.open {
 }
 
 /* ============================================================
-   Editor avanzado ? "Probar cualquier notificaci?n"
+   Editor avanzado — "Probar cualquier notificación"
    ============================================================ */
 .sg-notif-adv-grid {
   display: grid;
@@ -2897,7 +2897,7 @@ body.commander-panel-page .header-search .search-results.open {
 }
 
 /* -------------------------------------------------
-   Campa?a de bienvenida (insignia Lealtad)
+   Campaña de bienvenida (insignia Lealtad)
    ------------------------------------------------- */
 .sg-welcome-campaign-layout {
   display: grid;
