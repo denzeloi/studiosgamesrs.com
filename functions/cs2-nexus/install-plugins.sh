@@ -17,7 +17,81 @@ TMP="/tmp/cs2-plugins-$$"
 mkdir -p "$TMP"
 trap 'rm -rf "$TMP"' EXIT
 
-METAMOD_URL="${METAMOD_URL:-https://mms.alliedmods.net/mmsdrop/2.0/mmsource-2.0.0-git1398-linux.tar.gz}"
+patch_gameinfo_metamod() {
+  local gi="$1"
+  if [ ! -f "$gi" ]; then
+    echo "[plugins] WARN: missing $gi"
+    return 1
+  fi
+  sed -i '/addons\/metamod/d' "$gi"
+  if grep -q 'SearchPaths' "$gi"; then
+    awk '
+      /SearchPaths/ { in_sp = 1 }
+      in_sp && /^[[:space:]]*\{/ && !done {
+        print
+        print "\t\t\tGame\tcsgo/addons/metamod"
+        done = 1
+        next
+      }
+      { print }
+    ' "$gi" > "$gi.tmp" && mv "$gi.tmp" "$gi"
+    echo "[plugins] Patched $gi — metamod first in SearchPaths"
+    return 0
+  fi
+  echo "[plugins] WARN: SearchPaths not found in $gi"
+  return 1
+}
+
+install_matchzy_configs() {
+  local dst="$CS2_DIR/cfg/MatchZy"
+  mkdir -p "$dst"
+  if [ -d /root/matchzy-cfg ]; then
+    cp -a /root/matchzy-cfg/. "$dst/"
+    echo "[plugins] MatchZy configs copied from /root/matchzy-cfg"
+    return 0
+  fi
+  cat > "$dst/config.cfg" << 'MZCFG'
+# MatchZy — Studiosgamesrs Nexus tournament defaults
+matchzy_knife_enabled_default 1
+matchzy_minimum_ready_required 2
+matchzy_stop_command_available 1
+matchzy_pause_after_freezetime_end 0
+matchzy_chat_prefix [{Green}MatchZy{Default}]
+matchzy_demo_path MatchZy
+matchzy_demo_name_format "{TIME}_{MATCHID}_{MAP}_{TEAM1}_vs_{TEAM2}"
+matchzy_use_pause_command 1
+matchzy_whitelist_enabled_default 0
+matchzy_kick_when_no_match_loaded 0
+matchzy_hostname_format "Studiosgamesrs | {TEAM1} vs {TEAM2}"
+MZCFG
+  cat > "$dst/warmup.cfg" << 'MZWU'
+mp_freezetime 5
+mp_warmuptime 300
+mp_warmup_pausetimer 1
+mp_maxrounds 24
+mp_overtime_enable 1
+mp_autokick 0
+mp_autoteambalance 0
+mp_limitteams 0
+MZWU
+  cat > "$dst/knife.cfg" << 'MZKN'
+mp_freezetime 0
+mp_warmuptime 0
+mp_roundtime 1.92
+mp_roundtime_defuse 1.92
+MZKN
+  cat > "$dst/live.cfg" << 'MZLV'
+mp_freezetime 15
+mp_warmuptime 0
+mp_maxrounds 24
+mp_overtime_enable 1
+mp_halftime 1
+mp_match_can_clinch 1
+MZLV
+  echo "[plugins] MatchZy configs written (embedded defaults)"
+}
+
+METAMOD_URL="${METAMOD_URL:-https://mms.alliedmods.net/mmsdrop/2.0/mmsource-2.0.0-git1410-linux.tar.gz}"
 CSS_URL="${CSS_URL:-https://github.com/roflmuffin/CounterStrikeSharp/releases/download/v1.0.371/counterstrikesharp-with-runtime-linux-1.0.371.zip}"
 MATCHZY_URL="${MATCHZY_URL:-https://github.com/shobhit-pathak/MatchZy/releases/download/0.8.15/MatchZy-0.8.15-with-cssharp-linux.zip}"
 FAKERCON_URL="${FAKERCON_URL:-https://github.com/Salvatore-Als/cs2-fake-rcon/releases/latest/download/linux.tar.gz}"
@@ -25,12 +99,7 @@ FAKERCON_URL="${FAKERCON_URL:-https://github.com/Salvatore-Als/cs2-fake-rcon/rel
 echo "[plugins] Installing Metamod..."
 wget -qO "$TMP/metamod.tar.gz" "$METAMOD_URL"
 tar -xzf "$TMP/metamod.tar.gz" -C "$CS2_DIR"
-
-GAMEINFO="$CS2_DIR/gameinfo.gi"
-if [ -f "$GAMEINFO" ] && ! grep -q 'addons/metamod' "$GAMEINFO"; then
-  sed -i '/^[[:space:]]*Game[[:space:]]*csgo$/a\                        Game    csgo/addons/metamod' "$GAMEINFO"
-  echo "[plugins] Patched gameinfo.gi for Metamod"
-fi
+patch_gameinfo_metamod "$CS2_DIR/gameinfo.gi"
 
 echo "[plugins] Installing Fake RCON (CS2 native RCON is non-functional)..."
 wget -qO "$TMP/fakercon.tar.gz" "$FAKERCON_URL"
@@ -55,17 +124,35 @@ fi
 
 echo "[plugins] Installing CounterStrikeSharp..."
 wget -qO "$TMP/css.zip" "$CSS_URL"
+# Remove stale CSS binaries from golden snapshots (Oct 2025 builds break on CS2 1.41.7+).
+rm -rf "$CS2_DIR/addons/counterstrikesharp"
 unzip -qo "$TMP/css.zip" -d "$CS2_DIR"
+
+CSS_SO="$CS2_DIR/addons/counterstrikesharp/bin/linuxsteamrt64/counterstrikesharp.so"
+if [ -f "$CSS_SO" ]; then
+  # CS2 1.41.7.x on Linux requires GNU_STACK cleared on counterstrikesharp.so (CSS #1365).
+  if ! command -v execstack >/dev/null 2>&1; then
+    wget -qO "$TMP/execstack.deb" \
+      "https://snapshot.debian.org/archive/debian/20250721T022532Z/pool/main/p/prelink/execstack_0.0.20131005-1%2Bb10_amd64.deb"
+    mkdir -p "$TMP/execstack-extract"
+    dpkg-deb -x "$TMP/execstack.deb" "$TMP/execstack-extract"
+    install -m 0755 "$TMP/execstack-extract/usr/bin/execstack" /usr/local/bin/execstack
+  fi
+  execstack -c "$CSS_SO" && echo "[plugins] execstack -c applied to counterstrikesharp.so"
+fi
 
 echo "[plugins] Installing MatchZy..."
 wget -qO "$TMP/matchzy.zip" "$MATCHZY_URL"
 mkdir -p "$TMP/matchzy"
 unzip -qo "$TMP/matchzy.zip" -d "$TMP/matchzy"
-if [ -d "$TMP/matchzy/addons" ]; then
-  cp -a "$TMP/matchzy/addons/." "$CS2_DIR/addons/"
+# MatchZy zip bundles an old CounterStrikeSharp — copy only the plugin folder.
+MATCHZY_PLUGIN_SRC="$TMP/matchzy/addons/counterstrikesharp/plugins/MatchZy"
+if [ -d "$MATCHZY_PLUGIN_SRC" ]; then
+  mkdir -p "$CS2_DIR/addons/counterstrikesharp/plugins/MatchZy"
+  cp -a "$MATCHZY_PLUGIN_SRC/." "$CS2_DIR/addons/counterstrikesharp/plugins/MatchZy/"
+  echo "[plugins] MatchZy plugin deployed (CSS binaries left untouched)"
 else
-  mkdir -p "$CS2_DIR/addons/counterstrikesharp/plugins"
-  cp -a "$TMP/matchzy/"* "$CS2_DIR/addons/counterstrikesharp/plugins/" 2>/dev/null || true
+  echo "[plugins] WARN: MatchZy plugin folder not found in archive"
 fi
 
 echo "[plugins] Building NexusBridge..."
@@ -104,22 +191,7 @@ else
 fi
 
 echo "[plugins] Installing MatchZy tournament configs..."
-MATCHZY_CFG_DST="$CS2_DIR/cfg/MatchZy"
-mkdir -p "$MATCHZY_CFG_DST"
-if [ -d /root/matchzy-cfg ]; then
-  cp -a /root/matchzy-cfg/. "$MATCHZY_CFG_DST/"
-  echo "[plugins] MatchZy configs copied from /root/matchzy-cfg"
-fi
-# Fallback embedded defaults if pack missing
-if [ ! -f "$MATCHZY_CFG_DST/config.cfg" ]; then
-  cat > "$MATCHZY_CFG_DST/config.cfg" << 'MZCFG'
-matchzy_knife_enabled_default 1
-matchzy_minimum_ready_required 2
-matchzy_demo_path MatchZy
-matchzy_whitelist_enabled_default 0
-matchzy_hostname_format "Studiosgamesrs | {TEAM1} vs {TEAM2}"
-MZCFG
-fi
+install_matchzy_configs
 
 chown -R "$CS2_USER:$CS2_USER" "/home/$CS2_USER/cs2-server"
 echo "=== CS2 plugin install finished $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="

@@ -168,6 +168,7 @@ User=${CS2_USER}
 WorkingDirectory=${CS2_ROOT}/game
 EnvironmentFile=/etc/cs2-nexus/bridge.env
 Environment=DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true
+Environment=LD_LIBRARY_PATH=${CS2_ROOT}/game/bin/linuxsteamrt64:${CS2_DIR}/bin/linuxsteamrt64
 ExecStart=${CS2_SH} -dedicated -usercon -fakercon +ip 0.0.0.0 -port 27015 +sv_setsteamaccount __GSLT_TOKEN__ +map de_mirage +exec server.cfg +tv_port 27020
 Restart=on-failure
 RestartSec=15

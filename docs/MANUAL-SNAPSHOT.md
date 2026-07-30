@@ -36,6 +36,7 @@ journalctl -u cs2-server -n 80 --no-pager
 ls -la /home/cs2/cs2-server/game/csgo/addons/
 cat /home/cs2/cs2-server/game/bin/linuxsteamrt64/rcon.txt
 grep -i metamod /home/cs2/cs2-server/game/csgo/gameinfo.gi
+# Metamod line must be directly AFTER Game_LowViolence (not before it).
 systemctl status cs2-server
 ```
 
@@ -51,11 +52,21 @@ mcrcon -H 127.0.0.1 -P 27015 -p 'YOUR_RCON_PASSWORD' status
 If local test fails → reinstall plugins and restart:
 
 ```bash
+bash /root/fix-metamod-on-server.sh
+# or full reinstall:
 bash /root/install-plugins.sh \
   /home/cs2/cs2-server/game/csgo cs2 'YOUR_RCON_PASSWORD'
 systemctl restart cs2-server
-sleep 30
-mcrcon -H 127.0.0.1 -P 27015 -p 'YOUR_RCON_PASSWORD' status
+sleep 90
+mcrcon -H 127.0.0.1 -P 27015 -p 'YOUR_RCON_PASSWORD' "meta list"
+```
+
+If `meta list` still fails, check `gameinfo.gi` order and `LD_LIBRARY_PATH`:
+
+```bash
+grep -n -E 'LowViolence|metamod' /home/cs2/cs2-server/game/csgo/gameinfo.gi
+grep LD_LIBRARY /etc/systemd/system/cs2-server.service
+ls /home/cs2/cs2-server/game/csgo/addons/metamod/bin/linuxsteamrt64/libserver.so*
 ```
 
 ### 5. Create Vultr snapshot
