@@ -4,6 +4,7 @@
 |----------|----------|----------|
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Developers | System design, data flow, what is canonical |
 | [DEPLOYMENT.md](./DEPLOYMENT.md) | Ops / client handoff | Deploy commands, testing, troubleshooting |
+| [TOURNAMENT-PLUGINS.md](./TOURNAMENT-PLUGINS.md) | Ops | Editar la config de MatchZy / Metamod / NexusBridge |
 | [SNAPSHOT.md](./SNAPSHOT.md) | Ops | Golden Vultr image build |
 | [MANUAL-SNAPSHOT.md](./MANUAL-SNAPSHOT.md) | Ops | Manual Vultr snapshot fallback |
 | [DEPLOY_FUNCTIONS.md](./DEPLOY_FUNCTIONS.md) | Ops | Cloud Functions IAM issues |
@@ -17,4 +18,5 @@ npm run deploy:all        # Full release (hosting + functions + verify)
 npm run deploy:hosting    # Frontend only
 npm run deploy:functions  # CS2 backend only
 npm run verify:secrets    # Scan tracked files for leaked credentials
+npm run verify:cloudinit  # Check the CS2 plugin/config package before deploy
 ```
