@@ -532,9 +532,13 @@
       var m = bracket.matches[mid];
       var div = document.createElement('div');
       div.className = 'td-bracket-match' + (t.currentMatchId === mid ? ' active' : '');
-      var teamA = (m.teamA && m.teamA.teamId) || 'TBD';
-      var teamB = (m.teamB && m.teamB.teamId) || 'TBD';
-      div.textContent = mid + ': ' + teamA + ' vs ' + teamB + ' [' + (m.status || 'pending') + ']';
+      var teamA = tName(m.teamA && m.teamA.teamId);
+      var teamB = tName(m.teamB && m.teamB.teamId);
+      var label = roundName(m.round, bracket.rounds);
+      var outcome = m.status === 'finished'
+        ? 'gana ' + tName(m.winnerTeamId)
+        : (m.status || 'pending');
+      div.textContent = label + ': ' + teamA + ' vs ' + teamB + ' [' + outcome + ']';
       box.appendChild(div);
     });
   }
@@ -616,10 +620,15 @@
       if (!tournamentData.currentMatchId) {
         tournamentData.currentMatchId = 'r1_m1';
       }
+      cacheTeamNames(tournamentData);
       renderHeader(tournamentData);
       renderTeams(tournamentData);
       renderBracket(tournamentData);
       renderMeta(tournamentData);
+      renderNote(tournamentData);
+      renderPodium(tournamentData);
+      renderPrizes(tournamentData);
+      renderSchedule(tournamentData);
       hydrateActiveServerFromTournament();
       syncServerStateFromRegistry();
       if (tournamentData.activeServerId && tournamentData.serverIp && !isMatchLive()) {
@@ -853,6 +862,285 @@
     });
   }
 
+  // ---------------------------------------------------------------------------
+  // Vista publica en vivo: premios, podio, calendario y espectadores.
+  // El Commander publica estos datos desde el Control Universal del panel y
+  // cualquiera que este viendo el torneo los recibe al instante.
+  // ---------------------------------------------------------------------------
+
+  var teamNames = {};
+  var presenceRef = null;
+  var presenceBeat = null;
+  var watchers = {};
+  var PRESENCE_TTL_MS = 90 * 1000;
+
+  function escHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function toNum(value) {
+    var n = Number(value);
+    return isFinite(n) ? n : 0;
+  }
+
+  function tName(teamId) {
+    if (!teamId) return 'TBD';
+    return teamNames[teamId] || teamId;
+  }
+
+  /** Resuelve nombres de equipo una sola vez y repinta lo que dependa de ellos. */
+  function cacheTeamNames(t) {
+    var ids = Object.keys((t && t.registeredTeams) || {});
+    if (t && t.bracket && t.bracket.matches) {
+      Object.keys(t.bracket.matches).forEach(function (mid) {
+        var m = t.bracket.matches[mid];
+        ['teamA', 'teamB'].forEach(function (slot) {
+          if (m[slot] && m[slot].teamId) ids.push(m[slot].teamId);
+        });
+      });
+    }
+    ids.filter(function (id) { return id && !(id in teamNames); }).forEach(function (id) {
+      teamNames[id] = null;
+      db.ref('teams/' + id + '/name').once('value').then(function (snap) {
+        teamNames[id] = snap.val() || id;
+        if (tournamentData) {
+          renderBracket(tournamentData);
+          renderSchedule(tournamentData);
+          renderPodium(tournamentData);
+        }
+      }).catch(function () { teamNames[id] = id; });
+    });
+  }
+
+  function fmtLocalDateTime(ms) {
+    var n = toNum(ms);
+    if (!n) return 'TBA';
+    return new Date(n).toLocaleString('es-ES', {
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  function fmtLocalTime(ms) {
+    var n = toNum(ms);
+    if (!n) return '--';
+    return new Date(n).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function kv(label, value) {
+    return '<div class="td-kv"><div class="td-kv-label">' + escHtml(label) + '</div>' +
+      '<div class="td-kv-value">' + escHtml(value) + '</div></div>';
+  }
+
+  function roundName(round, total) {
+    var fromEnd = toNum(total) - toNum(round);
+    if (fromEnd === 0) return 'Final';
+    if (fromEnd === 1) return 'Semifinal';
+    if (fromEnd === 2) return 'Cuartos';
+    if (fromEnd === 3) return 'Octavos';
+    return 'Ronda ' + round;
+  }
+
+  function renderNote(t) {
+    var box = $('tdNoteBanner');
+    if (!box) return;
+    var note = t && t.commanderNote;
+    if (!note || !note.text) {
+      box.style.display = 'none';
+      return;
+    }
+    box.style.display = 'flex';
+    box.innerHTML = '<i class="fas fa-bullhorn"></i><div>' + escHtml(note.text) +
+      '<span class="td-note-by">Aviso del Commander' +
+      (note.byNick ? ' ' + escHtml(note.byNick) : '') +
+      (note.at ? ' - ' + escHtml(fmtLocalDateTime(note.at)) : '') + '</span></div>';
+  }
+
+  var PODIUM_META = [
+    { key: 'first', place: '1er puesto', icon: 'fa-trophy', cls: 'td-podium-1' },
+    { key: 'second', place: '2do puesto', icon: 'fa-medal', cls: 'td-podium-2' },
+    { key: 'third', place: '3er puesto', icon: 'fa-award', cls: 'td-podium-3' }
+  ];
+
+  function renderPodium(t) {
+    var box = $('tdPodium');
+    if (!box) return;
+    var podium = (t && t.podium) || {};
+    var prizes = (t && t.prizes) || {};
+    var places = prizes.places || {};
+    var currency = prizes.cashCurrency || 'USD';
+
+    box.innerHTML = PODIUM_META.map(function (meta) {
+      var entry = podium[meta.key] || {};
+      var prize = places[meta.key] || {};
+      var name = entry.teamId ? tName(entry.teamId) : (entry.teamName || 'Por decidir');
+      var tokens = toNum(prize.tokens);
+      var cash = toNum(prize.cash);
+      var prizeText = tokens || cash
+        ? tokens.toLocaleString('es-ES') + ' tokens' + (cash ? ' + ' + cash + ' ' + currency : '')
+        : 'Sin asignar';
+      return '<div class="td-podium-card ' + meta.cls + '">' +
+        '<i class="fas ' + meta.icon + '"></i>' +
+        '<div class="td-podium-place">' + escHtml(meta.place) + '</div>' +
+        '<div class="td-podium-team">' + escHtml(name) + '</div>' +
+        '<div class="td-podium-prize">' + escHtml(prizeText) + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderPrizes(t) {
+    var box = $('tdPrizes');
+    if (!box) return;
+    var p = (t && t.prizes) || {};
+    var teamCount = Object.keys((t && t.registeredTeams) || {}).length;
+    var tokenPool = toNum(p.tokenPool) || toNum(t && t.prizePool);
+    var entryFee = toNum(p.entryFee) || toNum(t && t.entryFee);
+    var currency = p.cashCurrency || 'USD';
+    var paid = (t && t.prizePayouts) || {};
+    var deliveredTokens = Object.keys(paid).reduce(function (acc, k) { return acc + toNum(paid[k].tokens); }, 0);
+    var deliveredCash = Object.keys(paid).reduce(function (acc, k) { return acc + toNum(paid[k].cash); }, 0);
+
+    box.innerHTML =
+      kv('Pozo en juego', tokenPool.toLocaleString('es-ES') + ' tokens') +
+      kv('Dinero en juego', toNum(p.cashPool) ? toNum(p.cashPool) + ' ' + currency : 'Solo tokens') +
+      kv('Inscripcion por equipo', entryFee ? entryFee.toLocaleString('es-ES') + ' tokens' : 'Gratis') +
+      kv('Recaudado', (entryFee * teamCount).toLocaleString('es-ES') + ' tokens (' + teamCount + ' equipos)') +
+      kv('Premio MVP', toNum(p.mvpTokens) ? toNum(p.mvpTokens).toLocaleString('es-ES') + ' tokens' : '--') +
+      kv('Ya entregado', deliveredTokens.toLocaleString('es-ES') + ' tokens' +
+        (deliveredCash ? ' + ' + deliveredCash + ' ' + currency : '')) +
+      kv('Actualizado', p.updatedAt ? fmtLocalDateTime(p.updatedAt) : 'Sin publicar') +
+      (p.notes ? kv('Notas', p.notes) : '');
+  }
+
+  function renderSchedule(t) {
+    var box = $('tdSchedule');
+    if (!box) return;
+    var bracket = t && t.bracket;
+    if (!bracket || !bracket.matches) {
+      box.innerHTML = '<p style="color:#888;font-size:0.85rem;">El calendario se publica cuando el Commander siembra el cuadro.</p>';
+      return;
+    }
+    var matches = bracket.matches;
+    var ids = Object.keys(matches).filter(function (mid) { return !matches[mid].bye; }).sort(function (a, b) {
+      var ra = toNum(matches[a].round), rb = toNum(matches[b].round);
+      if (ra !== rb) return ra - rb;
+      return toNum(a.split('_m')[1]) - toNum(b.split('_m')[1]);
+    });
+    if (!ids.length) {
+      box.innerHTML = '<p style="color:#888;font-size:0.85rem;">Sin partidas programadas.</p>';
+      return;
+    }
+
+    var currentId = t.activeMatchId || t.currentMatchId;
+    box.innerHTML = ids.map(function (mid) {
+      var m = matches[mid];
+      var cls = m.status === 'finished' ? 'done' : (mid === currentId ? 'live' : '');
+      var a = m.teamA && m.teamA.teamId;
+      var b = m.teamB && m.teamB.teamId;
+      var nameA = m.winnerTeamId === a ? '<b>' + escHtml(tName(a)) + '</b>' : escHtml(tName(a));
+      var nameB = m.winnerTeamId === b ? '<b>' + escHtml(tName(b)) + '</b>' : escHtml(tName(b));
+      var state = m.status === 'finished'
+        ? ((m.score && m.score.a != null) ? m.score.a + ' - ' + m.score.b : 'Finalizada')
+        : (mid === currentId ? 'EN VIVO' : 'Programada');
+      return '<div class="td-sched-row ' + cls + '">' +
+        '<div class="td-sched-time">' + escHtml(fmtLocalTime(m.scheduledAt)) +
+          '<span>' + escHtml(m.scheduledAt ? fmtLocalDateTime(m.scheduledAt).split(',')[0] : '') + '</span></div>' +
+        '<div class="td-sched-round">' + escHtml(roundName(m.round, bracket.rounds)) + '</div>' +
+        '<div class="td-sched-teams">' + nameA + ' vs ' + nameB +
+          (m.map ? ' <span style="color:#666;font-size:0.75rem;">' + escHtml(m.map) + '</span>' : '') + '</div>' +
+        '<div class="td-sched-state">' + escHtml(state) + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderSentinelLine() {
+    var box = $('tdSentinelLine');
+    if (!box) return;
+    db.ref('security/sentinelConfig').once('value').then(function (snap) {
+      var cfg = snap.val();
+      if (!cfg || !cfg.defaultNick) {
+        box.style.display = 'none';
+        return;
+      }
+      box.style.display = 'flex';
+      box.innerHTML = '<i class="fas fa-user-shield"></i><span>Sentinela de guardia: <b>' +
+        escHtml(cfg.defaultNick) + '</b> - vigila las partidas contra tramposos.</span>';
+    }).catch(function () { box.style.display = 'none'; });
+  }
+
+  function renderWatchers() {
+    var box = $('tdWatchers');
+    if (!box) return;
+    var now = Date.now();
+    var list = Object.keys(watchers).map(function (uid) {
+      var w = watchers[uid] || {};
+      w.uid = uid;
+      return w;
+    }).filter(function (w) {
+      return now - toNum(w.lastSeen || w.joinedAt) <= PRESENCE_TTL_MS;
+    });
+
+    if (!list.length) {
+      box.innerHTML = '<p style="color:#888;font-size:0.85rem;">Nadie mas viendo ahora mismo.</p>';
+      return;
+    }
+    var roleOrder = { commander: 0, sentinel: 1, player: 2, spectator: 3 };
+    list.sort(function (a, b) {
+      var oa = roleOrder[a.role] == null ? 4 : roleOrder[a.role];
+      var ob = roleOrder[b.role] == null ? 4 : roleOrder[b.role];
+      return oa - ob;
+    });
+    var icons = { commander: 'fa-user-shield', sentinel: 'fa-user-secret', player: 'fa-gamepad', spectator: 'fa-eye' };
+
+    box.innerHTML = '<p style="color:#ffca3a;font-size:0.9rem;margin:0 0 8px;"><b>' + list.length +
+      '</b> viendo este torneo</p>' + list.map(function (w) {
+      var role = w.role || 'spectator';
+      return '<div class="td-watcher-row">' +
+        '<i class="fas ' + (icons[role] || 'fa-eye') + '"></i>' +
+        '<span>' + escHtml(w.nick || w.uid) + '</span>' +
+        '<span class="td-watcher-role">' + escHtml(role) + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  /** Registra al usuario como espectador del torneo, con limpieza al desconectar. */
+  function registerSpectatorPresence(user) {
+    if (!tournamentId || !user) return;
+    db.ref('users/' + user.uid + '/nick').once('value').then(function (snap) {
+      var nick = snap.val() || user.displayName || 'Espectador';
+      presenceRef = db.ref('tournamentPresence/' + tournamentId + '/' + user.uid);
+      presenceRef.onDisconnect().remove();
+      presenceRef.set({
+        nick: nick,
+        role: isAdmin ? 'commander' : 'spectator',
+        page: 'tournament-details',
+        joinedAt: Date.now(),
+        lastSeen: Date.now()
+      }).catch(function (err) {
+        console.warn('presencia de torneo:', err && err.message);
+      });
+      if (presenceBeat) clearInterval(presenceBeat);
+      presenceBeat = setInterval(function () {
+        if (presenceRef) presenceRef.update({ lastSeen: Date.now() }).catch(function () {});
+      }, 40000);
+    });
+
+    db.ref('tournamentPresence/' + tournamentId).on('value', function (snap) {
+      watchers = snap.val() || {};
+      renderWatchers();
+    }, function () { /* sin permiso: se queda vacio */ });
+
+    window.addEventListener('beforeunload', function () {
+      if (presenceRef) {
+        try {
+          presenceRef.onDisconnect().cancel();
+          presenceRef.remove();
+        } catch (err) { /* noop */ }
+      }
+    });
+  }
+
   firebase.auth().onAuthStateChanged(function (user) {
     if (!user) {
       window.location.href = '/login';
@@ -870,6 +1158,8 @@
         hydrateActiveServerFromTournament();
         syncServerStateFromRegistry();
       }
+      registerSpectatorPresence(user);
+      renderSentinelLine();
     });
     loadTournament();
   });

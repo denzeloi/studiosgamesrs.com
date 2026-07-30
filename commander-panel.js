@@ -36,6 +36,23 @@
     return r === 'commander' || r === 'divisional_commander' || isBossOfTheStateRango(r);
   }
 
+  /**
+   * Un Sentinela es un usuario sin rango de mando al que un Commander dio vigilancia:
+   * entra al panel pero solo al Control Universal, en lectura, para cazar tramposos.
+   */
+  function lookupSentinelRecord(uid) {
+    if (window.SGWarRoom && typeof SGWarRoom.lookupSentinel === 'function') {
+      return SGWarRoom.lookupSentinel(uid);
+    }
+    if (!db || !uid) return Promise.resolve(null);
+    return db.ref('security/sentinels/' + uid).once('value').then(function(snap) {
+      var rec = snap.val();
+      if (!rec || rec.active === false) return null;
+      rec.uid = uid;
+      return rec;
+    }).catch(function() { return null; });
+  }
+
   function waitForDbReady() {
     if (typeof sgWaitForDbReady === 'function') return sgWaitForDbReady();
     return Promise.resolve();
@@ -93,6 +110,9 @@
         if (target === 'creators' && typeof onCreatorsTabOpen === 'function') onCreatorsTabOpen();
         if (target === 'tournaments' && window.SGTournamentOrganizer && SGTournamentOrganizer.ensureCommanderTournamentListLoaded) {
           SGTournamentOrganizer.ensureCommanderTournamentListLoaded();
+        }
+        if (target === 'warroom' && window.SGWarRoom && SGWarRoom.onTabOpen) {
+          SGWarRoom.onTabOpen();
         }
       });
     });
@@ -5661,7 +5681,61 @@
       initCommanderCLI();
       initTelemetryPlaceholders();
       initTournamentsTab();
+      initWarRoom('commander', null);
       setTimeout(function() { drawServerLoadChart(); }, 300);
+    }
+
+    /**
+     * Acceso limitado de Sentinela: solo el Control Universal del torneo, en lectura.
+     * Son moderadores de nivel básico que vigilan las partidas buscando tramposos.
+     */
+    function grantSentinelPanel(user, data, sentinelRecord) {
+      if (accessGranted) return;
+      accessGranted = true;
+      accessSettled = true;
+      clearTimeout(authBootTimer);
+
+      currentCommanderUid = user.uid;
+      currentCommanderNick = data.nick || data.displayName || data.email || user.email || 'Sentinela';
+      currentCommanderRango = 'sentinel';
+
+      var mainContent = document.getElementById('commanderMainContent');
+      var guard = document.getElementById('commanderAccessGuard');
+
+      // El Sentinela solo ve la pestaña de Control Universal.
+      document.querySelectorAll('.commander-tab').forEach(function(tab) {
+        var isWarRoom = tab.getAttribute('data-tab') === 'warroom';
+        tab.style.display = isWarRoom ? '' : 'none';
+        tab.classList.toggle('active', isWarRoom);
+      });
+      document.querySelectorAll('.commander-panel-section').forEach(function(sec) {
+        sec.style.display = (sec.id === 'tab-warroom') ? '' : 'none';
+      });
+
+      document.body.classList.add('sentinel-mode');
+      showStatus('👁 Acceso de Sentinela concedido. Vigilancia en vivo, sin permisos de mando.', 'success');
+      if (guard) guard.style.display = 'none';
+      if (mainContent) mainContent.style.display = 'block';
+
+      initWarRoom('sentinel', sentinelRecord);
+    }
+
+    function initWarRoom(mode, sentinelRecord) {
+      if (!window.SGWarRoom || typeof SGWarRoom.init !== 'function') {
+        console.warn('commander-warroom.js no está cargado: el Control Universal no estará disponible.');
+        return;
+      }
+      try {
+        SGWarRoom.init({
+          mode: mode,
+          uid: currentCommanderUid,
+          nick: currentCommanderNick,
+          rango: currentCommanderRango,
+          sentinelRecord: sentinelRecord
+        });
+      } catch (err) {
+        console.error('SGWarRoom.init:', err);
+      }
     }
 
     function denyCommanderPanel() {
@@ -5671,7 +5745,7 @@
       clearTimeout(authBootTimer);
       var mainContent = document.getElementById('commanderMainContent');
       var guard = document.getElementById('commanderAccessGuard');
-      showStatus('Acceso denegado. Solo Commanders y Boss of the State.', 'error');
+      showStatus('Acceso denegado. Solo Commanders, Boss of the State y Sentinelas nombrados.', 'error');
       if (mainContent) mainContent.style.display = 'none';
       if (guard) guard.style.display = 'block';
       setTimeout(function() {
@@ -5692,10 +5766,18 @@
         if (canAccessCommanderPanel(profile.rango)) {
           verifyInFlight = false;
           grantCommanderPanel(user, profile.data, profile.rango);
-        } else {
-          verifyInFlight = false;
-          denyCommanderPanel();
+          return null;
         }
+        // Sin rango de mando: puede seguir siendo un Sentinela nombrado por un Commander.
+        showStatus('Comprobando permiso de Sentinela…', 'success');
+        return lookupSentinelRecord(user.uid).then(function(sentinel) {
+          verifyInFlight = false;
+          if (sentinel) {
+            grantSentinelPanel(user, profile.data, sentinel);
+          } else {
+            denyCommanderPanel();
+          }
+        });
       }).catch(function(err) {
         verifyInFlight = false;
         accessSettled = true;

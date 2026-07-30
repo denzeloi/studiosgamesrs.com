@@ -53,8 +53,39 @@ Plugin source (read at provision time): `cs2-server/plugins/NexusBridge/`.
 |------|--------|---------|
 | `tournaments/{id}` | UI, Functions | Metadata, bracket, server IP, status |
 | `tournaments/{id}/registeredTeams/` | Team captains | Registration |
+| `tournaments/{id}/scheduleConfig` | War Room | Smart schedule parameters (start, match length, gaps, seeding) |
+| `tournaments/{id}/prizes` | War Room | Live prize pool: tokens, cash, per-place split, MVP |
+| `tournaments/{id}/prizePayouts/{place}` | War Room | Recorded deliveries (who got paid, when, by whom) |
+| `tournaments/{id}/podium` | War Room, auto | 1st / 2nd / 3rd (3rd is suggested from semifinal losers) |
+| `tournaments/{id}/teamStates/{teamId}` | War Room | Team paused / active, with reason |
+| `tournaments/{id}/commanderNote` | War Room | Public announcement shown to every spectator |
 | `partida_en_vivo/{matchId}` | Webhook | Live scores, kills, MVPs |
 | `gameServers/{cloudServerId}` | Functions | Server status, IP, provision mode, provider |
+| `tournamentPresence/{id}/{uid}` | Any viewer | Spectator presence (`onDisconnect` cleanup, 90 s TTL) |
+| `security/sentinels/{uid}` | Commander | Sentinel roster (limited watchdog permission) |
+| `security/sentinelConfig` | Commander | Default sentinel on duty |
+| `security/sentinelReports/{id}` | Sentinels | Cheat reports; Commander resolves them |
+
+### Commander War Room (Control Universal del Torneo)
+
+`commander-panel.html` tab `warroom`, driven by `commander-warroom.js` + `commander-warroom.css`.
+
+Single place to run a tournament live: full game-server telemetry (IP, boot pipeline,
+RCON/UDP flags, live score, kills), team roster with pause / remove / transfer,
+smart single-elimination seeding with a visual schedule, prize pool published in
+real time, sentinel management and spectator list.
+
+The bracket it writes is **the same shape** as `functions/cs2-nexus/lib/bracket.js`,
+so `cs2MatchWebhook` keeps advancing winners on `match_end` without changes. The
+panel adds seeding by team strength, per-round scheduling, byes, and manual closing
+for when the game server never reports a `match_end`.
+
+**Two roles reach this tab:**
+
+- **Commander** (`rango` = `commander` / `divisional_commander` / `boss_of_the_state`) — full control.
+- **Sentinel** — any user listed in `security/sentinels/{uid}` with `active: true`.
+  Sees only this tab, read-only, and can file cheat reports. Everything gated by
+  `data-cwr-role="commander"` in the markup plus RTDB rules.
 
 ### Hybrid: Steam authentication
 

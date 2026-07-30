@@ -284,6 +284,26 @@
         "$findingId": {
           ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')"
         }
+      },
+      "sentinels": {
+        ".read": "auth != null",
+        "$uid": {
+          ".read": "auth != null",
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
+          ".validate": "!newData.exists() || (newData.hasChildren(['active']) && newData.child('active').isBoolean() && (!newData.hasChild('nick') || (newData.child('nick').isString() && newData.child('nick').val().length <= 80)) && (!newData.hasChild('scope') || (newData.child('scope').isString() && newData.child('scope').val().length <= 60)))"
+        }
+      },
+      "sentinelConfig": {
+        ".read": "auth != null",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')"
+      },
+      "sentinelReports": {
+        ".indexOn": ["createdAt", "tournamentId", "status"],
+        ".read": "auth != null && (root.child('security').child('sentinels').child(auth.uid).child('active').val() === true || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
+        "$reportId": {
+          ".write": "auth != null && !data.exists() && newData.exists() && newData.child('byUid').val() === auth.uid && root.child('security').child('sentinels').child(auth.uid).child('active').val() === true",
+          ".validate": "newData.hasChildren(['notes', 'createdAt', 'byUid', 'status']) && newData.child('notes').isString() && newData.child('notes').val().length >= 10 && newData.child('notes').val().length <= 1000 && newData.child('createdAt').isNumber() && newData.child('createdAt').val() <= now + 60000 && newData.child('status').isString()"
+        }
       }
     },
     "profile_comments": {
@@ -325,7 +345,7 @@
       ".indexOn": ["organizer/uid", "status", "createdAt"],
       ".read": "auth != null",
       "$tournamentId": {
-        ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
         "registeredTeams": {
           "$teamId": {
             ".write": "auth != null && root.child('teams').child($teamId).child('captain').val() === auth.uid"
@@ -656,11 +676,21 @@
       }
     },
     "gameServers": {
-      ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
       ".write": false,
       "$serverId": {
-        ".read": "auth != null && (root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State')",
+        ".read": "auth != null && (root.child('security').child('sentinels').child(auth.uid).child('active').val() === true || root.child('users').child(auth.uid).child('rango').val() === 'commander' || root.child('users').child(auth.uid).child('rango').val() === 'Commander' || root.child('users').child(auth.uid).child('rango').val() === 'boss_of_the_state' || root.child('users').child(auth.uid).child('rango').val() === 'Boss_of_the_State' || root.child('users').child(auth.uid).child('rango').val() === 'divisional_commander' || root.child('users').child(auth.uid).child('rango').val() === 'Divisional_Commander')",
         ".write": false
+      }
+    },
+    "tournamentPresence": {
+      ".read": "auth != null",
+      "$tournamentId": {
+        ".read": "auth != null",
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "!newData.exists() || (newData.hasChildren(['nick', 'role', 'lastSeen']) && newData.child('nick').isString() && newData.child('nick').val().length <= 80 && newData.child('role').isString() && newData.child('role').val().length <= 20 && newData.child('lastSeen').isNumber() && newData.child('lastSeen').val() <= now + 60000)"
+        }
       }
     },
     "presence": {
