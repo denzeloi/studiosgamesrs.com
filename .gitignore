@@ -4,8 +4,10 @@ functions/node_modules/
 functions/cs2-nexus/node_modules/
 
 # Secrets — never commit
+# These PHP files live only on cPanel and carry credentials inline.
 steam_login.php
 steam-config.php
+send_verification.php
 serviceAccountKey.json
 serviceAccountKey*.json
 .env

@@ -4,6 +4,10 @@
 /**
  * Blocks deploy if tracked or staged files contain obvious secrets.
  * Run before firebase deploy (see package.json).
+ *
+ * Untracked files are checked too, unless .gitignore excludes them. An
+ * untracked-but-not-ignored file holding credentials is one `git add .` away
+ * from a public commit, so it fails the scan and must be gitignored instead.
  */
 
 const fs = require('fs');
@@ -32,6 +36,8 @@ const PATTERNS = [
   { name: 'GSLT token assignment', re: /GSLT_SERVER_\d+\s*=\s*[A-F0-9]{20,}/i },
   { name: 'Private key block', re: /-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/ },
   { name: 'Service account JSON key', re: /"private_key"\s*:\s*"-----BEGIN/ },
+  { name: 'Hardcoded Steam API key', re: /STEAM_API_KEY'\s*,\s*'[A-Fa-f0-9]{32}'/ },
+  { name: 'Inline SMTP password', re: /->Password\s*=\s*['"][^'"]{6,}['"]/ },
 ];
 
 function listRepoFiles(dir, out) {
@@ -60,6 +66,18 @@ function gitTracked(rel) {
   }
 }
 
+function gitIgnored(rel) {
+  try {
+    execSync('git check-ignore -q ' + JSON.stringify(rel), {
+      cwd: root,
+      stdio: 'pipe',
+    });
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 const files = [];
 listRepoFiles(root, files);
 
@@ -68,14 +86,22 @@ let failed = 0;
 files.forEach(function (rel) {
   if (SKIP_FILES.has(rel)) return;
   if (rel.endsWith('.glb') || rel.endsWith('.png') || rel.endsWith('.jpg')) return;
-  if (!gitTracked(rel)) return;
+
+  const tracked = gitTracked(rel);
+  if (!tracked && gitIgnored(rel)) return;
 
   const content = fs.readFileSync(path.join(root, rel), 'utf8');
   PATTERNS.forEach(function (pattern) {
-    if (pattern.re.test(content)) {
+    if (!pattern.re.test(content)) return;
+    if (tracked) {
       console.error('FAIL secret scan:', rel, '—', pattern.name);
-      failed += 1;
+    } else {
+      console.error(
+        'FAIL secret scan:', rel, '—', pattern.name,
+        '(untracked and not ignored: add it to .gitignore)'
+      );
     }
+    failed += 1;
   });
 });
 
