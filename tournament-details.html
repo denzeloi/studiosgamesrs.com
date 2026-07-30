@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <base href="/">
   <meta charset="utf-8" />
@@ -10,172 +10,335 @@
   <link rel="stylesheet" href="shared-header.css">
   <link rel="stylesheet" href="shared-notifications.css?v=20260711d">
   <link rel="stylesheet" href="competition-hub.css">
+  <link rel="stylesheet" href="campfire-chat.css?v=20260730room1">
+  <link rel="stylesheet" href="tournament-details.css?v=20260730arena2">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-functions-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
   <script src="/sg-firebase-init.js?v=20260724nocaptcha"></script>
   <script src="cs2-bridge-config.js?v=20260726a"></script>
   <script src="tournament-system.js?v=20260727h"></script>
-  <style>
-    .td-wrap { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
-    .td-header { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
-    .td-title { font-size: 1.8rem; color: #ffca3a; margin: 0; }
-    .td-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    @media (max-width: 768px) { .td-grid { grid-template-columns: 1fr; } }
-    .td-card { background: rgba(20,20,30,0.9); border: 1px solid #333; border-radius: 12px; padding: 1.25rem; }
-    .td-card h3 { margin: 0 0 1rem; color: #fff; font-size: 1rem; }
-    .td-status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; }
-    .td-status.live { background: #e53935; color: #fff; }
-    .td-status.pending { background: #555; color: #fff; }
-    .td-status.finished { background: #333; color: #aaa; }
-    .td-score { font-size: 2rem; font-weight: bold; text-align: center; color: #ffca3a; }
-    .td-roster { list-style: none; padding: 0; margin: 0; }
-    .td-roster li { padding: 6px 0; border-bottom: 1px solid #222; color: #ccc; }
-    .td-bracket-match { padding: 8px; margin: 4px 0; background: #111; border-radius: 6px; font-size: 0.9rem; }
-    .td-bracket-match.active { border: 1px solid #ffca3a; }
-    .td-admin-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1rem; }
-    .td-btn { padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: opacity 0.2s ease; }
-    .td-btn-primary { background: #ffca3a; color: #000; }
-    .td-btn-danger { background: #e53935; color: #fff; }
-    .td-btn-secondary { background: #333; color: #fff; }
-    .td-btn:disabled, .td-btn-disabled { opacity: 0.45; cursor: not-allowed; }
-    .td-btn-loading { opacity: 0.85; cursor: wait; }
-    .td-connect { font-family: monospace; background: #111; padding: 10px; border-radius: 8px; color: #4caf50; word-break: break-all; }
-    .td-connect-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .td-connect-btn { padding: 8px 12px; border-radius: 6px; border: 1px solid #444; background: #222; color: #fff; cursor: pointer; font-size: 0.85rem; }
-    .td-connect-btn:hover { background: #333; }
-    .td-connect-steps { font-size: 0.82rem; color: #bbb; line-height: 1.55; margin-top: 10px; }
-    .td-connect-warn { font-size: 0.82rem; color: #ffb74d; margin-top: 10px; padding: 8px; background: rgba(255,183,77,0.08); border-radius: 6px; border: 1px solid rgba(255,183,77,0.25); }
-    .td-connect-wait { font-size: 0.85rem; color: #888; margin-top: 1rem; }
-    .td-kills-table { width: 100%; font-size: 0.85rem; color: #aaa; }
-    .td-kills-table td { padding: 4px 8px; }
-
-    /* Panel publico en vivo: premios, podio, calendario, vigilancia */
-    .td-card-wide { grid-column: 1 / -1; }
-    .td-note-banner { display: none; gap: 10px; align-items: flex-start; padding: 12px 14px; margin-bottom: 1rem;
-      background: rgba(255,202,58,0.08); border: 1px solid rgba(255,202,58,0.35); border-radius: 10px; color: #ffca3a; font-size: 0.9rem; }
-    .td-note-banner i { margin-top: 2px; }
-    .td-note-by { display: block; margin-top: 4px; font-size: 0.75rem; color: #b0a06a; }
-    .td-kv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
-    .td-kv { padding: 8px 10px; background: rgba(0,0,0,0.3); border: 1px solid #2a2a2a; border-radius: 8px; }
-    .td-kv-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: #777; margin-bottom: 3px; }
-    .td-kv-value { font-size: 0.92rem; font-weight: 600; color: #eee; overflow-wrap: break-word; }
-    .td-podium { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 1rem; }
-    .td-podium-card { padding: 12px; text-align: center; background: rgba(0,0,0,0.3); border: 1px solid #2a2a2a; border-radius: 10px; }
-    .td-podium-card i { font-size: 1.4rem; }
-    .td-podium-1 { border-color: rgba(255,202,58,0.4); } .td-podium-1 i { color: #ffca3a; }
-    .td-podium-2 { border-color: rgba(200,210,220,0.3); } .td-podium-2 i { color: #cfd8dc; }
-    .td-podium-3 { border-color: rgba(205,127,50,0.35); } .td-podium-3 i { color: #d9a06b; }
-    .td-podium-place { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: #777; margin: 5px 0 3px; }
-    .td-podium-team { font-size: 0.95rem; font-weight: 700; color: #fff; }
-    .td-podium-prize { margin-top: 4px; font-size: 0.82rem; font-weight: 600; color: #ffca3a; }
-    .td-sched-row { display: grid; grid-template-columns: 72px 90px 1fr auto; gap: 10px; align-items: center;
-      padding: 9px 10px; margin-bottom: 5px; background: rgba(0,0,0,0.3); border: 1px solid #2a2a2a;
-      border-left: 3px solid #444; border-radius: 8px; font-size: 0.85rem; }
-    .td-sched-row.live { border-left-color: #e53935; background: rgba(229,57,53,0.07); }
-    .td-sched-row.done { opacity: 0.7; }
-    .td-sched-time { font-weight: 700; color: #ffca3a; }
-    .td-sched-time span { display: block; font-size: 0.66rem; font-weight: 400; color: #777; }
-    .td-sched-round { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: #888; }
-    .td-sched-teams { color: #ddd; min-width: 0; }
-    .td-sched-teams b { color: #ffca3a; }
-    .td-sched-state { font-size: 0.75rem; color: #888; white-space: nowrap; }
-    .td-watcher-row { display: flex; gap: 9px; align-items: center; padding: 6px 9px; margin-bottom: 5px;
-      background: rgba(0,0,0,0.3); border: 1px solid #2a2a2a; border-radius: 8px; font-size: 0.85rem; color: #ddd; }
-    .td-watcher-role { margin-left: auto; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #888; }
-    .td-sentinel-line { display: flex; gap: 9px; align-items: center; padding: 9px 11px; margin-bottom: 0.9rem;
-      background: rgba(76,175,80,0.08); border: 1px solid rgba(76,175,80,0.28); border-radius: 10px; color: #a5d6a7; font-size: 0.87rem; }
-    @media (max-width: 700px) {
-      .td-sched-row { grid-template-columns: 66px 1fr; }
-      .td-sched-round, .td-sched-state { display: none; }
-    }
-  </style>
+  <script src="campfire-chat.js?v=20260730room1"></script>
 </head>
-<body>
+<body class="td-body-page">
   <header class="unified-header">
     <div class="header-brand">
-      <a href="/dashboard" class="header-logo"><span class="studio">Studios</span><span class="gamesrs">gamesrs</span></a>
-      <div><div class="header-subtitle">/ Tournament</div></div>
+      <a href="/dashboard" class="header-logo" tabindex="0" aria-label="Ir al Home Studiosgamesrs">
+        <span class="studio">Studios</span><span class="gamesrs">gamesrs</span>
+      </a>
+      <div>
+        <div class="header-subtitle">/ Tournament Details</div>
+        <div class="header-version">v 2.4.0</div>
+      </div>
+    </div>
+    <div class="header-search">
+      <div class="search-input-container">
+        <input type="text" id="userSearchInput" placeholder="&#128269; Buscar usuarios..." class="user-search-input">
+        <div id="searchResults" class="search-results"></div>
+      </div>
     </div>
     <div class="header-actions">
-      <a href="competition-hub.html" class="icon-btn" title="Back to Hub"><i class="fas fa-arrow-left"></i></a>
+      <div class="header-toggles">
+        <label class="nexus-toggle-label" title="Modo Furia">
+          <span class="toggle-text">Furia</span>
+          <input type="checkbox" id="themeFuryToggle" aria-label="Modo Furia">
+          <span class="nexus-toggle-switch"></span>
+        </label>
+        <label class="nexus-toggle-label" title="Modo Streamer">
+          <span class="toggle-text">Streamer</span>
+          <input type="checkbox" id="streamerModeToggle" aria-label="Modo Streamer">
+          <span class="nexus-toggle-switch"></span>
+        </label>
+      </div>
+      <div class="header-notifications-wrap">
+        <button type="button" class="icon-btn" id="notificationsToggleBtn" title="Notificaciones" aria-expanded="false" aria-haspopup="true">
+          <i class="fas fa-bell"></i>
+          <span id="headerNotifBadge" class="header-notif-badge" style="display:none;">0</span>
+        </button>
+        <div id="headerNotificationsPanel" class="header-notifications-panel" style="display:none;" role="menu" aria-label="Notificaciones">
+          <div class="header-notif-head">
+            <span><i class="fas fa-bell"></i> Notificaciones</span>
+            <button type="button" class="header-notif-refresh" id="headerNotifRefreshBtn" title="Actualizar"><i class="fas fa-sync-alt"></i></button>
+          </div>
+          <div id="headerNotificationsList" class="header-notifications-list">
+            <p class="header-notif-empty">No tienes notificaciones.</p>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="td-settings-btn" id="tdSettingsBtn" title="Settings del Torneo">
+        <i class="fas fa-cog"></i>
+        <span class="td-settings-label">Settings</span>
+        <i class="fas fa-lock" id="tdSettingsLock"></i>
+      </button>
+      <a href="/competition-hub" class="icon-btn header-back-btn" title="Volver al Competition Hub" aria-label="Volver al Competition Hub"><i class="fas fa-arrow-left"></i></a>
+      <a href="/commander-panel" class="icon-btn commander-panel-btn" id="commanderPanelBtn" title="Panel de Commander" aria-label="Panel de Commander" style="display:none;"><i class="fas fa-user-shield"></i></a>
+      <button class="icon-btn" onclick="toggleTheme()" title="Cambiar tema"><i class="fas fa-palette" id="theme-icon"></i></button>
+      <div class="header-account-end" role="group" aria-label="Navegaci&oacute;n del sitio y sesi&oacute;n">
+        <div class="nav-dropdown" id="navDropdown">
+          <button type="button" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
+            <i class="fas fa-dragon nav-dropdown-icon"></i>
+            <span class="nav-dropdown-current">Competition</span>
+            <i class="fas fa-chevron-down nav-dropdown-chevron"></i>
+          </button>
+          <div class="nav-dropdown-menu" role="menu">
+            <a href="/dashboard" role="menuitem"><i class="fas fa-th-large"></i> Dashboard</a>
+            <a href="/community" role="menuitem"><i class="fas fa-users"></i> Comunidad</a>
+            <a href="/nexus" role="menuitem"><i class="fas fa-bolt"></i> Nexus</a>
+            <a href="/playzone" role="menuitem"><i class="fas fa-flag-checkered"></i> PlayZone</a>
+            <a href="/competition-hub" class="current" role="menuitem"><i class="fas fa-trophy"></i> Competition</a>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="logout()">Cerrar Sesi&oacute;n</button>
+      </div>
     </div>
   </header>
 
-  <div class="td-wrap">
-    <div class="td-header">
-      <div>
-        <h1 class="td-title" id="tdName">Loading...</h1>
+  <!-- Photo hero — visible to everyone; upload lives in Settings -->
+  <section class="td-hero" id="tdBanner" aria-label="Portada del torneo">
+    <div class="td-hero-inner">
+      <div class="td-hero-kicker"><i class="fas fa-trophy"></i> Studiosgamesrs</div>
+      <h1 class="td-hero-title" id="tdName">Cargando...</h1>
+      <div class="td-hero-meta">
         <span class="td-status pending" id="tdStatus">pending</span>
-      </div>
-      <div id="tdAdminBar" style="display:none;">
-        <select id="tdMapSelect" class="modal-input" style="width:auto;">
-          <option value="de_mirage">de_mirage</option>
-          <option value="de_inferno">de_inferno</option>
-          <option value="de_nuke">de_nuke</option>
-          <option value="de_ancient">de_ancient</option>
-          <option value="de_anubis">de_anubis</option>
-        </select>
+        <span class="td-hero-sub" id="tdBannerName">Torneo Studiosgamesrs</span>
       </div>
     </div>
+  </section>
 
+  <div class="td-shell">
     <div class="td-note-banner" id="tdNoteBanner"></div>
 
-    <div class="td-grid">
-      <div class="td-card td-card-wide">
-        <h3><i class="fas fa-trophy"></i> Premios en vivo</h3>
-        <div class="td-podium" id="tdPodium"></div>
-        <div class="td-kv-grid" id="tdPrizes"></div>
+    <!-- Live scoreboard — public -->
+    <section class="td-score-stage" aria-label="Marcador en vivo">
+      <div class="td-sb-top">
+        <div class="td-sb-team td-sb-ct">
+          <div class="td-sb-team-badge"><i class="fas fa-shield-alt"></i></div>
+          <div class="td-sb-team-label" id="tdSbTeamA">Equipo A</div>
+          <div class="td-sb-team-side">CT</div>
+        </div>
+        <div class="td-sb-center">
+          <span class="td-sb-live" id="tdSbLive"><i class="fas fa-circle"></i> LIVE</span>
+          <div class="td-score" id="tdScore">&mdash; : &mdash;</div>
+          <div class="td-sb-map" id="tdSbMap">Esperando partida</div>
+        </div>
+        <div class="td-sb-team td-sb-t">
+          <div class="td-sb-team-badge"><i class="fas fa-skull-crossbones"></i></div>
+          <div class="td-sb-team-label" id="tdSbTeamB">Equipo B</div>
+          <div class="td-sb-team-side">T</div>
+        </div>
       </div>
-
-      <div class="td-card td-card-wide">
-        <h3><i class="fas fa-calendar-alt"></i> Calendario del torneo</h3>
-        <div id="tdSchedule"></div>
+      <div class="td-sb-meta">
+        <span id="tdRound">Ronda &mdash;</span>
+        <span id="tdDuration">Duraci&oacute;n: &mdash;</span>
       </div>
-
-      <div class="td-card">
-        <h3><i class="fas fa-eye"></i> Quien esta viendo</h3>
-        <div class="td-sentinel-line" id="tdSentinelLine" style="display:none;"></div>
-        <div id="tdWatchers"></div>
-      </div>
-
-      <div class="td-card">
-        <h3><i class="fas fa-broadcast-tower"></i> Live Match</h3>
-        <div class="td-score" id="tdScore">— : —</div>
-        <p style="text-align:center;color:#888;font-size:0.85rem;" id="tdRound">Round —</p>
-        <p style="text-align:center;color:#888;font-size:0.85rem;" id="tdDuration">Duration: —</p>
-        <div class="td-connect" id="tdConnectInfo" style="display:none;margin-top:1rem;"></div>
-        <table class="td-kills-table" id="tdKillsTable" style="margin-top:1rem;display:none;">
+      <div class="td-connect" id="tdConnectInfo" style="display:none;"></div>
+      <div class="td-frags-wrap">
+        <h4 class="td-frags-title"><i class="fas fa-crosshairs"></i> Top Fraggers</h4>
+        <table class="td-kills-table" id="tdKillsTable" style="display:none;">
           <tbody id="tdKillsBody"></tbody>
         </table>
+        <p class="td-frags-empty" id="tdFragsEmpty">Los kills se publican en vivo cuando arranca la partida.</p>
       </div>
+    </section>
 
-      <div class="td-card">
-        <h3><i class="fas fa-sitemap"></i> Bracket</h3>
-        <div id="tdBracket">No bracket yet.</div>
-      </div>
+    <nav class="td-mobile-tabs" role="tablist" aria-label="Vista del torneo">
+      <button type="button" class="td-tab active" id="tdTabInfo" data-tab="info" role="tab" aria-selected="true">
+        <i class="fas fa-broadcast-tower"></i> Arena
+      </button>
+      <button type="button" class="td-tab" id="tdTabChat" data-tab="chat" role="tab" aria-selected="false">
+        <i class="fas fa-comments"></i> Chat <span class="td-tab-count" id="tdChatCount"></span>
+      </button>
+    </nav>
 
-      <div class="td-card">
-        <h3><i class="fas fa-users"></i> Registered Teams</h3>
-        <ul class="td-roster" id="tdTeams"></ul>
-      </div>
+    <div class="td-body" id="tdBody">
+      <div class="td-main" id="tdPanelInfo">
+        <div class="td-info-grid">
+          <section class="td-block">
+            <div class="td-block-head">
+              <h2>Info</h2>
+              <span>Detalles</span>
+            </div>
+            <div class="td-info-rows" id="tdInfoRows"></div>
+            <div class="td-share">
+              <div class="td-share-label">Compartir</div>
+              <div class="td-share-buttons">
+                <button type="button" class="td-share-btn" id="tdShareTwitter" title="Twitter"><i class="fab fa-twitter"></i></button>
+                <button type="button" class="td-share-btn" id="tdShareWhatsapp" title="WhatsApp"><i class="fab fa-whatsapp"></i></button>
+                <button type="button" class="td-share-btn" id="tdShareLink" title="Copiar enlace"><i class="fas fa-link"></i></button>
+              </div>
+            </div>
+          </section>
 
-      <div class="td-card">
-        <h3><i class="fas fa-info-circle"></i> Details</h3>
-        <p id="tdMeta" style="color:#aaa;line-height:1.6;"></p>
-        <div class="td-admin-actions" id="tdAdminActions" style="display:none;">
-          <button class="td-btn td-btn-secondary" id="tdBtnCheck" style="display:none;"><i class="fas fa-sync"></i> Check Readiness</button>
-          <button class="td-btn td-btn-primary" id="tdBtnProvision"><i class="fas fa-server"></i> Provision Server</button>
-          <button class="td-btn td-btn-primary" id="tdBtnLaunch"><i class="fas fa-play"></i> Launch Match</button>
-          <button class="td-btn td-btn-danger" id="tdBtnShutdown"><i class="fas fa-power-off"></i> Shutdown Server</button>
+          <section class="td-block">
+            <div class="td-block-head">
+              <h2>Equipos</h2>
+              <span>Inscritos</span>
+            </div>
+            <ul class="td-roster" id="tdTeams"></ul>
+          </section>
         </div>
-        <p id="tdAdminMsg" style="color:#ffca3a;font-size:0.85rem;margin-top:8px;"></p>
+
+        <section class="td-block">
+          <div class="td-block-head">
+            <h2>Bracket</h2>
+            <span>Cuadro</span>
+          </div>
+          <div id="tdBracket">A&uacute;n no hay cuadro.</div>
+        </section>
+
+        <section class="td-block">
+          <div class="td-block-head">
+            <h2>Premios</h2>
+            <span>En vivo</span>
+          </div>
+          <div class="td-podium" id="tdPodium"></div>
+          <div class="td-kv-grid" id="tdPrizes"></div>
+        </section>
+
+        <section class="td-block">
+          <div class="td-block-head">
+            <h2>Calendario</h2>
+            <span>Partidas</span>
+          </div>
+          <div id="tdSchedule"></div>
+        </section>
+
+        <section class="td-block">
+          <div class="td-block-head">
+            <h2>Sala</h2>
+            <span>Qui&eacute;n mira</span>
+          </div>
+          <div class="td-sentinel-line" id="tdSentinelLine" style="display:none;"></div>
+          <div id="tdWatchers"></div>
+        </section>
+      </div>
+
+      <aside class="td-chat-dock" id="tdPanelChat" aria-label="Chat del torneo">
+        <section class="cf-shell" id="cfShell" data-cf-accent="ember">
+          <canvas class="cf-embers" id="cfEmbers" aria-hidden="true"></canvas>
+
+          <div class="cf-topbar">
+            <div class="cf-brand">
+              <span class="cf-flame" aria-hidden="true"><i class="fas fa-fire"></i></span>
+              <div class="cf-brand-text">
+                <h2>Chat del Torneo</h2>
+                <span class="cf-brand-sub" id="cfTopicText">Sala en vivo para todos los que est&aacute;n viendo</span>
+              </div>
+            </div>
+            <div class="cf-topbar-meta">
+              <div class="cf-presence" id="cfPresence">
+                <button type="button" class="cf-presence-btn" id="cfPresenceBtn" aria-expanded="false" aria-haspopup="true">
+                  <i class="cf-presence-dot" aria-hidden="true"></i>
+                  <span class="cf-presence-label" id="cfPresenceLabel">En l&iacute;nea</span>
+                  <i class="fas fa-chevron-down cf-presence-caret" aria-hidden="true"></i>
+                </button>
+                <div class="cf-presence-tip" id="cfPresenceTip" role="tooltip"><span id="onlineCount">&mdash;</span> en l&iacute;nea</div>
+                <div class="cf-presence-menu" id="cfPresenceMenu" hidden>
+                  <div class="cf-presence-menu-count"><i class="fas fa-circle"></i> <span id="cfPresenceMenuCount">&mdash;</span> personas viendo el torneo</div>
+                </div>
+              </div>
+              <button type="button" class="cf-icon-btn" id="cfMenuToggle" title="M&aacute;s opciones" aria-label="M&aacute;s opciones" aria-expanded="false"><i class="fas fa-ellipsis-h"></i></button>
+              <div class="cf-menu" id="cfMenu" hidden>
+                <button type="button" class="cf-menu-item" id="cfSearchToggle"><i class="fas fa-search"></i> Buscar</button>
+                <button type="button" class="cf-menu-item" id="cfExpandToggle"><i class="fas fa-expand"></i> Expandir</button>
+                <button type="button" class="cf-menu-item" id="cfHelpToggle"><i class="fas fa-keyboard"></i> Atajos</button>
+                <button type="button" class="cf-menu-item" id="cfSettingsToggle"><i class="fas fa-sliders-h"></i> Ajustes</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="cf-banner" id="cfConnBanner" hidden></div>
+          <div class="cf-pinned" id="cfPinned" hidden></div>
+
+          <div class="cf-searchbar" id="cfSearchBar" hidden>
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input type="search" id="cfSearchInput" placeholder="Buscar mensajes&hellip;" aria-label="Buscar en el chat" autocomplete="off">
+            <span class="cf-search-count" id="cfSearchCount"></span>
+            <button type="button" class="cf-icon-btn" id="cfSearchClose" title="Cerrar" aria-label="Cerrar b&uacute;squeda"><i class="fas fa-times"></i></button>
+          </div>
+
+          <div class="cf-pop" id="cfSettings" hidden></div>
+
+          <div class="cf-body">
+            <div class="cf-stream">
+              <button type="button" class="cf-load-older" id="cfLoadOlder" hidden>Cargar anteriores</button>
+              <div class="campfire-messages" id="campfireMessages" role="log" aria-live="polite" aria-relevant="additions" aria-label="Mensajes del chat"></div>
+              <div class="cf-typing" id="cfTyping" aria-live="polite"></div>
+              <button type="button" class="cf-jump" id="cfJump" hidden><i class="fas fa-arrow-down"></i> <span id="cfJumpCount"></span></button>
+            </div>
+          </div>
+
+          <div class="cf-composer" id="cfComposer">
+            <div class="cf-reply-chip" id="cfReplyChip" hidden></div>
+            <div class="cf-attach-preview" id="cfAttachPreview" hidden></div>
+            <div class="cf-suggest" id="cfSuggest" hidden role="listbox"></div>
+            <div class="cf-emoji-pop" id="cfEmojiPop" hidden></div>
+            <div class="cf-composer-main">
+              <button type="button" class="cf-icon-btn" id="cfEmojiBtn" title="Emojis" aria-label="Abrir emojis"><i class="far fa-smile"></i></button>
+              <button type="button" class="cf-icon-btn" id="cfAttachBtn" title="Adjuntar imagen" aria-label="Adjuntar imagen"><i class="fas fa-image"></i></button>
+              <input type="file" id="cfFileInput" accept="image/*" hidden>
+              <textarea id="cfInput" rows="1" maxlength="500" placeholder="Escribe en la sala del torneo&hellip;" aria-label="Escribir mensaje"></textarea>
+              <button type="button" class="chat-action-btn send" id="cfSend" title="Enviar" aria-label="Enviar mensaje"><i class="fas fa-paper-plane"></i></button>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Settings: all configuration for organizers -->
+  <div class="modal-container" id="tdSettingsModal" style="display:none;">
+    <div class="modal-content td-settings-modal">
+      <span class="modal-close" id="tdSettingsClose">&times;</span>
+      <h2><i class="fas fa-cog"></i> Settings del Torneo</h2>
+      <p class="td-settings-lead">Configuraci&oacute;n del servidor y la imagen p&uacute;blica. Solo el Commander (y rangos de organizaci&oacute;n) pueden cambiar esto.</p>
+
+      <div class="td-settings-section">
+        <h3>Foto del torneo</h3>
+        <p class="td-settings-lead" style="margin-bottom:0.75rem;">Esta imagen se ve en la portada para todos los espectadores.</p>
+        <div class="td-banner-upload" id="tdBannerUploadWrap">
+          <label class="td-banner-upload-btn" for="tdBannerInput" id="tdBannerUploadLabel">
+            <i class="fas fa-camera"></i> <span>Subir foto</span>
+          </label>
+          <input type="file" id="tdBannerInput" accept="image/*" hidden>
+        </div>
+      </div>
+
+      <div class="td-settings-section">
+        <h3>Servidor de juego</h3>
+        <div class="modal-input-group">
+          <label><i class="fas fa-map"></i> Mapa para el pr&oacute;ximo lanzamiento</label>
+          <select id="tdMapSelect" class="modal-input">
+            <option value="de_mirage">de_mirage</option>
+            <option value="de_inferno">de_inferno</option>
+            <option value="de_nuke">de_nuke</option>
+            <option value="de_ancient">de_ancient</option>
+            <option value="de_anubis">de_anubis</option>
+            <option value="de_dust2">de_dust2</option>
+            <option value="de_overpass">de_overpass</option>
+          </select>
+        </div>
+
+        <div class="td-admin-actions" id="tdAdminActions" style="display:none;">
+          <button class="td-btn td-btn-secondary" id="tdBtnCheck" style="display:none;"><i class="fas fa-sync"></i> Comprobar</button>
+          <button class="td-btn td-btn-primary" id="tdBtnProvision"><i class="fas fa-server"></i> Crear servidor</button>
+          <button class="td-btn td-btn-primary" id="tdBtnLaunch"><i class="fas fa-play"></i> Lanzar partida</button>
+          <button class="td-btn td-btn-danger" id="tdBtnShutdown"><i class="fas fa-power-off"></i> Apagar</button>
+        </div>
+        <p id="tdAdminMsg" style="color:#e8b84a;font-size:0.85rem;margin-top:12px;"></p>
+        <p id="tdMeta" style="color:#5c6570;line-height:1.6;font-size:0.8rem;margin-top:1rem;"></p>
       </div>
     </div>
   </div>
 
-  <script src="tournament-details.js?v=20260729timing"></script>
+  <script src="shared-unified-header.js?v=20260730arena2"></script>
+  <script src="shared-notifications.js?v=20260730arena2"></script>
+  <script src="shared-header.js?v=20260730arena2"></script>
+  <script src="shared-header-search.js?v=20260730arena2"></script>
+  <script src="td-hero-video.js?v=20260730arena2"></script>
+  <script src="tournament-details.js?v=20260730arena2"></script>
 </body>
 </html>

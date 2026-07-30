@@ -497,6 +497,26 @@
     return m + 'm ' + s + 's';
   }
 
+  function renderFrags(kills) {
+    var tbody = $('tdKillsBody');
+    var table = $('tdKillsTable');
+    var empty = $('tdFragsEmpty');
+    if (!tbody || !table) return;
+    var players = kills && typeof kills === 'object' ? Object.keys(kills) : [];
+    if (!players.length) {
+      table.style.display = 'none';
+      if (empty) empty.style.display = 'block';
+      return;
+    }
+    table.style.display = 'table';
+    if (empty) empty.style.display = 'none';
+    players.sort(function (a, b) { return toNum(kills[b]) - toNum(kills[a]); });
+    tbody.innerHTML = players.map(function (player, idx) {
+      var medal = idx === 0 ? '🥇 ' : idx === 1 ? '🥈 ' : idx === 2 ? '🥉 ' : '';
+      return '<tr><td>' + medal + escHtml(player) + '</td><td>' + toNum(kills[player]) + ' kills</td></tr>';
+    }).join('');
+  }
+
   function renderTeams(t) {
     var list = $('tdTeams');
     if (!list) return;
@@ -547,24 +567,281 @@
     var el = $('tdMeta');
     if (!el) return;
     el.innerHTML =
-      '<strong>Game:</strong> ' + (t.game || 'cs2').toUpperCase() + '<br>' +
-      '<strong>Format:</strong> ' + (t.format || 'SingleElim') + '<br>' +
-      '<strong>Region:</strong> ' + (t.region || 'LATAM') + '<br>' +
-      '<strong>Prize:</strong> ' + (t.prizePool || 0) + ' tokens<br>' +
-      '<strong>Schedule:</strong> ' + (t.schedule ? new Date(t.schedule).toLocaleString() : 'TBA') +
+      '<strong>Game:</strong> ' + (t.game || 'cs2').toUpperCase() +
       '<br><strong>ID:</strong> <code style="font-size:0.75rem;">' + tournamentId + '</code>';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Hero: banner del torneo, tarjeta de informacion y compartir
+  // ---------------------------------------------------------------------------
+
+  function statusLabel(status) {
+    if (status === 'en_vivo') return 'En vivo';
+    if (status === 'finalizado') return 'Finalizado';
+    return 'Pendiente';
+  }
+
+  function infoRow(label, value, valueClass) {
+    return '<div class="td-info-row"><span class="td-info-row-label">' + escHtml(label) + '</span>' +
+      '<span class="td-info-row-value' + (valueClass ? ' ' + valueClass : '') + '">' + escHtml(value) + '</span></div>';
+  }
+
+  function renderInfoRows(t) {
+    var box = $('tdInfoRows');
+    if (!box) return;
+    var teams = Object.keys(t.registeredTeams || {}).length;
+    var maxTeams = toNum(t.maxTeams);
+    var prizes = t.prizes || {};
+    var tokenPool = toNum(prizes.tokenPool) || toNum(t.prizePool);
+    var entryFee = toNum(prizes.entryFee) || toNum(t.entryFee);
+
+    box.innerHTML =
+      infoRow('Estado', statusLabel(t.status), t.status === 'en_vivo' ? 'td-live-value' : '') +
+      infoRow('Inicia', t.schedule ? fmtLocalDateTime(t.schedule) : 'Por definir') +
+      infoRow('Premio Base', tokenPool.toLocaleString('es-ES') + ' Tokens') +
+      infoRow('Inscripción', entryFee ? entryFee.toLocaleString('es-ES') + ' Tokens' : 'Gratis') +
+      infoRow('Equipos', teams + (maxTeams ? ' / ' + maxTeams : '')) +
+      infoRow('Región', t.region || 'LATAM') +
+      infoRow('Modalidad', t.format || 'SingleElim');
+  }
+
+  function renderBanner(t) {
+    var box = $('tdBanner');
+    var sub = $('tdBannerName');
+    if (!box) return;
+    if (sub) {
+      var bits = [];
+      if (t.format) bits.push(String(t.format));
+      if (t.region) bits.push(String(t.region));
+      if (t.schedule) bits.push(fmtLocalDateTime(t.schedule));
+      sub.textContent = bits.length ? bits.join(' · ') : 'Torneo oficial Studiosgamesrs';
+    }
+    if (t.bannerUrl) {
+      box.style.backgroundImage = 'url("' + t.bannerUrl + '")';
+      box.classList.add('has-photo');
+    } else {
+      box.style.backgroundImage = 'none';
+      box.classList.remove('has-photo');
+    }
+  }
+
+  function wireBannerUpload() {
+    var input = $('tdBannerInput');
+    var label = $('tdBannerUploadLabel');
+    if (!input || input.dataset.wired) return;
+    input.dataset.wired = '1';
+
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
+      if (!file || !tournamentId) return;
+      if (!/^image\//.test(file.type)) {
+        setAdminMsg('Elige un archivo de imagen.', true);
+        return;
+      }
+      var ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      if (label) {
+        label.classList.add('uploading');
+        label.querySelector('span').textContent = 'Subiendo...';
+      }
+      var storageRef = firebase.storage().ref('tournament_banners/' + tournamentId + '/banner.' + ext);
+      storageRef.put(file).then(function (snapshot) {
+        return snapshot.ref.getDownloadURL();
+      }).then(function (url) {
+        return db.ref('tournaments/' + tournamentId).update({ bannerUrl: url });
+      }).then(function () {
+        setAdminMsg('Foto del torneo actualizada.');
+      }).catch(function (err) {
+        setAdminMsg((err && err.message) || 'No se pudo subir la foto.', true);
+      }).finally(function () {
+        if (label) {
+          label.classList.remove('uploading');
+          label.querySelector('span').textContent = 'Subir foto';
+        }
+        input.value = '';
+      });
+    });
+  }
+
+  function shareUrls() {
+    var url = window.location.href;
+    var text = 'Mira el torneo ' + ((tournamentData && tournamentData.name) || 'Studiosgamesrs') + ' en Studiosgamesrs';
+    return {
+      url: url,
+      twitter: 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(url),
+      whatsapp: 'https://wa.me/?text=' + encodeURIComponent(text + ' ' + url)
+    };
+  }
+
+  function wireShareButtons() {
+    var tw = $('tdShareTwitter');
+    var wa = $('tdShareWhatsapp');
+    var link = $('tdShareLink');
+    if (tw && !tw.dataset.wired) {
+      tw.dataset.wired = '1';
+      tw.addEventListener('click', function () { window.open(shareUrls().twitter, '_blank', 'noopener'); });
+    }
+    if (wa && !wa.dataset.wired) {
+      wa.dataset.wired = '1';
+      wa.addEventListener('click', function () { window.open(shareUrls().whatsapp, '_blank', 'noopener'); });
+    }
+    if (link && !link.dataset.wired) {
+      link.dataset.wired = '1';
+      link.addEventListener('click', function () {
+        var url = shareUrls().url;
+        var icon = link.querySelector('i');
+        var restore = function () { if (icon) icon.className = 'fas fa-link'; };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(function () {
+            if (icon) icon.className = 'fas fa-check';
+            setTimeout(restore, 1500);
+          }).catch(function () { window.prompt('Copia el enlace:', url); });
+        } else {
+          window.prompt('Copia el enlace:', url);
+        }
+      });
+    }
+  }
+
+  var chatBooted = false;
+
+  function wireTabs() {
+    var tabInfo = $('tdTabInfo');
+    var tabChat = $('tdTabChat');
+    var body = $('tdBody');
+    if (!tabInfo || !tabChat || tabInfo.dataset.wired) return;
+    tabInfo.dataset.wired = '1';
+
+    // Desktop shows arena + chat together; mobile tabs only flip which pane is visible.
+    function activate(tab) {
+      var isChat = tab === 'chat';
+      tabInfo.classList.toggle('active', !isChat);
+      tabChat.classList.toggle('active', isChat);
+      tabInfo.setAttribute('aria-selected', String(!isChat));
+      tabChat.setAttribute('aria-selected', String(isChat));
+      if (body) body.classList.toggle('td-show-chat', isChat);
+      bootTournamentChat();
+    }
+
+    tabInfo.addEventListener('click', function () { activate('info'); });
+    tabChat.addEventListener('click', function () { activate('chat'); });
+    bootTournamentChat();
+  }
+
+  function updateChatPresence(count) {
+    if (window.SGCampfire && typeof window.SGCampfire.refreshPresence === 'function') {
+      window.SGCampfire.refreshPresence(count);
+    }
+    var badge = $('tdChatCount');
+    if (badge) {
+      badge.textContent = count > 0 ? String(count) : '';
+      badge.classList.toggle('show', count > 0);
+    }
+  }
+
+  function bootTournamentChat() {
+    if (chatBooted || !tournamentId) return;
+    if (!window.SGCampfire || typeof window.SGCampfire.boot !== 'function') return;
+    chatBooted = true;
+    window.SGCampfire.boot({ node: 'tournamentChats', room: tournamentId });
+  }
+
+  function openSettingsModal() {
+    var modal = $('tdSettingsModal');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeSettingsModal() {
+    var modal = $('tdSettingsModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function wireSettingsButton() {
+    var btn = $('tdSettingsBtn');
+    var close = $('tdSettingsClose');
+    var modal = $('tdSettingsModal');
+    if (!btn) return;
+    btn.classList.toggle('locked', !isAdmin);
+
+    if (!btn.dataset.wired) {
+      btn.dataset.wired = '1';
+      btn.addEventListener('click', function () {
+        if (!isAdmin) {
+          toastLocked();
+          return;
+        }
+        openSettingsModal();
+      });
+    }
+    if (close && !close.dataset.wired) {
+      close.dataset.wired = '1';
+      close.addEventListener('click', closeSettingsModal);
+    }
+    if (modal && !modal.dataset.wired) {
+      modal.dataset.wired = '1';
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeSettingsModal();
+      });
+    }
+  }
+
+  function toastLocked() {
+    var btn = $('tdSettingsBtn');
+    if (!btn) return;
+    var original = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-lock"></i> Solo Commander';
+    setTimeout(function () {
+      btn.innerHTML = original;
+      btn.classList.toggle('locked', !isAdmin);
+    }, 1800);
+  }
+
+  function renderScoreboardMeta(t) {
+    var liveBadge = $('tdSbLive');
+    var mapEl = $('tdSbMap');
+    if (liveBadge) liveBadge.classList.toggle('on', isMatchLive());
+    if (mapEl) {
+      if (isMatchLive()) {
+        mapEl.textContent = (t.activeMap || 'CS2').toUpperCase();
+      } else if (t.status === 'finalizado') {
+        mapEl.textContent = 'Torneo finalizado';
+      } else {
+        mapEl.textContent = 'Esperando partida';
+      }
+    }
+    renderScoreboardTeams(t);
+  }
+
+  function renderScoreboardTeams(t) {
+    var labelA = $('tdSbTeamA');
+    var labelB = $('tdSbTeamB');
+    if (!labelA || !labelB || !t) return;
+    var matchId = t.activeMatchId || t.currentMatchId || 'r1_m1';
+    var match = t.bracket && t.bracket.matches && t.bracket.matches[matchId];
+    var a = match && match.teamA && match.teamA.teamId
+      ? tName(match.teamA.teamId)
+      : null;
+    var b = match && match.teamB && match.teamB.teamId
+      ? tName(match.teamB.teamId)
+      : null;
+    labelA.textContent = a || 'Equipo A';
+    labelB.textContent = b || 'Equipo B';
   }
 
   function renderHeader(t) {
     $('tdName').textContent = t.name || 'Tournament';
     var st = $('tdStatus');
-    st.textContent = t.status || 'pending';
+    st.textContent = statusLabel(t.status || 'pendiente');
     st.className = 'td-status ' + (t.status === 'en_vivo' ? 'live' : t.status === 'finalizado' ? 'finished' : 'pending');
+
+    if (global.TDHeroVideo) {
+      global.TDHeroVideo.setActive(t.status !== 'finalizado');
+    }
 
     var conn = $('tdConnectInfo');
     if (conn) {
       renderConnectPanel();
     }
+    renderScoreboardMeta(t);
 
     activeServerId = activeGameServer
       ? activeGameServer.id
@@ -584,17 +861,8 @@
       $('tdScore').textContent = ct + ' : ' + tt;
       $('tdRound').textContent = 'Round ' + (live.currentRound || '—') + ' • ' + (live.status || '');
       $('tdDuration').textContent = 'Duration: ' + formatDuration(live.durationSeconds);
-      if (live.kills && typeof live.kills === 'object') {
-        var tbody = $('tdKillsBody');
-        var table = $('tdKillsTable');
-        table.style.display = 'table';
-        tbody.innerHTML = '';
-        Object.keys(live.kills).forEach(function (player) {
-          var tr = document.createElement('tr');
-          tr.innerHTML = '<td>' + player + '</td><td>' + live.kills[player] + ' kills</td>';
-          tbody.appendChild(tr);
-        });
-      }
+      renderFrags(live.kills);
+      if (tournamentData) renderScoreboardMeta(tournamentData);
     });
   }
 
@@ -629,6 +897,10 @@
       renderPodium(tournamentData);
       renderPrizes(tournamentData);
       renderSchedule(tournamentData);
+      renderBanner(tournamentData);
+      renderInfoRows(tournamentData);
+      renderScoreboardMeta(tournamentData);
+      wireShareButtons();
       hydrateActiveServerFromTournament();
       syncServerStateFromRegistry();
       if (tournamentData.activeServerId && tournamentData.serverIp && !isMatchLive()) {
@@ -1081,6 +1353,8 @@
       return now - toNum(w.lastSeen || w.joinedAt) <= PRESENCE_TTL_MS;
     });
 
+    updateChatPresence(list.length);
+
     if (!list.length) {
       box.innerHTML = '<p style="color:#888;font-size:0.85rem;">Nadie mas viendo ahora mismo.</p>';
       return;
@@ -1151,10 +1425,12 @@
       var rango = (snap.val() || '').toLowerCase();
       isAdmin = rango === 'commander' || rango === 'boss_of_the_state' ||
         rango === 'divisional_commander';
+      wireSettingsButton();
+      wireTabs();
       if (isAdmin) {
-        $('tdAdminBar').style.display = 'block';
         if (tournamentId) $('tdAdminActions').style.display = 'flex';
         wireAdminActions();
+        wireBannerUpload();
         hydrateActiveServerFromTournament();
         syncServerStateFromRegistry();
       }

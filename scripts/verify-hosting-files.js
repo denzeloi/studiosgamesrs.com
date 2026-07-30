@@ -13,6 +13,7 @@ const required = [
   'dashboard.html',
   'competition-hub.html',
   'tournament-details.html',
+  'tournament-details.css',
   'commander-panel.html',
   'cs2-bridge-config.js',
   'tournament-system.js',
