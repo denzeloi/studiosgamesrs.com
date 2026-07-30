@@ -64,6 +64,14 @@ function loadCloudInitYaml() {
     path: '/root/install-plugins.sh',
     content: fs.readFileSync(path.join(__dirname, '..', 'install-plugins.sh'), 'utf8'),
   });
+  const fixMetamod = readRepoFile('scripts/fix-metamod-on-server.sh');
+  if (fixMetamod) {
+    files.push({ path: '/root/fix-metamod-on-server.sh', content: fixMetamod });
+  }
+  const ensureMetamod = readRepoFile('scripts/cs2-ensure-metamod.sh');
+  if (ensureMetamod) {
+    files.push({ path: '/usr/local/bin/cs2-ensure-metamod.sh', content: ensureMetamod });
+  }
   const nexusCs = readRepoFile('cs2-server/plugins/NexusBridge/NexusBridgePlugin.cs');
   const nexusProj = readRepoFile('cs2-server/plugins/NexusBridge/NexusBridge.csproj');
   if (nexusCs) files.push({ path: '/root/NexusBridgePlugin.cs', content: nexusCs });

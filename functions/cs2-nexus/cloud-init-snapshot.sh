@@ -24,17 +24,15 @@ if [ ! -x "$CS2_BIN" ] && [ ! -x "$CS2_SH" ]; then
   fi
 fi
 
-# Ensure Fake RCON is configured (full reinstall only if Metamod missing).
-if [ -x /root/install-plugins.sh ]; then
-  if [ ! -f "$CS2_DIR/addons/metamod.vdf" ]; then
-    echo "[snapshot] Metamod missing — installing plugins"
-    bash /root/install-plugins.sh "$CS2_DIR" "$CS2_USER" "$RCON_PASS" || true
-  elif [ -d /root/matchzy-cfg ]; then
-    echo "[snapshot] Refreshing MatchZy tournament configs"
-    mkdir -p "$CS2_DIR/cfg/MatchZy"
-    cp -a /root/matchzy-cfg/. "$CS2_DIR/cfg/MatchZy/"
-    chown -R "$CS2_USER:$CS2_USER" "$CS2_DIR/cfg/MatchZy"
-  fi
+# Ensure Metamod hook + tournament configs (always refresh gameinfo/LD_LIBRARY_PATH).
+if [ -x /root/fix-metamod-on-server.sh ]; then
+  bash /root/fix-metamod-on-server.sh || true
+elif [ ! -f "$CS2_DIR/addons/metamod.vdf" ] && [ -x /root/install-plugins.sh ]; then
+  echo "[snapshot] Metamod missing — installing plugins"
+  bash /root/install-plugins.sh "$CS2_DIR" "$CS2_USER" "$RCON_PASS" || true
+elif [ -x /root/install-plugins.sh ]; then
+  echo "[snapshot] Refreshing plugins + MatchZy configs"
+  bash /root/install-plugins.sh "$CS2_DIR" "$CS2_USER" "$RCON_PASS" || true
 fi
 
 mkdir -p "$CS2_DIR/cfg" /etc/cs2-nexus /var/lib/cs2-nexus
@@ -162,6 +160,7 @@ User=${CS2_USER}
 WorkingDirectory=${CS2_ROOT}/game
 EnvironmentFile=/etc/cs2-nexus/bridge.env
 Environment=DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true
+Environment=LD_LIBRARY_PATH=${CS2_ROOT}/game/bin/linuxsteamrt64:${CS2_DIR}/bin/linuxsteamrt64
 ExecStart=${CS2_SH} -dedicated -usercon -fakercon +ip 0.0.0.0 -port 27015 +sv_setsteamaccount __GSLT_TOKEN__ +map de_mirage +exec server.cfg +tv_port 27020
 Restart=on-failure
 RestartSec=15
