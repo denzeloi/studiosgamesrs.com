@@ -13,11 +13,15 @@
  *   node scripts/seed-tournament-demo.js --dry-run
  *   node scripts/seed-tournament-demo.js --mode=dual
  *   node scripts/seed-tournament-demo.js --mode=dual --id=demo-dual
+ *   node scripts/seed-tournament-demo.js --out=tmp-seed   (JSON por ruta, sin escribir)
  *
  * Real writes need Application Default Credentials (or GOOGLE_APPLICATION_CREDENTIALS)
- * for project studiosgamesrs.
+ * for project studiosgamesrs. Si no las hay, --out deja el payload en disco para
+ * empujarlo con la CLI de Firebase, que se autentica con la cuenta del navegador:
+ *   firebase database:update /tournaments/<id> tmp-seed/tournament.json
  */
 
+const fs = require('fs');
 const path = require('path');
 
 const DRY = process.argv.includes('--dry-run');
@@ -30,6 +34,7 @@ function argValue(name, fallback) {
 
 const MODE = String(argValue('mode', 'single')).toLowerCase() === 'dual' ? 'dual' : 'single';
 const TID = argValue('id', 'demo-player-flow');
+const OUT_DIR = argValue('out', null);
 
 const TEAMS = [
   { id: 'demo-team-alpha', name: 'Alpha Squad', captain: 'demo-uid-a1' },
@@ -267,10 +272,45 @@ async function writeLive(admin, payload) {
   await db.ref().update(updates);
 }
 
+/**
+ * Deja el payload en disco, un archivo por ruta de la base. Sirve para dos
+ * cosas: empujarlo con la CLI de Firebase cuando no hay credenciales de
+ * aplicación, y alimentar la vista previa local sin tocar producción.
+ */
+function emitFiles(payload) {
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+  const files = [];
+  function write(name, value) {
+    const file = path.join(OUT_DIR, name);
+    fs.writeFileSync(file, JSON.stringify(value, null, 2));
+    files.push(file);
+  }
+  write('tournament.json', payload.tournament);
+  Object.keys(payload.teams).forEach(function (id) {
+    write('team-' + id + '.json', payload.teams[id]);
+  });
+  ['r1_m1', 'r1_m2'].forEach(function (mid) {
+    if (payload.live[mid]) write('live-' + mid + '.json', payload.live[mid]);
+  });
+  write('all.json', {
+    tournamentId: TID,
+    mode: MODE,
+    tournament: payload.tournament,
+    teams: payload.teams,
+    live: payload.live,
+  });
+  console.log('[seed-tournament-demo] escritos ' + files.length + ' archivo(s) en ' + OUT_DIR);
+}
+
 async function main() {
   const payload = buildPayload();
   console.log('[seed-tournament-demo] tournamentId =', TID, '· modo =', MODE);
   console.log('[seed-tournament-demo] open /tournament-details?id=' + TID);
+
+  if (OUT_DIR) {
+    emitFiles(payload);
+    return;
+  }
 
   if (DRY) {
     console.log('[seed-tournament-demo] dry-run — payload summary:');

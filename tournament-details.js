@@ -166,9 +166,13 @@
 
     if (!(isMatchLive() && isServerReady())) {
       conn.style.display = 'block';
-      conn.innerHTML =
-        '<div class="td-connect-wait"><i class="fas fa-hourglass-half"></i> ' +
-        'Server is online. Waiting for the Commander to <strong>Launch Match</strong> before players can join.</div>';
+      // Un torneo cerrado no espera a nadie: mandar al jugador a esperar el
+      // lanzamiento de una partida que ya no va a existir es peor que callarse.
+      conn.innerHTML = isTournamentOver()
+        ? '<div class="td-connect-wait"><i class="fas fa-flag-checkered"></i> ' +
+          'Torneo finalizado. Ya no hay servidor al que conectarse.</div>'
+        : '<div class="td-connect-wait"><i class="fas fa-hourglass-half"></i> ' +
+          'Server is online. Waiting for the Commander to <strong>Launch Match</strong> before players can join.</div>';
       return;
     }
 
@@ -300,6 +304,10 @@
   function isMatchLive() {
     if (!tournamentData) return false;
     return tournamentData.status === 'en_vivo';
+  }
+
+  function isTournamentOver() {
+    return !!(tournamentData && tournamentData.status === 'finalizado');
   }
 
   function stopServerStatusPoll() {
@@ -1198,6 +1206,24 @@
     updateActionButtons(t);
   }
 
+  /** Qué cruce enseña el marcador cuando el visitante no ha elegido ninguno. */
+  function defaultMatchId(t) {
+    if (t && t.activeMatchId) return t.activeMatchId;
+    var ids = Object.keys(liveMatches || {});
+    if (ids.length) {
+      ids.sort(function (a, b) {
+        return recencyOf(liveMatches[b]) - recencyOf(liveMatches[a]);
+      });
+      return ids[0];
+    }
+    return (t && t.currentMatchId) || null;
+  }
+
+  function recencyOf(entry) {
+    if (!entry) return 0;
+    return Number(entry.finishedAt || entry.updatedAt || entry.startedAt || 0);
+  }
+
   function attachLiveListener(matchId) {
     if (liveListener) liveListener.off();
     liveListener = null;
@@ -1346,8 +1372,12 @@
       if (isBootGraceReady() && !isMatchLive() && isLaunchReady()) {
         setAdminMsg('Server at ' + getServerIp() + ':' + getServerPort() + ' — ready. Click Launch Match.');
       }
-      if (tournamentData.status === 'en_vivo' && tournamentData.activeMatchId && !selectedMatchId) {
-        attachLiveListener(tournamentData.activeMatchId);
+      if (!selectedMatchId) {
+        // También con el torneo cerrado: el resultado de la última partida es
+        // lo primero que viene a buscar el que llega tarde, y antes la sala se
+        // quedaba con el marcador en blanco en cuanto acababa el campeonato.
+        var firstMatchId = defaultMatchId(tournamentData);
+        if (firstMatchId) attachLiveListener(firstMatchId);
       }
     });
 
@@ -1632,6 +1662,11 @@
           renderSchedule(tournamentData);
           renderPodium(tournamentData);
           renderTeams(tournamentData);
+          // El selector de cruces y el marcador se pintan antes de que lleguen
+          // los nombres, y sin este repintado se quedaban enseñando el id crudo
+          // del equipo en lugar de "Alpha Squad".
+          renderMatchTabs(tournamentData);
+          renderScoreboardMeta(tournamentData);
         }
       }).catch(function () { teamNames[id] = id; });
     });

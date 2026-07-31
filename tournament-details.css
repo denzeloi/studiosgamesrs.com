@@ -41,7 +41,16 @@ body.td-body-page::before {
     linear-gradient(180deg, #0a0d12 0%, var(--td-ink) 40%);
 }
 
-body.td-body-page > * {
+/*
+ * Solo los bloques propios de la sala se levantan sobre el degradado del
+ * ::before. Cuando esto era `> *` alcanzaba también a lo que inyectan los
+ * scripts compartidos pegado a <body> (overlay de reglas, avisos, tribunal):
+ * les quitaba el position:fixed y los enterraba detrás del marcador, así que
+ * el overlay de reglas se abría donde nadie podía verlo.
+ */
+body.td-body-page > .td-hero,
+body.td-body-page > .td-shell,
+body.td-body-page > .modal-container {
   position: relative;
   z-index: 1;
 }
