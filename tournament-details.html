@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="shared-notifications.css?v=20260731close1">
   <link rel="stylesheet" href="competition-hub.css">
   <link rel="stylesheet" href="campfire-chat.css?v=20260731close1">
-  <link rel="stylesheet" href="tournament-details.css?v=20260731close2">
+  <link rel="stylesheet" href="tournament-details.css?v=20260731close3">
   <link rel="stylesheet" href="welcome-overlay.css?v=20260731close1">
   <link rel="stylesheet" href="sg-level-badge.css?v=20260731close1">
   <link rel="stylesheet" href="shared-nexus-sensor.css?v=20260731close1">
@@ -152,7 +152,21 @@
       </div>
       <div class="td-connect" id="tdConnectInfo" style="display:none;"></div>
       <div class="td-frags-wrap">
-        <h4 class="td-frags-title"><i class="fas fa-crosshairs"></i> Top Fraggers</h4>
+        <h4 class="td-frags-title"><i class="fas fa-crosshairs"></i> <span id="tdFragsTitle">Top Fraggers</span></h4>
+        <div class="td-mvp" id="tdMvp" hidden></div>
+        <table class="td-stats-table" id="tdStatsTable" style="display:none;">
+          <thead>
+            <tr>
+              <th scope="col">Jugador</th>
+              <th scope="col" title="Bajas">K</th>
+              <th scope="col" title="Muertes">D</th>
+              <th scope="col" title="Asistencias">A</th>
+              <th scope="col" title="Da&ntilde;o por ronda">ADR</th>
+              <th scope="col" class="td-stats-score" title="Puntuaci&oacute;n del torneo">Pts</th>
+            </tr>
+          </thead>
+          <tbody id="tdStatsBody"></tbody>
+        </table>
         <table class="td-kills-table" id="tdKillsTable" style="display:none;">
           <tbody id="tdKillsBody"></tbody>
         </table>
@@ -357,8 +371,8 @@
   <script src="td-hero-video.js?v=20260731player1"></script>
   <!-- welcome-overlay.js publica SGCreatureViewer, que es el visor 3D que usa
        el overlay de reglas del sensor de Nexus. -->
-  <script src="welcome-overlay.js?v=20260731close1"></script>
+  <script src="welcome-overlay.js?v=20260731close3"></script>
   <script src="shared-nexus-sensor.js?v=20260731close1"></script>
-  <script src="tournament-details.js?v=20260731close2"></script>
+  <script src="tournament-details.js?v=20260731close3"></script>
 </body>
 </html>

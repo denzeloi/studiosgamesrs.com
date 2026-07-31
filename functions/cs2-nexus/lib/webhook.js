@@ -67,6 +67,62 @@ function durationFromBody(body) {
   return null;
 }
 
+/**
+ * Cuenta el resultado por la campana a los dos rosters.
+ *
+ * El marcador del servidor viene por bandos (CT/T) y los bandos cambian a la
+ * mitad, así que el resultado de cada equipo se arma desde el ganador: el que
+ * gana se lleva el número alto. Si no se pudo resolver quién ganó, se avisa del
+ * final sin repartir victoria, que es peor decir a un equipo que perdió.
+ */
+async function notifyResult(tournamentId, matchId, body, winner) {
+  try {
+    const bracketMatch = await rtdb.getBracketMatch(tournamentId, matchId);
+    const teamA = bracketMatch && bracketMatch.teamA ? bracketMatch.teamA.teamId : null;
+    const teamB = bracketMatch && bracketMatch.teamB ? bracketMatch.teamB.teamId : null;
+    if (!teamA && !teamB) return;
+
+    const tournament = await rtdb.getTournament(tournamentId);
+    const tournamentName = (tournament && tournament.name) || 'tu torneo';
+    const noticeId = `tourend_${tournamentId}_${matchId}`;
+    const link = `/tournament-details?id=${tournamentId}`;
+    const ct = Number(body.scoreCT) || 0;
+    const t = Number(body.scoreT) || 0;
+    const high = Math.max(ct, t);
+    const low = Math.min(ct, t);
+
+    if (!winner || !winner.teamId) {
+      await rtdb.notifyTeamRosters([teamA, teamB], noticeId, {
+        text: `Terminó tu partida de ${tournamentName} (${high}-${low}). Entra a ver las estadísticas.`,
+        icon: 'fa-flag-checkered',
+        link,
+        type: 'tournament_result',
+      });
+      return;
+    }
+
+    const losers = [teamA, teamB].filter((id) => id && id !== winner.teamId);
+    await rtdb.notifyTeamRosters([winner.teamId], noticeId, {
+      text: `Ganaste ${high}-${low} en ${tournamentName}. Entra a ver las estadísticas.`,
+      icon: 'fa-trophy',
+      link,
+      type: 'tournament_result',
+    });
+    if (losers.length) {
+      await rtdb.notifyTeamRosters(losers, noticeId, {
+        text: `Perdiste ${low}-${high} en ${tournamentName}. Entra a ver las estadísticas.`,
+        icon: 'fa-flag-checkered',
+        link,
+        type: 'tournament_result',
+      });
+    }
+  } catch (err) {
+    // Avisar es lo último y lo menos importante: si falla, la partida ya quedó
+    // cerrada, el cuadro avanzado y las estadísticas guardadas.
+    console.warn('[webhook] no se pudo avisar del resultado:', err.message);
+  }
+}
+
 async function processMatchEvent(body) {
   const { event, tournamentId, matchId, serverId } = body;
   if (!event || !matchId) throw new Error('Invalid webhook payload');
@@ -201,6 +257,10 @@ async function processMatchEvent(body) {
         if (livePatch.sideByTeam) endPatch.sideByTeam = livePatch.sideByTeam;
         if (endDuration != null) endPatch.durationSeconds = endDuration;
         await rtdb.writeTournamentLiveMatch(tournamentId, matchId, endPatch);
+      }
+
+      if (tournamentId) {
+        await notifyResult(tournamentId, matchId, body, winner);
       }
 
       if (tournamentId && winner.teamId) {

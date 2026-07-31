@@ -563,6 +563,69 @@
     }).join('');
   }
 
+  /**
+   * Estadísticas de la partida: lo que el servidor ya publica por jugador.
+   *
+   * Mientras solo hay bajas (plugin viejo, o partida recién arrancada) se sigue
+   * enseñando la lista de siempre; en cuanto llega la tabla completa manda esa,
+   * porque decir solo las bajas de un jugador que murió doce veces engaña.
+   */
+  function renderMatchStats(live) {
+    var rows = live && Array.isArray(live.scoreboard) ? live.scoreboard : [];
+    var title = $('tdFragsTitle');
+    var table = $('tdStatsTable');
+    var body = $('tdStatsBody');
+    var killsTable = $('tdKillsTable');
+    var empty = $('tdFragsEmpty');
+
+    renderMvp(live && (live.mvp || null));
+
+    if (!table || !body || !rows.length) {
+      if (table) table.style.display = 'none';
+      if (title) title.textContent = 'Top Fraggers';
+      renderFrags(live && live.kills);
+      return;
+    }
+
+    if (killsTable) killsTable.style.display = 'none';
+    if (empty) empty.style.display = 'none';
+    if (title) title.textContent = 'Estadísticas de la partida';
+    table.style.display = 'table';
+    body.innerHTML = rows.map(function (row) {
+      var mine = currentUser && row.uid && row.uid === currentUser.uid;
+      return '<tr' + (mine ? ' class="is-you"' : '') + '>' +
+        '<td class="td-stats-name">' + escHtml(row.name || '—') +
+        (mine ? ' <b>· tú</b>' : '') + '</td>' +
+        '<td>' + toNum(row.kills) + '</td>' +
+        '<td>' + toNum(row.deaths) + '</td>' +
+        '<td>' + toNum(row.assists) + '</td>' +
+        '<td>' + toNum(row.adr) + '</td>' +
+        '<td class="td-stats-score">' + toNum(row.score) + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  function renderMvp(mvp) {
+    var box = $('tdMvp');
+    if (!box) return;
+    if (!mvp || !mvp.name) {
+      box.hidden = true;
+      box.innerHTML = '';
+      return;
+    }
+    box.hidden = false;
+    box.innerHTML =
+      '<i class="fas fa-star td-mvp-icon"></i>' +
+      '<div class="td-mvp-body">' +
+        '<span class="td-mvp-label">MVP de la partida</span>' +
+        '<span class="td-mvp-name">' + escHtml(mvp.name) + '</span>' +
+      '</div>' +
+      '<div class="td-mvp-stats">' +
+        '<span>' + toNum(mvp.kills) + ' bajas</span>' +
+        '<span>' + toNum(mvp.adr) + ' ADR</span>' +
+      '</div>';
+  }
+
   function renderTeams(t) {
     var list = $('tdTeams');
     if (!list) return;
@@ -1137,7 +1200,7 @@
     if ($('tdScore')) $('tdScore').textContent = '— : —';
     if ($('tdRound')) $('tdRound').textContent = 'Ronda —';
     if ($('tdDuration')) $('tdDuration').textContent = 'Duración: —';
-    renderFrags(null);
+    renderMatchStats(null);
   }
 
   function applyLivePayload(live) {
@@ -1177,7 +1240,7 @@
     } else {
       startDurationTick(null, explicit);
     }
-    renderFrags(live.kills);
+    renderMatchStats(live);
     if (tournamentData) {
       renderScoreboardTeams(tournamentData, live);
       renderMapWidget(tournamentData);

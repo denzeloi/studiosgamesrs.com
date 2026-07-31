@@ -781,6 +781,28 @@ async function launchMatchCore({
     gameUdpOk: readiness.gameUdpOk === false ? false : true,
   });
 
+  // El jugador que no tiene la sala abierta no se entera de nada: este es el
+  // único aviso que le llega de que ya hay servidor al que conectarse.
+  if (rconOk && matchBuild.ok) {
+    try {
+      const tournament = await rtdb.getTournament(tournamentId);
+      const tournamentName = (tournament && tournament.name) || 'tu torneo';
+      await rtdb.notifyTeamRosters(
+        [matchBuild.team1Id, matchBuild.team2Id],
+        `tourlive_${tournamentId}_${matchId}`,
+        {
+          text: `Tu partida de ${tournamentName} está en vivo en ${map}. Entra a la sala y copia el connect.`,
+          icon: 'fa-satellite-dish',
+          link: `/tournament-details?id=${tournamentId}`,
+          type: 'tournament_live',
+        }
+      );
+    } catch (err) {
+      // Un fallo avisando no puede tumbar un lanzamiento que ya salió bien.
+      console.warn('[launch] no se pudo avisar al roster:', err.message);
+    }
+  }
+
   await rtdb.writeMatchLive(matchId, {
     status: rconOk ? 'live' : 'starting',
     tournamentId,

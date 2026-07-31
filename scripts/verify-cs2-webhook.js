@@ -71,6 +71,13 @@ const recorded = {};
 // así que match_end tiene que sacarlo de aquí para poder cerrarlo.
 let storedLiveMatch = { serverId: 'srv-from-index' };
 
+// Los dos equipos del cruce salen del cuadro: el marcador viene por bandos y
+// los bandos cambian a la mitad, así que no sirven para saber a quién avisar.
+let storedBracketMatch = {
+  teamA: { teamId: 'team-alpha' },
+  teamB: { teamId: 'team-bravo' },
+};
+
 function resetRecorder() {
   recorded.live = [];
   recorded.liveMatches = [];
@@ -79,6 +86,13 @@ function resetRecorder() {
   recorded.servers = [];
   recorded.bracket = [];
   recorded.tournaments = [];
+  recorded.notices = [];
+}
+
+function noticeFor(teamId) {
+  return (recorded.notices || []).find(function (n) {
+    return (n.teamIds || []).indexOf(teamId) !== -1;
+  }) || null;
 }
 
 rtdb.writeMatchLive = async function (matchId, data) {
@@ -115,12 +129,24 @@ bracket.handleMatchEndEvent = async function (tournamentId, matchId, payload) {
   return { tournamentComplete: false, nextMatchId: 'r2_m1' };
 };
 
-// Tripwires. Any real read or write would otherwise sit in Firebase's retry loop
+rtdb.getBracketMatch = async function () {
+  return storedBracketMatch;
+};
+rtdb.getTournament = async function () {
+  return { name: 'Copa Demo' };
+};
+rtdb.notifyTeamRosters = async function (teamIds, noticeId, payload) {
+  recorded.notices.push({
+    teamIds: (teamIds || []).filter(Boolean),
+    noticeId: noticeId,
+    payload: payload,
+  });
+  return (teamIds || []).filter(Boolean).length;
+};
+
+// Tripwire. Any real read or write would otherwise sit in Firebase's retry loop
 // forever instead of failing, which is exactly how this check first hung: a
 // destructured import kept pointing at the unstubbed function.
-rtdb.getTournament = async function () {
-  throw new Error('unstubbed Firebase read — a dependency is not being intercepted');
-};
 rtdb.writeBracketMatch = async function () {
   throw new Error('unstubbed Firebase write — a dependency is not being intercepted');
 };
@@ -184,6 +210,19 @@ async function run() {
   });
   eq('no SteamID64 is published on a public path', exposed.length, 0);
 
+  console.log('\n--- el resultado llega a la campana de los dos rosters ---');
+  eq('se avisa a los dos equipos', recorded.notices.length, 2);
+  eq('el ganador se entera de que ganó',
+    noticeFor('team-alpha').payload.text.indexOf('Ganaste 13-11') === 0, true);
+  eq('el perdedor lee su propio marcador',
+    noticeFor('team-bravo').payload.text.indexOf('Perdiste 11-13') === 0, true);
+  eq('el aviso lleva a la sala',
+    noticeFor('team-alpha').payload.link, '/tournament-details?id=t-001');
+  // Misma clave para los dos: si el webhook se reintenta, se reescribe el mismo
+  // aviso en vez de llenar la campana de copias.
+  eq('la clave del aviso es la del cruce',
+    noticeFor('team-bravo').noticeId, 'tourend_t-001_r1_m1');
+
   console.log('\n--- a T-side win after the halftime swap ---');
   resetRecorder();
   await webhook.processMatchEvent(matchEndPayload({
@@ -206,6 +245,12 @@ async function run() {
   eq('the reason is surfaced to the commander', live.winnerResolution, 'roster_mismatch');
   eq('the bracket stays untouched', recorded.bracket.length, 0);
   eq('stats are still archived for a manual decision', recorded.matchStats.length, 1);
+  // Decirle a un equipo que perdió una partida que nadie sabe quién ganó es
+  // peor que no decir nada: se avisa del final, sin repartir victoria.
+  eq('se avisa una sola vez, sin ganador', recorded.notices.length, 1);
+  eq('a los dos equipos a la vez', recorded.notices[0].teamIds.length, 2);
+  eq('y sin decir quién ganó',
+    /Ganaste|Perdiste/.test(recorded.notices[0].payload.text), false);
 
   console.log('\n--- a commander-reported winner is honoured ---');
   resetRecorder();

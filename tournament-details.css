@@ -661,6 +661,86 @@ body.td-body-page > .unified-header {
 .td-kills-table tr td:last-child { text-align: right; color: var(--td-gold); font-weight: 700; }
 .td-frags-empty { color: var(--td-dim); font-size: 0.82rem; margin: 0; }
 
+/* —— Estadísticas de la partida —— */
+.td-mvp {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0.7rem;
+  padding: 9px 12px;
+  background: rgba(232, 184, 74, 0.07);
+  border: 1px solid rgba(232, 184, 74, 0.28);
+  border-radius: 10px;
+}
+
+.td-mvp[hidden] { display: none; }
+.td-mvp-icon { color: var(--td-gold); font-size: 1rem; }
+.td-mvp-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+
+.td-mvp-label {
+  color: var(--td-muted);
+  font-size: 0.63rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.td-mvp-name {
+  color: var(--td-text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-mvp-stats {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+  color: var(--td-gold);
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.td-stats-table {
+  width: 100%;
+  font-size: 0.85rem;
+  color: var(--td-muted);
+  border-collapse: collapse;
+}
+
+.td-stats-table th {
+  padding: 0 6px 6px;
+  color: var(--td-dim);
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-align: right;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.td-stats-table th:first-child { text-align: left; }
+.td-stats-table tbody tr { border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+.td-stats-table td { padding: 7px 6px; text-align: right; font-variant-numeric: tabular-nums; }
+
+.td-stats-name {
+  text-align: left !important;
+  color: var(--td-text);
+  font-weight: 600;
+}
+
+.td-stats-table tbody tr.is-you { background: rgba(232, 184, 74, 0.06); }
+.td-stats-table tbody tr.is-you .td-stats-name { color: var(--td-gold); }
+.td-stats-table .td-stats-score { color: var(--td-gold); font-weight: 700; }
+
+/* En pantalla estrecha la puntuación es lo primero que sobra: el resto de
+   columnas son las que el jugador reconoce de la tabla del juego. */
+@media (max-width: 480px) {
+  .td-stats-table .td-stats-score { display: none; }
+}
+
 /* —— Mobile tabs —— */
 .td-mobile-tabs {
   display: none;

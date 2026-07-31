@@ -1638,6 +1638,32 @@
       .set(Date.now()).catch(function () {});
   }
 
+  /**
+   * Deja un aviso en la campana, sin repetirlo.
+   *
+   * El overlay se ve una vez y se va; la campana es donde el jugador vuelve a
+   * buscar el enlace a la sala horas después. La clave es fija por torneo, así
+   * que abrir la página diez veces no escribe diez avisos, y si ya lo leyó no
+   * se le vuelve a marcar como nuevo.
+   */
+  function pushBellNotice(db, uid, noticeId, payload) {
+    if (!uid || !noticeId || !payload || !payload.text) return;
+    var ref = db.ref('users/' + uid + '/notifications/' + noticeId);
+    ref.once('value').then(function (snap) {
+      if (snap.exists()) return null;
+      return ref.set({
+        text: payload.text,
+        icon: payload.icon || 'fa-bell',
+        link: payload.link || null,
+        type: payload.type || 'tournament',
+        timestamp: Date.now(),
+        read: false
+      });
+    }).catch(function (err) {
+      sgLog('no se pudo dejar el aviso en la campana:', err && err.message);
+    });
+  }
+
   /** ¿Estoy ya dentro de la sala de ese torneo? Entonces sobra el aviso. */
   function isViewingTournament(tid) {
     var path = window.location.pathname || '';
@@ -1665,13 +1691,28 @@
             var tid = snap.key;
             var v = snap.val() || {};
             var key = teamId + '_' + tid;
+            var at = v.acceptedAt || 0;
+            var fresh = !!at && (Date.now() - at) <= REGISTRATION_MAX_AGE_MS;
+
+            // La campana se escribe aunque el overlay ya se haya visto (o lo
+            // haya lanzado el propio capitán): es el registro al que se vuelve
+            // para encontrar la sala, no el aviso de un momento.
+            if (fresh) {
+              pushBellNotice(db, uid, 'tourreg_' + key, {
+                text: 'Tu equipo entró en ' + (v.tournamentName || 'un torneo') +
+                  '. Toca para abrir la sala.',
+                icon: 'fa-trophy',
+                link: '/tournament-details?id=' + tid,
+                type: 'tournament_registered'
+              });
+            }
+
             if (seen[key]) return;
             markRegistrationSeen(uid, db, key, seen);
             // Avisar de dónde ya estás es ruido: el que abrió la sala del
             // torneo ya tiene delante el marcador y las reglas.
             if (isViewingTournament(tid)) return;
-            var at = v.acceptedAt || 0;
-            if (!at || (Date.now() - at) > REGISTRATION_MAX_AGE_MS) return;
+            if (!fresh) return;
             showOverlay('tournament-registered', {
               tournamentName: v.tournamentName,
               acceptedBy: v.acceptedBy,
