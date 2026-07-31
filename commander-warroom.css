@@ -25,6 +25,62 @@
    Cabecera de mando
    -------------------------------------------------------------------------- */
 
+.cwr-active-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 0.85rem;
+  background: linear-gradient(90deg, rgba(255, 202, 58, 0.14), rgba(255, 202, 58, 0.03));
+  border: 1px solid rgba(255, 202, 58, 0.4);
+  border-left: 4px solid var(--cwr-gold);
+  border-radius: var(--cwr-radius-sm);
+}
+.cwr-active-banner > i {
+  font-size: 1.3rem;
+  color: var(--cwr-gold);
+  flex: 0 0 auto;
+}
+.cwr-active-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cwr-active-banner-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cwr-muted);
+  font-weight: 700;
+}
+.cwr-active-banner-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--cwr-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cwr-active-banner-status {
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--cwr-muted);
+  border: 1px solid var(--cwr-border);
+}
+.cwr-active-banner-status.is-live {
+  background: rgba(229, 57, 53, 0.18);
+  border-color: rgba(229, 57, 53, 0.5);
+  color: #ff8a80;
+  animation: cwr-pulse 1.8s ease-in-out infinite;
+}
+
 .cwr-command-bar {
   display: flex;
   flex-wrap: wrap;
@@ -209,6 +265,33 @@
   gap: 8px;
   align-items: center;
   margin-top: 0.9rem;
+}
+
+/* Un servidor o dos: decide cuántas partidas pueden estar vivas a la vez. */
+.cwr-server-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 0.9rem;
+  padding: 10px 12px;
+  border: 1px solid var(--cwr-border);
+  border-radius: 10px;
+  background: var(--cwr-surface-2);
+}
+
+.cwr-server-mode-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 200px;
+}
+
+.cwr-server-mode-copy p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--cwr-muted);
 }
 
 .cwr-mini-btn {
@@ -436,6 +519,119 @@
   .cwr-step-active { animation: none; }
 }
 
+/* --------------------------------------------------------------------------
+   Estado del servidor en lenguaje llano (tarjeta principal)
+   -------------------------------------------------------------------------- */
+
+.cwr-stage {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: 1rem;
+  padding: 0.95rem 1.1rem;
+  border: 1px solid var(--cwr-border);
+  border-left: 4px solid var(--cwr-dim);
+  border-radius: var(--cwr-radius-sm);
+  background: var(--cwr-surface-2);
+}
+
+.cwr-stage-icon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  font-size: 1.35rem;
+  color: var(--cwr-dim);
+}
+
+.cwr-stage-body { min-width: 0; }
+
+.cwr-stage-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--cwr-text);
+}
+
+.cwr-stage-detail {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--cwr-muted);
+}
+
+.cwr-stage-active {
+  border-left-color: var(--cwr-gold);
+  background: linear-gradient(90deg, rgba(255, 202, 58, 0.09), transparent);
+}
+.cwr-stage-active .cwr-stage-icon { color: var(--cwr-gold); }
+
+.cwr-stage-done {
+  border-left-color: var(--cwr-green);
+  background: linear-gradient(90deg, rgba(76, 175, 80, 0.09), transparent);
+}
+.cwr-stage-done .cwr-stage-icon { color: #81c784; }
+
+.cwr-stage-fail {
+  border-left-color: var(--cwr-red);
+  background: linear-gradient(90deg, rgba(229, 57, 53, 0.1), transparent);
+}
+.cwr-stage-fail .cwr-stage-icon { color: #ef8a87; }
+
+.cwr-stage-live {
+  border-left-color: var(--cwr-blue);
+  background: linear-gradient(90deg, rgba(75, 159, 213, 0.11), transparent);
+}
+.cwr-stage-live .cwr-stage-icon {
+  color: var(--cwr-blue);
+  animation: cwr-blink 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cwr-stage-live .cwr-stage-icon { animation: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Desplegable de detalles tecnicos
+   -------------------------------------------------------------------------- */
+
+.cwr-tech {
+  margin-top: 1.1rem;
+  border: 1px solid var(--cwr-border);
+  border-radius: var(--cwr-radius-sm);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.cwr-tech-summary {
+  padding: 10px 13px;
+  cursor: pointer;
+  list-style: none;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cwr-muted);
+  user-select: none;
+}
+
+.cwr-tech-summary::-webkit-details-marker { display: none; }
+.cwr-tech-summary:hover { color: var(--cwr-text); }
+.cwr-tech-summary i { margin-right: 7px; color: var(--cwr-gold-soft); }
+
+.cwr-tech-summary::after {
+  content: '\25be';
+  float: right;
+  transition: transform 0.15s ease;
+}
+
+.cwr-tech[open] > .cwr-tech-summary::after { transform: rotate(180deg); }
+
+.cwr-tech-body {
+  padding: 0 13px 13px;
+  border-top: 1px solid var(--cwr-border);
+}
+
+.cwr-tech-body .cwr-subtitle:first-child { margin-top: 0.9rem; }
+
 .cwr-health {
   margin-top: 0.9rem;
   padding: 8px 11px;
@@ -536,6 +732,108 @@
 
 .cwr-score-value span { color: var(--cwr-dim); }
 
+/* --------------------------------------------------------------------------
+   Reloj de espera del servidor
+   -------------------------------------------------------------------------- */
+
+.cwr-eta {
+  margin-top: 10px;
+  padding: 11px 13px;
+  background: rgba(255, 179, 71, 0.07);
+  border: 1px solid rgba(255, 179, 71, 0.28);
+  border-radius: var(--cwr-radius-sm);
+}
+
+.cwr-eta-late {
+  background: rgba(229, 57, 53, 0.09);
+  border-color: rgba(229, 57, 53, 0.4);
+}
+
+.cwr-eta-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.cwr-eta-head i { color: var(--cwr-gold-soft); }
+.cwr-eta-late .cwr-eta-head i { color: var(--cwr-red); }
+
+.cwr-eta-phase {
+  flex: 1;
+  min-width: 0;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--cwr-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cwr-eta-clock {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--cwr-gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.cwr-eta-bar {
+  display: block;
+  height: 6px;
+  margin: 9px 0 7px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.cwr-eta-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--cwr-gold-soft), var(--cwr-gold));
+  border-radius: 4px;
+  transition: width 0.9s linear;
+}
+
+.cwr-eta-late .cwr-eta-bar i {
+  background: linear-gradient(90deg, var(--cwr-gold), var(--cwr-red));
+}
+
+.cwr-eta-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--cwr-muted);
+}
+
+.cwr-eta-mode {
+  flex-shrink: 0;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cwr-dim);
+}
+
+@media (max-width: 520px) {
+  .cwr-eta-foot { flex-direction: column; }
+}
+
+.cwr-score-caption {
+  margin: 6px 0 0;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--cwr-dim);
+}
+
 .cwr-kills { margin-top: 1rem; }
 
 .cwr-kills-title {
@@ -584,6 +882,53 @@
   font-size: 0.8rem;
   color: var(--cwr-gold);
   text-align: right;
+}
+
+/* Fila de rendimiento: K/D/A y ADR no caben en la columna de 34px de
+   .cwr-kill-row, asi que la tabla completa usa su propia rejilla. */
+.cwr-stat-head,
+.cwr-stat-row {
+  display: grid;
+  grid-template-columns: minmax(84px, 150px) 1fr 66px 54px;
+  gap: 9px;
+  align-items: center;
+}
+
+.cwr-stat-row { padding: 3px 0; }
+
+.cwr-stat-head {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cwr-dim);
+  padding-bottom: 5px;
+}
+
+.cwr-stat-head span:nth-child(3),
+.cwr-stat-head span:nth-child(4) { text-align: right; }
+
+.cwr-stat-kda,
+.cwr-stat-adr {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.76rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cwr-stat-kda { color: var(--cwr-text); }
+.cwr-stat-adr { color: var(--cwr-gold); }
+
+.cwr-stat-row-mvp .cwr-kill-name {
+  color: var(--cwr-gold);
+  font-weight: 700;
+}
+
+.cwr-stat-unlinked {
+  font-style: normal;
+  font-size: 0.66rem;
+  color: var(--cwr-dim);
 }
 
 /* --------------------------------------------------------------------------

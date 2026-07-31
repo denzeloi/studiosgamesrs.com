@@ -8,10 +8,13 @@
   <link rel="icon" href="dragon_profile_studiosgamesrs.png" type="image/png" />
   <link rel="stylesheet" href="dashboard-styles.css">
   <link rel="stylesheet" href="shared-header.css">
-  <link rel="stylesheet" href="shared-notifications.css?v=20260711d">
+  <link rel="stylesheet" href="shared-notifications.css?v=20260731close1">
   <link rel="stylesheet" href="competition-hub.css">
-  <link rel="stylesheet" href="campfire-chat.css?v=20260730room1">
-  <link rel="stylesheet" href="tournament-details.css?v=20260730arena2">
+  <link rel="stylesheet" href="campfire-chat.css?v=20260731close1">
+  <link rel="stylesheet" href="tournament-details.css?v=20260731close1">
+  <link rel="stylesheet" href="welcome-overlay.css?v=20260731close1">
+  <link rel="stylesheet" href="sg-level-badge.css?v=20260731close1">
+  <link rel="stylesheet" href="shared-nexus-sensor.css?v=20260731close1">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
@@ -19,9 +22,12 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-functions-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
   <script src="/sg-firebase-init.js?v=20260724nocaptcha"></script>
-  <script src="cs2-bridge-config.js?v=20260726a"></script>
-  <script src="tournament-system.js?v=20260727h"></script>
-  <script src="campfire-chat.js?v=20260730room1"></script>
+  <script src="cs2-bridge-config.js?v=20260731close1"></script>
+  <script src="tournament-system.js?v=20260731close1"></script>
+  <script src="campfire-chat.js?v=20260731close1"></script>
+  <script src="sg-levels.js?v=20260731close1"></script>
+  <script src="sg-level-badge.js?v=20260731close1"></script>
+  <script src="tournament-roster.js?v=20260731close1"></script>
 </head>
 <body class="td-body-page">
   <header class="unified-header">
@@ -101,9 +107,18 @@
     <div class="td-hero-inner">
       <div class="td-hero-kicker"><i class="fas fa-trophy"></i> Studiosgamesrs</div>
       <h1 class="td-hero-title" id="tdName">Cargando...</h1>
-      <div class="td-hero-meta">
-        <span class="td-status pending" id="tdStatus">pending</span>
-        <span class="td-hero-sub" id="tdBannerName">Torneo Studiosgamesrs</span>
+      <div class="td-hero-meta" id="td-hero-meta">
+        <div class="td-hero-meta-main">
+          <span class="td-status pending" id="tdStatus">pending</span>
+          <span class="td-hero-sub" id="tdBannerName">Torneo Studiosgamesrs</span>
+        </div>
+        <aside class="td-map-widget" id="tdMapWidget" hidden aria-label="Mapa del cruce">
+          <div class="td-map-widget-visual" id="tdMapVisual" data-map="pending"></div>
+          <div class="td-map-widget-copy">
+            <span class="td-map-widget-kicker">Mapa</span>
+            <strong id="tdMapWidgetName">Por definir</strong>
+          </div>
+        </aside>
       </div>
     </div>
   </section>
@@ -113,11 +128,12 @@
 
     <!-- Live scoreboard — public -->
     <section class="td-score-stage" aria-label="Marcador en vivo">
+      <div class="td-match-tabs" id="tdMatchTabs" hidden role="tablist" aria-label="Partidas en vivo"></div>
       <div class="td-sb-top">
         <div class="td-sb-team td-sb-ct">
           <div class="td-sb-team-badge"><i class="fas fa-shield-alt"></i></div>
           <div class="td-sb-team-label" id="tdSbTeamA">Equipo A</div>
-          <div class="td-sb-team-side">CT</div>
+          <div class="td-sb-team-side" id="tdSbSideA">CT</div>
         </div>
         <div class="td-sb-center">
           <span class="td-sb-live" id="tdSbLive"><i class="fas fa-circle"></i> LIVE</span>
@@ -127,7 +143,7 @@
         <div class="td-sb-team td-sb-t">
           <div class="td-sb-team-badge"><i class="fas fa-skull-crossbones"></i></div>
           <div class="td-sb-team-label" id="tdSbTeamB">Equipo B</div>
-          <div class="td-sb-team-side">T</div>
+          <div class="td-sb-team-side" id="tdSbSideB">T</div>
         </div>
       </div>
       <div class="td-sb-meta">
@@ -186,7 +202,7 @@
             <h2>Bracket</h2>
             <span>Cuadro</span>
           </div>
-          <div id="tdBracket">A&uacute;n no hay cuadro.</div>
+          <div class="td-bracket-scroll" id="tdBracket">A&uacute;n no hay cuadro.</div>
         </section>
 
         <section class="td-block">
@@ -334,11 +350,15 @@
     </div>
   </div>
 
-  <script src="shared-unified-header.js?v=20260730arena2"></script>
-  <script src="shared-notifications.js?v=20260730arena2"></script>
-  <script src="shared-header.js?v=20260730arena2"></script>
+  <script src="shared-unified-header.js?v=20260731close1"></script>
+  <script src="shared-notifications.js?v=20260731close1"></script>
+  <script src="shared-header.js?v=20260731close1"></script>
   <script src="shared-header-search.js?v=20260730arena2"></script>
-  <script src="td-hero-video.js?v=20260730arena2"></script>
-  <script src="tournament-details.js?v=20260730arena2"></script>
+  <script src="td-hero-video.js?v=20260731player1"></script>
+  <!-- welcome-overlay.js publica SGCreatureViewer, que es el visor 3D que usa
+       el overlay de reglas del sensor de Nexus. -->
+  <script src="welcome-overlay.js?v=20260731close1"></script>
+  <script src="shared-nexus-sensor.js?v=20260731close1"></script>
+  <script src="tournament-details.js?v=20260731close1"></script>
 </body>
 </html>

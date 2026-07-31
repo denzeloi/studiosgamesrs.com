@@ -279,6 +279,100 @@
   margin-top: 0.75rem;
 }
 
+/* Torneos ya aceptados: la puerta de entrada del roster a la sala. */
+.sg-tour-registered-card {
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(139, 195, 74, 0.35);
+  background: rgba(139, 195, 74, 0.07);
+}
+
+.sg-tour-registered-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.sg-tour-registered-head i { color: #8bc34a; }
+.sg-tour-registered-head strong { color: #fff; }
+
+.sg-tour-registered-status {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #cfe8b0;
+  background: rgba(139, 195, 74, 0.15);
+}
+
+.sg-tour-registered-status.is-live {
+  color: #fff;
+  background: rgba(229, 57, 53, 0.85);
+  animation: sgTourLivePulse 1.8s ease-in-out infinite;
+}
+
+.sg-tour-registered-status.is-done {
+  color: #aaa;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@keyframes sgTourLivePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+.sg-tour-registered-sub {
+  margin: 0 0 10px;
+  color: #aaa;
+  font-size: 0.85rem;
+}
+
+.sg-tour-registered-sub strong { color: #fff; }
+
+.sg-tour-registered-warn {
+  margin: 8px 0 0;
+  color: #ffb74d;
+  font-size: 0.8rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sg-tour-registered-status.is-live { animation: none; }
+}
+
+/* Roster con el que entra el equipo al torneo, justo al aceptar la invitación. */
+.sg-tour-roster-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sg-tour-roster-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  color: #dcd6d4;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sg-tour-roster-chip i { color: #8bc34a; font-size: 0.8rem; }
+.sg-tour-roster-chip b { color: #ffca3a; font-weight: 700; }
+
+/* Sin Steam vinculado el servidor no sabe de qué equipo es: se marca en ámbar. */
+.sg-tour-roster-chip.is-warn {
+  border-color: rgba(255, 183, 77, 0.4);
+  background: rgba(255, 183, 77, 0.1);
+}
+
+.sg-tour-roster-chip.is-warn i { color: #ffb74d; opacity: 0.7; }
+
 /* Commander inline panel */
 .sg-tour-commander-shell {
   margin-top: 0.5rem;

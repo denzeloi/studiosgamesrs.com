@@ -16,8 +16,8 @@
     <script src="/sg-firebase-init.js?v=20260724nocaptcha"></script>
     <script src="https://cdn.jsdelivr.net/npm/motion@12.42.2/dist/motion.js"></script>
     <script>sgInitFirebaseApp();</script>
-    <script src="/sg-levels.js?v=20260728levels1"></script>
-    <script src="/sg-level-badge.js?v=20260728levels1"></script>
+    <script src="/sg-levels.js?v=20260731close1"></script>
+    <script src="/sg-level-badge.js?v=20260731close1"></script>
     
     <!-- Fuentes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,12 +30,12 @@
     
     <!-- Estilos -->
     <link rel="stylesheet" href="shared-header.css?v=20260728hdr2">
-    <link rel="stylesheet" href="shared-notifications.css?v=20260728pm1">
-    <link rel="stylesheet" href="/sg-level-badge.css?v=20260728levels1">
-    <link rel="stylesheet" href="/shared-nexus-sensor.css?v=20260728wyvern1">
-    <link rel="stylesheet" href="nexus-styles.css?v=20260728hero1">
+    <link rel="stylesheet" href="shared-notifications.css?v=20260731close1">
+    <link rel="stylesheet" href="/sg-level-badge.css?v=20260731close1">
+    <link rel="stylesheet" href="/shared-nexus-sensor.css?v=20260731close1">
+    <link rel="stylesheet" href="nexus-styles.css?v=20260731close1">
     <link rel="stylesheet" href="site-engagement.css">
-    <link rel="stylesheet" href="/welcome-overlay.css?v=20260728soldier1">
+    <link rel="stylesheet" href="/welcome-overlay.css?v=20260731close1">
     <script type="importmap">
     {
       "imports": {
@@ -178,6 +178,8 @@
                         <span class="nexus-hero-stage-embers"></span>
                     </div>
 
+                    <!-- Un solo contenedor oscuro: foto + XP/niveles + recompensas -->
+                    <div class="xp-master-container xp-master-container--unified">
                     <div class="profile-card-top">
                         <div class="nexus-hero-identity">
                             <div class="nexus-hero-avatar" id="nexus-hero-avatar" title="Tu foto de perfil con el marco que llevas equipado">
@@ -205,8 +207,6 @@
                         </div>
                     </div>
 
-                    <!-- Sistema de XP -->
-                    <div class="xp-master-container">
                         <div class="xp-labels">
                             <span class="label-tech">REPUTACIÓN REAL SGRS</span>
                             <span id="xp-ratio" class="label-tech">0 / 1,000 XP</span>
@@ -241,9 +241,7 @@
                                 <span>Actividad: <strong id="activity-score">100%</strong></span>
                             </div>
                         </div>
-                    </div>
                     
-                    <!-- Recompensas -->
                     <div class="rewards-container">
                         <div class="rewards-header">
                             <h3 class="rewards-title"><i class="fas fa-gift"></i> RECOMPENSAS</h3>
@@ -258,6 +256,7 @@
                                 <i class="fas fa-eye"></i> VER TODAS
                             </button>
                         </div>
+                    </div>
                     </div>
                 </section>
 
@@ -939,13 +938,13 @@
     </div>
 
     <!-- Scripts -->
-    <script src="shared-unified-header.js?v=20260711d"></script>
-    <script src="shared-notifications.js?v=20260728pm1"></script>
-    <script src="/shared-nexus-sensor.js?v=20260729fix1"></script>
-    <script src="/welcome-overlay.js?v=20260729fix1"></script>
-    <script src="shared-header.js?v=20260728hdr2"></script>
-    <script src="profile-customization-config.js?v=20260728hero1"></script>
-    <script src="profile-customization.js?v=20260728hero1"></script>
+    <script src="shared-unified-header.js?v=20260731close1"></script>
+    <script src="shared-notifications.js?v=20260731close1"></script>
+    <script src="/shared-nexus-sensor.js?v=20260731close1"></script>
+    <script src="/welcome-overlay.js?v=20260731close1"></script>
+    <script src="shared-header.js?v=20260731close1"></script>
+    <script src="profile-customization-config.js?v=20260731close1"></script>
+    <script src="profile-customization.js?v=20260731close1"></script>
     <script src="creator-market-insights.js?v=20260719f"></script>
     <script src="creator-market-map.js?v=20260719f"></script>
     <script src="nexus-logic.js?v=20260728hero1"></script>

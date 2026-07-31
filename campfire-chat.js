@@ -385,11 +385,13 @@
   // ============================================================
   // 4. Arranque
   // ============================================================
-  function boot() {
+  function boot(opts) {
     if (S.booted) return;
     D.shell = document.getElementById('cfShell');
     D.stream = document.getElementById('campfireMessages');
     if (!D.shell || !D.stream) return;
+    if (opts && opts.node) NODE = opts.node;
+    if (opts && opts.room) ROOM = opts.room;
     S.booted = true;
 
     cacheDom();

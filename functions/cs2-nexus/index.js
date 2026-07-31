@@ -2,14 +2,16 @@
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { onRequest } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const admin = require('firebase-admin');
 const provider = require('./lib/provider');
 const rcon = require('./lib/rcon');
-const { tcpProbe, probePortOpen, probeGamePortOpen, udpGameProbe } = require('./lib/net-probe');
+const { tcpProbe, probePortOpen, probeGamePortOpen, udpGameProbe, udpProbeEnabled } = require('./lib/net-probe');
 const rtdb = require('./lib/firebase-rtdb');
 const bracket = require('./lib/bracket');
 const webhook = require('./lib/webhook');
 const matchzy = require('./lib/matchzy');
+const concurrency = require('./lib/concurrency');
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -17,6 +19,20 @@ if (!admin.apps.length) {
 
 const COMMANDER_RANKS = new Set(['commander', 'boss_of_the_state', 'divisional_commander']);
 const CS2_GAME_PORT = 27015;
+
+/**
+ * Observed provisioning windows: Vultr needs 20-40 min to restore a snapshot disk
+ * and CS2 then takes 5-10 min to come up, while a from-scratch install runs 30-45 min.
+ *
+ * The grace window has to outlast that. It used to be 4 min for snapshots, so a
+ * server was declared online by age while it was still restoring — and because
+ * 'online' is not a reconciled status, the scheduled pass then stopped watching it
+ * and the readiness flags froze on that false answer for good.
+ */
+const BOOT_GRACE_SNAPSHOT_MS = 45 * 60 * 1000;
+const BOOT_GRACE_FULL_MS = 50 * 60 * 1000;
+const BOOT_TIMEOUT_SNAPSHOT_MS = 60 * 60 * 1000;
+const BOOT_TIMEOUT_FULL_MS = 70 * 60 * 1000;
 
 function toHttpsError(err, fallbackCode) {
   if (err instanceof HttpsError) throw err;
@@ -66,6 +82,9 @@ function applyCors(req, res) {
 function sendApiError(res, err) {
   const code = err instanceof HttpsError ? err.code : 'failed-precondition';
   const message = err && err.message ? String(err.message) : 'Request failed';
+  // Carries the machine-readable part of the failure, so the panel can offer the right
+  // next step instead of matching on the message text.
+  const details = err instanceof HttpsError && err.details ? err.details : null;
   const statusMap = {
     unauthenticated: 401,
     'permission-denied': 403,
@@ -74,7 +93,7 @@ function sendApiError(res, err) {
     'not-found': 404,
   };
   if (!res.headersSent) {
-    res.status(statusMap[code] || 400).json({ ok: false, error: message, code });
+    res.status(statusMap[code] || 400).json({ ok: false, error: message, code, details });
   }
 }
 
@@ -88,7 +107,7 @@ async function isProvisionActive(serverId, tournamentId) {
 
 function snapshotBootGraceMs(gs) {
   const snapshotMode = (gs && gs.provisionMode === 'snapshot') || provider.usesSnapshot();
-  return snapshotMode ? 4 * 60 * 1000 : 25 * 60 * 1000;
+  return snapshotMode ? BOOT_GRACE_SNAPSHOT_MS : BOOT_GRACE_FULL_MS;
 }
 
 function serverAgeMs(gs) {
@@ -98,6 +117,17 @@ function serverAgeMs(gs) {
 function isBootGraceEligible(gs) {
   if (!gs || !gs.ip) return false;
   return serverAgeMs(gs) >= snapshotBootGraceMs(gs);
+}
+
+/**
+ * The UDP game-port check is advisory: it cannot run from Cloud Run without Direct VPC egress,
+ * so a null result means "not verifiable from the backend", never "the server is down".
+ * Writing null to RTDB removes the key, and an absent key reads back as unknown on the client.
+ */
+function udpFlag(value) {
+  if (value === true) return true;
+  if (value === false) return false;
+  return null;
 }
 
 async function assessLaunchReadiness(ip, port, gs) {
@@ -119,7 +149,7 @@ async function assessLaunchReadiness(ip, port, gs) {
     }
   }
 
-  if (!gameUdpOk && (rconOk || portOpen)) {
+  if (gameUdpOk === false && (rconOk || portOpen)) {
     gameUdpOk = await probeGamePortOpen(ip, port, 3);
   }
 
@@ -128,11 +158,11 @@ async function assessLaunchReadiness(ip, port, gs) {
     canLaunch,
     rconOk,
     portOpen,
-    gameUdpOk,
+    gameUdpOk: udpFlag(gameUdpOk),
     bootGrace,
     markedReady,
     pingError: ping.error || null,
-    playerConnectOk: gameUdpOk,
+    playerConnectOk: udpFlag(gameUdpOk),
   };
 }
 
@@ -163,7 +193,9 @@ async function pollRconUntilReady(serverId, tournamentId, ip) {
           status: 'online',
           rconReady: true,
           portReady: true,
-          gameUdpOk: !!gameUdpOk,
+          gameUdpOk: udpFlag(gameUdpOk),
+          readyReason: 'rcon',
+          readyVerified: true,
         });
         return;
       }
@@ -171,10 +203,12 @@ async function pollRconUntilReady(serverId, tournamentId, ip) {
       if (snapshot && consecutivePortOpen >= 12) {
         if (!(await isProvisionActive(serverId, tournamentId))) return;
         await rtdb.writeGameServer(String(serverId), {
-          status: gameUdpOk ? 'online' : 'udp_blocked',
+          status: 'online',
           rconReady: false,
           portReady: true,
-          gameUdpOk: !!gameUdpOk,
+          gameUdpOk: udpFlag(gameUdpOk),
+          readyReason: 'port',
+          readyVerified: true,
         });
         return;
       }
@@ -242,7 +276,7 @@ async function checkServerCore({ serverId, tournamentId, quick }) {
 
     const ageMs = Date.now() - Number(gs.createdAt || 0);
     const snapshotMode = gs.provisionMode === 'snapshot' || provider.usesSnapshot();
-    const bootGraceMs = snapshotMode ? 4 * 60 * 1000 : 25 * 60 * 1000;
+    const bootGraceMs = snapshotMode ? BOOT_GRACE_SNAPSHOT_MS : BOOT_GRACE_FULL_MS;
 
     if (!gs.ip) {
       return {
@@ -251,6 +285,9 @@ async function checkServerCore({ serverId, tournamentId, quick }) {
         status: gs.status || 'provisioning',
         rconOk: false,
         portReady: false,
+        readyVerified: false,
+        provisionMode: snapshotMode ? 'snapshot' : 'full',
+        bootGraceMs,
         bootAgeMs: ageMs,
       };
     }
@@ -268,6 +305,10 @@ async function checkServerCore({ serverId, tournamentId, quick }) {
         status: gs.status || 'booting',
         rconOk: gs.rconReady === true,
         portReady: gs.portReady === true || gs.status === 'online' || gs.status === 'udp_blocked',
+        readyVerified: gs.readyVerified === true,
+        readyReason: gs.readyReason || null,
+        provisionMode: snapshotMode ? 'snapshot' : 'full',
+        bootGraceMs,
         gameUdpOk: gs.gameUdpOk,
         playerConnectOk: gs.gameUdpOk,
         bootAgeMs: ageMs,
@@ -282,15 +323,27 @@ async function checkServerCore({ serverId, tournamentId, quick }) {
     ]);
     let status = gs.status || 'booting';
 
+    // RCON or an open TCP 27015 is the source of truth for "the server is up".
+    // The UDP result is attached as advisory data and never downgrades the status.
     async function markOnline(rconReady, reason) {
-      status = gameUdpOk ? 'online' : 'udp_blocked';
+      status = 'online';
       await rtdb.writeGameServer(String(serverId), {
         status,
         rconReady: !!rconReady,
         portReady: true,
-        gameUdpOk: !!gameUdpOk,
+        gameUdpOk: udpFlag(gameUdpOk),
         readyReason: reason || null,
+        // 'boot_grace' means nothing answered and we stopped waiting, so the panel
+        // must not present it as a confirmed, connectable server.
+        readyVerified: reason === 'rcon' || reason === 'port',
       });
+      // Los jugadores no leen gameServers: si el puerto de juego quedó cerrado,
+      // el aviso solo les llega por el cruce.
+      if (udpFlag(gameUdpOk) !== null && gs.tournamentId && gs.matchId) {
+        await rtdb.writeTournamentLiveMatch(gs.tournamentId, gs.matchId, {
+          gameUdpOk: udpFlag(gameUdpOk),
+        });
+      }
     }
 
     if (ping.ok) {
@@ -302,7 +355,7 @@ async function checkServerCore({ serverId, tournamentId, quick }) {
       await markOnline(false, 'boot_grace');
       console.log('[checkServer]', serverId, ip, 'boot grace elapsed', ageMs, 'ms udp=', gameUdpOk);
     } else {
-      const timeoutMs = snapshotMode ? 12 * 60 * 1000 : 45 * 60 * 1000;
+      const timeoutMs = snapshotMode ? BOOT_TIMEOUT_SNAPSHOT_MS : BOOT_TIMEOUT_FULL_MS;
       if (ageMs > timeoutMs && status !== 'online') {
         status = 'rcon_timeout';
         await rtdb.writeGameServer(String(serverId), { status: 'rcon_timeout' });
@@ -312,7 +365,7 @@ async function checkServerCore({ serverId, tournamentId, quick }) {
     const isReady = status === 'online' || status === 'udp_blocked';
     const stillInstalling = ageMs < bootGraceMs && !ping.ok && !portOpen;
     let connectHint = null;
-    if (!gameUdpOk && !stillInstalling) {
+    if (gameUdpOk === false && !stillInstalling) {
       connectHint =
         'CS2 game port (UDP 27015) is not reachable from the internet. ' +
         'If CS2 is running on the server, run: bash /usr/local/bin/open-cs2-ports.sh as root, ' +
@@ -327,8 +380,12 @@ async function checkServerCore({ serverId, tournamentId, quick }) {
       status: stillInstalling ? (gs.status || 'booting') : status,
       rconOk: ping.ok,
       portReady: isReady || portOpen || ping.ok,
-      gameUdpOk,
-      playerConnectOk: gameUdpOk,
+      readyVerified: ping.ok || portOpen,
+      provisionMode: snapshotMode ? 'snapshot' : 'full',
+      bootGraceMs,
+      gameUdpOk: udpFlag(gameUdpOk),
+      udpVerifiable: udpProbeEnabled(),
+      playerConnectOk: udpFlag(gameUdpOk),
       readyByAge: isReady && !ping.ok && !portOpen,
       bootAgeMs: ageMs,
       stillInstalling,
@@ -340,6 +397,86 @@ async function checkServerCore({ serverId, tournamentId, quick }) {
     console.error('[checkServerCore]', err);
     throw new HttpsError('failed-precondition', err.message || 'Server check failed');
   }
+}
+
+// Statuses that still need to converge to a final answer. Legacy records may sit on
+// 'udp_blocked', which no longer exists as an outcome but must still be healed.
+const RECONCILE_STATUSES = new Set(['provisioning', 'booting', 'rcon_timeout', 'udp_blocked']);
+const RECONCILE_MAX_AGE_MS = 120 * 60 * 1000;
+const RECONCILE_MAX_SERVERS = 6;
+
+/**
+ * A server marked online by age alone has never actually answered anything, so it has
+ * not converged yet and must stay in the pass. Otherwise it leaves the reconciled set
+ * the moment it is guessed to be up and its readiness flags freeze on that guess —
+ * which is what happens to every record written before readyVerified existed.
+ */
+function needsReconcile(gs) {
+  const status = String(gs.status || '');
+  if (RECONCILE_STATUSES.has(status)) return true;
+  if (status !== 'online') return false;
+  if (gs.readyVerified === true || gs.rconReady === true) return false;
+  return true;
+}
+
+async function reconcileServer(serverId, gs) {
+  let ip = String(gs.ip || '').trim();
+
+  // provisionServerCore can be killed before the IP reaches RTDB; recover it from the provider.
+  if (!ip) {
+    const server = await provider.getServer(serverId, gs.provider);
+    ip = String((server && server.public_net && server.public_net.ipv4 && server.public_net.ipv4.ip) || '').trim();
+    if (!ip) return { serverId: String(serverId), status: gs.status || 'provisioning', note: 'no_ip_yet' };
+    await rtdb.writeGameServer(String(serverId), {
+      status: 'booting',
+      ip,
+      port: CS2_GAME_PORT,
+      error: null,
+    });
+    if (gs.tournamentId) {
+      await rtdb.writeTournament(gs.tournamentId, { serverIp: ip, serverPort: CS2_GAME_PORT });
+    }
+  }
+
+  const result = await checkServerCore({ serverId: String(serverId) });
+  return {
+    serverId: String(serverId),
+    status: result.status,
+    rconOk: result.rconOk,
+    portReady: result.portReady,
+  };
+}
+
+/**
+ * pollRconUntilReady is fired without await so provision can answer before the 504 window,
+ * but Cloud Run freezes CPU as soon as the response is sent, so that loop rarely survives the
+ * 5-9 minutes it needs. This scheduled pass owns the readiness flags instead: it runs with a
+ * full CPU allocation and keeps probing until every server reaches a final status.
+ */
+async function reconcileServersCore() {
+  const snap = await admin.database().ref('gameServers').once('value');
+  const all = snap.val() || {};
+
+  const pending = Object.keys(all)
+    .map((id) => ({ id, gs: all[id] || {} }))
+    .filter(({ gs }) => needsReconcile(gs))
+    .filter(({ gs }) => serverAgeMs(gs) < RECONCILE_MAX_AGE_MS)
+    .sort((a, b) => serverAgeMs(b.gs) - serverAgeMs(a.gs))
+    .slice(0, RECONCILE_MAX_SERVERS);
+
+  const results = [];
+  for (let i = 0; i < pending.length; i += 1) {
+    const { id, gs } = pending[i];
+    try {
+      results.push(await reconcileServer(id, gs));
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+      console.error('[reconcileServers]', id, message);
+      results.push({ serverId: String(id), error: message });
+    }
+  }
+
+  return { checked: results.length, results };
 }
 
 async function resumeProvisionCore({ serverId, tournamentId }) {
@@ -369,12 +506,27 @@ async function resumeProvisionCore({ serverId, tournamentId }) {
   };
 }
 
+/**
+ * Slot GSLT libre para este cruce, o error si el torneo ya va al máximo.
+ * El reparto vive en lib/concurrency.js; aquí solo se lee el torneo y se
+ * traduce el "no cabe" al error que ve el panel.
+ */
+async function resolveSlot(tournamentId, matchId, requested, action) {
+  const tournament = await rtdb.getTournament(tournamentId);
+  const result = concurrency.plan(tournament, matchId, requested);
+  if (!result.allowed) {
+    throw new HttpsError('failed-precondition', concurrency.blockedMessage(result, action));
+  }
+  return result.slot;
+}
+
 async function provisionServerCore({ tournamentId, matchId, gsltIndex = 0, location }) {
   if (!tournamentId || !matchId) {
     throw new HttpsError('invalid-argument', 'tournamentId and matchId required');
   }
 
-  const gsltKey = gsltIndex === 1 ? 'GSLT_SERVER_2' : 'GSLT_SERVER_1';
+  const slot = await resolveSlot(tournamentId, matchId, gsltIndex, 'levantar otro servidor');
+  const gsltKey = slot === 1 ? 'GSLT_SERVER_2' : 'GSLT_SERVER_1';
   const gslt = process.env[gsltKey] || process.env.GSLT_SERVER_1 || '';
   if (!String(gslt).trim()) {
     throw new HttpsError(
@@ -395,7 +547,7 @@ async function provisionServerCore({ tournamentId, matchId, gsltIndex = 0, locat
   const cloudProvider = provider.activeProviderName();
   const server = await provider.createServer({
     name,
-    labels: { tournamentId, matchId, gslt: String(gsltIndex) },
+    labels: { tournamentId, matchId, gslt: String(slot) },
     location: location || undefined,
   });
 
@@ -403,6 +555,7 @@ async function provisionServerCore({ tournamentId, matchId, gsltIndex = 0, locat
     status: 'provisioning',
     tournamentId,
     matchId,
+    gsltIndex: slot,
     provider: cloudProvider,
     region: server.region || location || null,
     cloudServerId: server.id,
@@ -410,8 +563,14 @@ async function provisionServerCore({ tournamentId, matchId, gsltIndex = 0, locat
     provisionMode: server.provisionMode || (provider.usesSnapshot() ? 'snapshot' : 'full'),
     createdAt: Date.now(),
   });
+  // Primary pointer for older clients; per-match slot lives under liveMatches.
   await rtdb.writeTournament(tournamentId, {
     activeServerId: String(server.id),
+  });
+  await rtdb.writeTournamentLiveMatch(tournamentId, matchId, {
+    status: 'provisioning',
+    serverId: String(server.id),
+    gsltIndex: slot,
   });
 
   await finishProvision(server.id, tournamentId, matchId);
@@ -423,6 +582,7 @@ async function provisionServerCore({ tournamentId, matchId, gsltIndex = 0, locat
     ok: true,
     serverId: server.id,
     name: server.name,
+    gsltIndex: slot,
     status: gs.status || 'provisioning',
     ip: gs.ip || null,
     error: gs.error || null,
@@ -434,17 +594,37 @@ async function provisionServerCore({ tournamentId, matchId, gsltIndex = 0, locat
   };
 }
 
-async function launchMatchCore({ tournamentId, matchId, map = 'de_mirage', serverId, teamIds }) {
+async function launchMatchCore({
+  tournamentId,
+  matchId,
+  map = 'de_mirage',
+  serverId,
+  teamIds,
+  startingSide,
+  allowUnlockedRosters,
+}) {
   if (!tournamentId || !matchId) {
     throw new HttpsError('invalid-argument', 'tournamentId and matchId required');
   }
 
   const tournament = await rtdb.getTournament(tournamentId);
+
+  // Mismo tope que al levantar servidor: en modo servidor único no se arranca
+  // un segundo cruce aunque alguien tenga una VM suelta a mano.
+  const room = concurrency.plan(tournament, matchId, 0);
+  if (!room.allowed) {
+    throw new HttpsError('failed-precondition', concurrency.blockedMessage(room, 'lanzar este cruce'));
+  }
+
   let ip = tournament?.serverIp;
   const cloudServerId = serverId || tournament?.activeServerId;
 
   if (!cloudServerId || !(await rtdb.gameServerExists(String(cloudServerId)))) {
-    if (tournamentId) await rtdb.clearTournamentServerFields(tournamentId);
+    // Limpiar el torneo entero solo si no queda otra partida en pie: en modo
+    // dos servidores el otro cruce sigue en vivo y se quedaría sin IP.
+    if (tournamentId && !room.busy.length) {
+      await rtdb.clearTournamentServerFields(tournamentId);
+    }
     throw new HttpsError(
       'failed-precondition',
       'No active game server. The server was shut down — click Provision Server to create a new one.'
@@ -515,10 +695,34 @@ async function launchMatchCore({ tournamentId, matchId, map = 'de_mirage', serve
     matchId,
     map,
     teamIds: teamIds || [],
+    startingSide,
   });
-  if (matchBuild.ok && matchBuild.config) {
-    await matchzy.storeMatchConfig(tournamentId, matchId, matchBuild.config);
+
+  // A roster that cannot be locked is what produced the wedged launch: MatchZy does not
+  // know where the unlinked players belong, so they end up choosing a side by hand.
+  // Refused by default and reported by name, but the Commander can still override.
+  if (matchBuild.ok && !matchBuild.rostersLocked && allowUnlockedRosters !== true) {
+    const missing = []
+      .concat(matchBuild.missingSteam.team1 || [])
+      .concat(matchBuild.missingSteam.team2 || []);
+    const who = missing.length ? missing.join(', ') : 'ningun jugador tiene Steam vinculado';
+    throw new HttpsError(
+      'failed-precondition',
+      'No puedo asignar los equipos: falta vincular Steam a ' + who + '. '
+      + 'Sin eso el servidor no sabe a que equipo pertenecen y pueden acabar en el bando contrario.',
+      {
+        reason: 'rosters_unlocked',
+        missing,
+        team1: matchBuild.team1Name || null,
+        team2: matchBuild.team2Name || null,
+      }
+    );
   }
+
+  if (matchBuild.ok && matchBuild.config) {
+    await matchzy.storeMatchConfig(tournamentId, matchId, matchBuild.config, matchBuild.steamMap);
+  }
+  const chosenSide = matchBuild.startingSide || matchzy.resolveSide(startingSide);
 
   const matchToken = process.env.WEBHOOK_SECRET || process.env.MATCH_CONFIG_TOKEN || '';
   const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'studiosgamesrs';
@@ -551,19 +755,42 @@ async function launchMatchCore({ tournamentId, matchId, map = 'de_mirage', serve
     rconError = err.message;
   }
 
+  const launchedAt = Date.now();
+  // active* stays the "primary" slot for older clients; liveMatches lets two
+  // cruces run on two servers without overwriting each other.
   await rtdb.writeTournament(tournamentId, {
     status: rconOk ? 'en_vivo' : 'pendiente',
     activeMatchId: rconOk ? matchId : null,
+    activeServerId: cloudServerId || null,
     activeMap: rconOk ? map : null,
+    serverIp: ip,
+    serverPort: port,
+  });
+
+  await rtdb.writeTournamentLiveMatch(tournamentId, matchId, {
+    status: rconOk ? 'live' : 'starting',
+    serverId: cloudServerId || null,
+    serverIp: ip,
+    serverPort: port,
+    map,
+    startingSide: chosenSide,
+    startedAt: launchedAt,
+    rconOk,
+    // Los jugadores no pueden leer gameServers, así que el aviso de puerto de
+    // juego bloqueado viaja por el cruce o no les llega nunca.
+    gameUdpOk: readiness.gameUdpOk === false ? false : true,
   });
 
   await rtdb.writeMatchLive(matchId, {
     status: rconOk ? 'live' : 'starting',
     tournamentId,
     map,
+    startingSide: chosenSide,
     serverIp: ip,
     serverPort: port,
-    startedAt: Date.now(),
+    serverId: cloudServerId || null,
+    startedAt: launchedAt,
+    durationSeconds: 0,
     rconOk,
     rconError,
     launchMode,
@@ -582,6 +809,9 @@ async function launchMatchCore({ tournamentId, matchId, map = 'de_mirage', serve
     launchMode,
     matchzy: matchBuild.ok,
     matchzyHint: matchBuild.reason || null,
+    startingSide: chosenSide,
+    sideWasDrawn: matchBuild.sideRequest === 'random',
+    rostersLocked: matchBuild.rostersLocked === true,
     gameUdpOk: readiness.gameUdpOk,
     playerConnectOk: readiness.playerConnectOk,
     manualConnect: !rconOk,
@@ -592,6 +822,48 @@ async function launchMatchCore({ tournamentId, matchId, map = 'de_mirage', serve
   };
 }
 
+/**
+ * Apagar un servidor libera su cruce, pero no el torneo entero: en modo dos
+ * servidores la otra partida sigue en vivo y los espectadores siguen mirando.
+ * Sin esto, el cruce apagado quedaría marcado como vivo para siempre y en modo
+ * servidor único ya no se podría lanzar el siguiente.
+ */
+async function releaseServerMatches(tournamentId, serverId) {
+  const tournament = await rtdb.getTournament(tournamentId);
+  const live = (tournament && tournament.liveMatches) || {};
+  const mine = Object.keys(live).filter(
+    (mid) => String((live[mid] || {}).serverId || '') === String(serverId)
+  );
+
+  for (const mid of mine) {
+    const current = live[mid] || {};
+    await rtdb.writeTournamentLiveMatch(tournamentId, mid, {
+      status: current.status === 'finished' ? 'finished' : 'stopped',
+      stoppedAt: Date.now(),
+    });
+  }
+
+  const survivors = concurrency
+    .busyMatchIds(tournament, null)
+    .filter((mid) => mine.indexOf(mid) === -1);
+
+  if (!survivors.length) {
+    await rtdb.clearTournamentServerFields(tournamentId);
+    return { released: mine, survivors: [] };
+  }
+
+  // Queda partida en pie: los punteros de nivel torneo apuntan a la que sigue viva.
+  const next = live[survivors[0]] || {};
+  await rtdb.writeTournament(tournamentId, {
+    activeServerId: next.serverId || null,
+    serverIp: next.serverIp || null,
+    serverPort: next.serverPort || null,
+    activeMap: next.map || null,
+    activeMatchId: survivors[0],
+  });
+  return { released: mine, survivors };
+}
+
 async function shutdownServerCore({ serverId, tournamentId }) {
   if (!serverId) throw new HttpsError('invalid-argument', 'serverId required');
 
@@ -600,7 +872,7 @@ async function shutdownServerCore({ serverId, tournamentId }) {
   const providerHint = gs.provider || provider.activeProviderName();
 
   if (tournamentId) {
-    await rtdb.clearTournamentServerFields(tournamentId);
+    await releaseServerMatches(tournamentId, serverId);
   }
   await rtdb.removeGameServer(String(serverId));
 
@@ -787,12 +1059,16 @@ exports.cs2MatchConfig = onRequest(
           matchId,
           map: req.query.map || 'de_mirage',
           teamIds: [],
+          startingSide: req.query.side,
         });
         if (!built.ok || !built.config) {
           res.status(404).json({ error: built.reason || 'Match config not found' });
           return;
         }
         config = built.config;
+        // Persist it so match_end can still map SteamIDs back to Nexus accounts
+        // when MatchZy pulled the config through this fallback path.
+        await matchzy.storeMatchConfig(tournamentId, matchId, config, built.steamMap);
       }
       res.set('Cache-Control', 'no-store');
       res.status(200).json(config);
@@ -812,6 +1088,16 @@ exports.cs2ListServers = onCall(
       return { servers };
     } catch (err) {
       toHttpsError(err);
+    }
+  }
+);
+
+exports.cs2ReconcileServers = onSchedule(
+  { schedule: 'every 1 minutes', timeoutSeconds: 540, memory: '512MiB', retryCount: 0 },
+  async () => {
+    const summary = await reconcileServersCore();
+    if (summary.checked > 0) {
+      console.log('[cs2ReconcileServers]', JSON.stringify(summary));
     }
   }
 );

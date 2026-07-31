@@ -44,11 +44,22 @@
     return (err && err.message) ? err.message : fallback;
   }
 
-  function canOrganize(userData) {
-    if (state.deps && state.deps.canOrganize) return state.deps.canOrganize(userData);
+  /**
+   * Debe coincidir con el .write de `tournaments/{id}` en database.rules.json y con
+   * COMMANDER_RANKS en functions/cs2-nexus/index.js. Si aquí falta un rango, el botón
+   * no responde aunque la base de datos sí acepte la escritura.
+   */
+  var ORGANIZER_RANKS = ['commander', 'divisional_commander', 'boss_of_the_state'];
+
+  function rankCanOrganize(userData) {
     if (!userData || !userData.rango) return false;
     var r = String(userData.rango).toLowerCase().replace(/\s+/g, '_');
-    return r === 'commander' || r === 'boss_of_the_state';
+    return ORGANIZER_RANKS.indexOf(r) !== -1;
+  }
+
+  function canOrganize(userData) {
+    if (state.deps && state.deps.canOrganize) return state.deps.canOrganize(userData);
+    return rankCanOrganize(userData);
   }
 
   function getUser() {
@@ -662,7 +673,9 @@
       return openCommandCenter(tournamentId);
     },
     refreshCommanderTournaments: refreshCommanderTournamentSelect,
-    ensureCommanderTournamentListLoaded: ensureCommanderTournamentListLoaded
+    ensureCommanderTournamentListLoaded: ensureCommanderTournamentListLoaded,
+    rankCanOrganize: rankCanOrganize,
+    ORGANIZER_RANKS: ORGANIZER_RANKS
   };
 
   global.openTournamentCreationModal = function () {

@@ -55,6 +55,49 @@
   var OVERLAY_WAIT_TRIES = 60;
   var NEXUS_URL = '/nexus';
 
+  // Oro del torneo: el escenario lo pone la wyvern (fuego), así que el acento de
+  // marco, títulos y botón va en dorado para no fundirse con las brasas.
+  var RULES_ACCENT = '#e8b84a';
+
+  /**
+   * Código de conducta del torneo. Las tres primeras salen en grande porque son
+   * las que descalifican; el resto va en letra pequeña al pie.
+   */
+  var TOURNAMENT_RULES = {
+    major: [
+      {
+        icon: 'fa-comment-slash',
+        title: 'Respeto y cero toxicidad',
+        text: 'Prohibidos insultos, discriminación, acoso o lenguaje ofensivo por voz o texto.',
+        sanction: 'Primera falta: partida cancelada y equipo completo descalificado.'
+      },
+      {
+        icon: 'fa-video',
+        title: 'Grabación obligatoria (anti-cheat)',
+        text: 'Todos graban su pantalla con el software de la organización antes de empezar. Al denunciar hay que indicar la ronda exacta al Centinela.',
+        sanction: 'Sin grabación o con ella desactivada: culpable automático y fuera del torneo.'
+      },
+      {
+        icon: 'fa-stopwatch',
+        title: 'Puntualidad: 10 minutos',
+        text: 'Diez minutos de tolerancia desde la hora fijada para estar completos en el servidor.',
+        sanction: 'Equipo incompleto: derrota por default (16 - 0).'
+      }
+    ],
+    fine: [
+      {
+        icon: 'fa-pause-circle',
+        title: 'Pausas técnicas',
+        text: '1 pausa por equipo y mapa (máx. 3 min), avisando por el chat del servidor. El jugador caído vuelve dentro de la pausa o se sigue con el equipo incompleto.'
+      },
+      {
+        icon: 'fa-gavel',
+        title: 'Autoridad del Centinela',
+        text: 'Las decisiones del Centinela o Coordinador durante la partida son definitivas e inapelables.'
+      }
+    ]
+  };
+
   // Igual que en welcome-overlay.js: el sitio se sirve desde cPanel y desde
   // Firebase, pero los .glb y las fotos de fondo viven solo en Firebase.
   var SG_CDN = /studiosgamesrs\.web\.app$/i.test(window.location.hostname)
@@ -96,6 +139,8 @@
     overlayQueue: [],
     overlayOpen: false,
     overlayWaits: 0,
+    rulesWaits: 0,
+    rulesAck: null,
     viewer: null,
     chipEl: null,
     panelEl: null,
@@ -699,6 +744,155 @@
   }
 
   /**
+   * HTML del overlay de reglas del torneo. Función pura.
+   *
+   * Es el mismo escenario que la subida de tramo (foto, brasas, logo y el 3D
+   * arriba): lo que cambia es el cuerpo, con las tres reglas que descalifican en
+   * grande y el resto como letra pequeña.
+   */
+  function buildTournamentRulesHtml(payload) {
+    var data = payload || {};
+    var major = (data.major && data.major.length ? data.major : TOURNAMENT_RULES.major).slice(0, 3);
+    var fine = (data.fine && data.fine.length ? data.fine : TOURNAMENT_RULES.fine);
+    var meta = (data.meta || []).filter(function (m) { return m && m.value; });
+
+    var majorHtml = major.map(function (rule, i) {
+      return '' +
+        '<article class="sg-nexus-rule" style="--sg-nexus-rule-delay:' + (120 + i * 110) + 'ms;">' +
+          '<span class="sg-nexus-rule-index">' + (i + 1) + '</span>' +
+          '<span class="sg-nexus-rule-icon"><i class="fas ' + esc(rule.icon || 'fa-shield-alt') + '"></i></span>' +
+          '<div class="sg-nexus-rule-body">' +
+            '<h3 class="sg-nexus-rule-title">' + esc(rule.title) + '</h3>' +
+            '<p class="sg-nexus-rule-text">' + esc(rule.text) + '</p>' +
+            (rule.sanction
+              ? '<p class="sg-nexus-rule-sanction"><i class="fas fa-exclamation-triangle"></i>' +
+                '<span>' + esc(rule.sanction) + '</span></p>'
+              : '') +
+          '</div>' +
+        '</article>';
+    }).join('');
+
+    var fineHtml = fine.length
+      ? '<ul class="sg-nexus-rules-fine">' + fine.map(function (rule) {
+          return '<li><i class="fas ' + esc(rule.icon || 'fa-circle') + '"></i>' +
+            '<span><strong>' + esc(rule.title) + ':</strong> ' + esc(rule.text) + '</span></li>';
+        }).join('') + '</ul>'
+      : '';
+
+    var metaHtml = meta.length
+      ? '<div class="sg-nexus-rules-meta">' + meta.map(function (m) {
+          return '<span class="sg-nexus-rules-chip">' +
+            (m.icon ? '<i class="fas ' + esc(m.icon) + '"></i>' : '') +
+            '<span class="sg-nexus-rules-chip-label">' + esc(m.label || '') + '</span>' +
+            '<strong>' + esc(m.value) + '</strong></span>';
+        }).join('') + '</div>'
+      : '';
+
+    return '' +
+      '<div class="sg-nexus-overlay-backdrop">' +
+        '<div class="sg-nexus-overlay-photo"></div>' +
+        '<div class="sg-nexus-overlay-ember"></div>' +
+        '<canvas class="sg-nexus-overlay-embers"></canvas>' +
+      '</div>' +
+      '<div class="sg-nexus-overlay-box" role="dialog" aria-label="Reglas del torneo">' +
+        '<button type="button" class="sg-nexus-overlay-close" aria-label="Cerrar">&times;</button>' +
+        '<img class="sg-nexus-overlay-logo" src="' + LOGO_SRC + '" alt="StudiosGamesRS" ' +
+          'onerror="this.onerror=null;this.src=\'' + LOGO_CDN + '\';" />' +
+        '<div class="sg-nexus-overlay-stage">' +
+          '<div class="sg-nexus-overlay-glow"></div>' +
+          '<canvas class="sg-nexus-overlay-canvas"></canvas>' +
+          '<div class="sg-nexus-overlay-loading">Invocando…</div>' +
+        '</div>' +
+        '<p class="sg-nexus-overlay-kicker">' + esc(data.kicker || 'Reglas del torneo') + '</p>' +
+        '<h2 class="sg-nexus-overlay-level sg-nexus-rules-title">' +
+          esc(data.title || 'Código de conducta') + '</h2>' +
+        (data.tournamentName
+          ? '<p class="sg-nexus-overlay-tier">' + esc(data.tournamentName) + '</p>' : '') +
+        '<p class="sg-nexus-overlay-tagline">' +
+          esc(data.subtitle || 'Léelo una vez antes de conectar. Aplica a todo el roster inscrito.') +
+        '</p>' +
+        metaHtml +
+        '<div class="sg-nexus-rules">' + majorHtml + '</div>' +
+        fineHtml +
+        '<button type="button" class="sg-nexus-overlay-btn">' +
+          esc(data.buttonText || 'Entendido, entrar al torneo') + '</button>' +
+      '</div>';
+  }
+
+  /**
+   * La wyvern es la que recibe a los jugadores del torneo. Si el visor no la
+   * tiene cargada se cae al personaje del tramo más alto, que es el que más se
+   * le parece en presencia.
+   */
+  function rulesCharacter() {
+    var chars = (window.SGCreatureViewer && window.SGCreatureViewer.CHARACTERS) || null;
+    if (chars && chars['wyvern-dragon'] && chars['wyvern-dragon'].clips &&
+      chars['wyvern-dragon'].clips.roar) {
+      return { characterId: 'wyvern-dragon', clip: 'roar' };
+    }
+    return pickCharacter(7);
+  }
+
+  /**
+   * Overlay de reglas, una sola vez por torneo y jugador. Quien decide si ya se
+   * vio es la página que lo llama (localStorage + `rulesAck` en RTDB): aquí solo
+   * se garantiza que no se pise con una celebración de nivel ni con el overlay
+   * de bienvenida, y que el "visto" se confirme al cerrar de cualquier forma.
+   */
+  function showTournamentRules(payload, onAck) {
+    if (!document || !document.createElement) return null;
+    if (state.overlayOpen || welcomeOverlayVisible()) {
+      if (state.rulesWaits >= OVERLAY_WAIT_TRIES) return null;
+      state.rulesWaits += 1;
+      setTimeout(function () { showTournamentRules(payload, onAck); }, OVERLAY_WAIT_MS);
+      return null;
+    }
+
+    state.rulesWaits = 0;
+    state.overlayOpen = true;
+    state.rulesAck = (typeof onAck === 'function') ? onAck : null;
+
+    var pick = rulesCharacter();
+    var el = document.createElement('div');
+    el.id = 'sgNexusLevelOverlay';
+    el.className = 'sg-nexus-overlay sg-nexus-overlay-rules';
+    if (el.style && el.style.setProperty) {
+      el.style.setProperty('--sg-nexus-tier', (payload && payload.accent) || RULES_ACCENT);
+    }
+    el.innerHTML = buildTournamentRulesHtml(payload);
+    (document.body || document.documentElement).appendChild(el);
+
+    var theme = applyAmbience(el, pick);
+    state.embers = startEmbers(el, theme);
+
+    function ackAndClose() {
+      var ack = state.rulesAck;
+      state.rulesAck = null;
+      if (ack) {
+        try { ack(); } catch (e) { /* el "visto" es best effort */ }
+      }
+      closeLevelOverlay();
+    }
+
+    if (typeof el.querySelector === 'function') {
+      ['.sg-nexus-overlay-close', '.sg-nexus-overlay-backdrop', '.sg-nexus-overlay-btn']
+        .forEach(function (sel) {
+          var node = el.querySelector(sel);
+          if (node && node.addEventListener) node.addEventListener('click', ackAndClose);
+        });
+    }
+
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(function () { if (el.classList) el.classList.add('is-open'); });
+    } else if (el.classList) {
+      el.classList.add('is-open');
+    }
+
+    mountViewer(el, pick);
+    return el;
+  }
+
+  /**
    * Personaje y clip de la celebración, en escalada: el gólem recibe a los
    * primeros tramos, el soldado toma la posta a media tabla y la wyvern queda
    * para los tres últimos, que empiezan justo en LEYENDA (nivel 70, el tramo
@@ -843,6 +1037,7 @@
   function closeLevelOverlay() {
     var el = document.getElementById('sgNexusLevelOverlay');
     if (el && el.classList) el.classList.remove('is-open');
+    state.rulesAck = null;
     if (state.viewer && typeof state.viewer.pause === 'function') {
       try { state.viewer.pause(); } catch (e) {}
     }
@@ -1539,6 +1734,11 @@
     // Editor avanzado del Commander Panel: lanza el overlay real con
     // cualquier nivel/personaje/animación/texto/recompensas de prueba.
     previewLevelOverlay: previewLevelOverlay,
+    // Bienvenida al torneo: mismo escenario que la subida de tramo, con la
+    // wyvern y el código de conducta. La página que lo llama decide si ya se vio.
+    showTournamentRules: showTournamentRules,
+    buildTournamentRulesHtml: buildTournamentRulesHtml,
+    tournamentRules: TOURNAMENT_RULES,
     // Constructores de HTML: puros, sin tocar el DOM.
     buildXpToastHtml: buildXpToastHtml,
     buildLevelToastHtml: buildLevelToastHtml,

@@ -15,6 +15,20 @@ async function writeMatchLive(matchId, data) {
   });
 }
 
+async function writeTournamentLiveMatch(tournamentId, matchId, data) {
+  if (!tournamentId || !matchId) return;
+  await db.ref(`tournaments/${tournamentId}/liveMatches/${matchId}`).update({
+    ...data,
+    updatedAt: Date.now(),
+  });
+}
+
+async function getTournamentLiveMatch(tournamentId, matchId) {
+  if (!tournamentId || !matchId) return null;
+  const snap = await db.ref(`tournaments/${tournamentId}/liveMatches/${matchId}`).once('value');
+  return snap.val() || null;
+}
+
 async function writeTournament(tournamentId, data) {
   await db.ref(`tournaments/${tournamentId}`).update({
     ...data,
@@ -65,6 +79,8 @@ async function writeBracketMatch(tournamentId, matchId, data) {
 module.exports = {
   db,
   writeMatchLive,
+  writeTournamentLiveMatch,
+  getTournamentLiveMatch,
   writeTournament,
   writeGameServer,
   removeGameServer,

@@ -84,7 +84,7 @@
       },
       {
         "comment": "cleanUrls sirve /dashboard sin extension, asi que la regla de *.html no lo alcanza y el HTML quedaba cacheado con versiones viejas de js/css.",
-        "source": "/@(login|dashboard|playzone|community|nexus|competition-hub|commander-panel|steam-callback|steam-login-handler|steam_bridge)",
+        "source": "/@(login|dashboard|playzone|community|nexus|competition-hub|tournament-details|commander-panel|steam-callback|steam-login-handler|steam_bridge)",
         "headers": [
           {
             "key": "Cache-Control",

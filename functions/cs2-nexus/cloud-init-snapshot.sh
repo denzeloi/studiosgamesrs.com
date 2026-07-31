@@ -35,6 +35,30 @@ elif [ -x /root/install-plugins.sh ]; then
   bash /root/install-plugins.sh "$CS2_DIR" "$CS2_USER" "$RCON_PASS" || true
 fi
 
+# The snapshot carries a prebuilt NexusBridge.dll and the branch above usually
+# takes the fix-metamod path, which never runs install-plugins.sh. Without this
+# rebuild a plugin change would never reach a snapshot-booted server. Runs before
+# cs2-server.service starts, so CS2 loads the fresh DLL on first boot.
+if [ -f /root/NexusBridgePlugin.cs ] && command -v dotnet >/dev/null 2>&1; then
+  echo "[snapshot] Rebuilding NexusBridge from cloud-init source"
+  NEXUS_SRC="/root/nexus-bridge-build"
+  NEXUS_OUT="/tmp/nexus-out"
+  NEXUS_DEST="${CS2_DIR}/addons/counterstrikesharp/plugins/NexusBridge"
+  mkdir -p "$NEXUS_SRC"
+  cp /root/NexusBridgePlugin.cs "$NEXUS_SRC/"
+  if [ -f /root/NexusBridge.csproj ]; then
+    cp /root/NexusBridge.csproj "$NEXUS_SRC/"
+  fi
+  if (cd "$NEXUS_SRC" && dotnet build -c Release -o "$NEXUS_OUT" >/dev/null 2>&1); then
+    mkdir -p "$NEXUS_DEST"
+    cp "$NEXUS_OUT/NexusBridge.dll" "$NEXUS_DEST/"
+    chown -R "${CS2_USER}:${CS2_USER}" "$NEXUS_DEST" 2>/dev/null || true
+    echo "[snapshot] NexusBridge rebuilt ($(date -u +%H:%M:%SZ))"
+  else
+    echo "[snapshot] WARN: NexusBridge rebuild failed — keeping the snapshot DLL"
+  fi
+fi
+
 mkdir -p "$CS2_DIR/cfg" /etc/cs2-nexus /var/lib/cs2-nexus
 
 # Allow CS2 game traffic (UDP + TCP) and SSH before enabling host firewall.

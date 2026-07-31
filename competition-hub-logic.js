@@ -96,9 +96,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 getUser: function () { return currentUser; },
                 getUserData: function () { return currentUserData; },
                 canOrganize: function (ud) {
-                    if (!ud || !ud.rango) return false;
-                    var r = String(ud.rango).toLowerCase().replace(/\s+/g, '_');
-                    return r === 'commander' || r === 'boss_of_the_state';
+                    return SGTournamentOrganizer.rankCanOrganize(ud);
                 },
                 sanitizeText: sanitizeText,
                 notify: function (type, msg) { showNotification(msg, type === 'error' ? 'error' : 'success'); },
@@ -287,6 +285,10 @@ async function loadTeamDashboard(teamId, currentUserId) {
 
         // Fill Team Info widget (founded, founder, wins/losses, nivel, verificación) con datos reales
         populateTeamInfoWidget(teamData, teamId);
+
+        // Para todo el roster, no solo el capitán: es su única puerta de entrada
+        // a la sala del torneo desde el hub.
+        loadRegisteredTournaments(teamId);
 
         // Fondo personalizado del panel del equipo (banner en el encabezado; se oscurece hacia
         // abajo para que el roster y los botones sigan legibles con cualquier imagen).
@@ -1273,15 +1275,19 @@ function renderTournaments(tournaments, container) {
             const isRegistered = myTeamId && tournament.registeredTeams && tournament.registeredTeams[myTeamId];
             
             if (isRegistered) {
-                actionButtonHTML = `<button class="view-tournament-btn" style="background: #4caf50; cursor: default;"><i class="fas fa-check"></i> Registered</button>`;
+                actionButtonHTML = `<a class="view-tournament-btn" style="background: #4caf50; color:#000; text-decoration:none; display:inline-flex; align-items:center; gap:6px;" href="/tournament-details?id=${encodeURIComponent(tournament.id)}"><i class="fas fa-broadcast-tower"></i> Ir al torneo</a>`;
             } else {
                 // Botón para ir a detalles e inscribirse
                 actionButtonHTML = `<button class="view-tournament-btn" onclick="window.location.href='tournament-details.html?id=${tournament.id}'">Join Now</button>`;
             }
         }
-        // 3. Si está EN VIVO -> "Ver Partida" (Watch)
+        // 3. Si está EN VIVO -> "Watch Live", salvo que juegue mi equipo
         else if (activeView === 'active') {
-             actionButtonHTML = `<button class="view-tournament-btn" style="background: #e53935;" onclick="window.location.href='tournament-details.html?id=${tournament.id}'"><i class="fas fa-eye"></i> Watch Live</button>`;
+            const myTeamId = currentUserData?.teamId;
+            const iAmPlaying = myTeamId && tournament.registeredTeams && tournament.registeredTeams[myTeamId];
+            actionButtonHTML = iAmPlaying
+                ? `<a class="view-tournament-btn" style="background: #4caf50; color:#000; text-decoration:none; display:inline-flex; align-items:center; gap:6px;" href="/tournament-details?id=${encodeURIComponent(tournament.id)}"><i class="fas fa-broadcast-tower"></i> Entrar a mi partida</a>`
+                : `<button class="view-tournament-btn" style="background: #e53935;" onclick="window.location.href='tournament-details.html?id=${tournament.id}'"><i class="fas fa-eye"></i> Watch Live</button>`;
         }
         // 4. Si está FINALIZADO -> "Ver Resultados"
         else {
@@ -3720,8 +3726,9 @@ window.acceptTournamentInvite = async function(teamId, tournamentId, tournamentN
     if (!confirm('¿Inscribir a tu equipo en «' + safeName + '»? Esta acción confirma la participación en el torneo.')) return;
 
     if (!currentUser || !teamId) return;
-    const teamSnap = await firebase.database().ref(`teams/${teamId}/captain`).once('value');
-    if (teamSnap.val() !== currentUser.uid) {
+    const teamSnap = await firebase.database().ref(`teams/${teamId}`).once('value');
+    const team = teamSnap.val() || {};
+    if (team.captain !== currentUser.uid) {
         showNotification('Solo el capitán del equipo puede aceptar invitaciones a torneos.', 'error');
         return;
     }
@@ -3730,19 +3737,145 @@ window.acceptTournamentInvite = async function(teamId, tournamentId, tournamentN
     if (acceptBtn) { acceptBtn.disabled = true; acceptBtn.textContent = 'Inscribiendo…'; }
 
     try {
-        const updates = {};
-        updates[`tournaments/${tournamentId}/registeredTeams/${teamId}`] = true;
+        // Se guarda una foto de quién estaba en el roster al aceptar: así el
+        // torneo sabe que entran los 5/6, no solo el capitán que pulsó el botón,
+        // y tournament-details puede distinguir jugador de espectador.
+        const snapshot = window.SGTournamentRoster
+            ? await window.SGTournamentRoster.snapshotFor(teamId, team)
+            : null;
+
+        const updates = window.SGTournamentRoster
+            ? window.SGTournamentRoster.registrationUpdates(tournamentId, teamId, snapshot)
+            : { [`tournaments/${tournamentId}/registeredTeams/${teamId}`]: true };
         updates[`tournamentInvites/${teamId}/${tournamentId}`] = null;
+        // Aviso para el resto del roster: ellos no ven la sección de
+        // invitaciones (es solo del capitán) y hasta ahora no se enteraban de
+        // nada. Con esto el overlay les ofrece el enlace directo a la sala.
+        updates[`tournamentRegistrations/${teamId}/${tournamentId}`] = {
+            tournamentName: tournamentName || 'Torneo',
+            acceptedBy: (currentUserData && currentUserData.nick) || 'el capitán',
+            acceptedAt: Date.now()
+        };
 
         await firebase.database().ref().update(updates);
 
-        showNotification('¡Equipo inscrito en «' + safeName + '»!', 'success');
+        const size = snapshot ? snapshot.size : 0;
+        const pending = snapshot ? Math.max(0, snapshot.size - snapshot.steamReady) : 0;
+        let msg = '¡Equipo inscrito en «' + safeName + '»!';
+        if (size) msg += ' Entran ' + size + ' jugador' + (size === 1 ? '' : 'es') + ' del roster.';
+        // Sin Steam vinculado MatchZy no puede colocar al jugador en su equipo,
+        // así que el capitán se entera ahora y no el día del partido.
+        if (pending) {
+            msg += ' Faltan ' + pending + ' por vincular Steam antes de jugar.';
+        }
+        // 'warning' no tiene estilo propio en el hub; el aviso de Steam se ve
+        // con detalle en la tarjeta que queda fijada abajo.
+        showNotification(msg, 'success');
+        // La tarjeta con el enlace a la sala la pinta loadRegisteredTournaments
+        // en cuanto RTDB refleja la escritura de arriba, y sigue ahí al recargar.
+        if (window.SGWelcomeOverlay && window.SGWelcomeOverlay.markTournamentRegistrationSeen) {
+            window.SGWelcomeOverlay.markTournamentRegistrationSeen(currentUser.uid, teamId, tournamentId);
+        }
 
     } catch (error) {
         console.error("Error joining tournament:", error);
         showNotification('No se pudo inscribir: ' + (error.message || 'Error desconocido'), 'error');
         if (acceptBtn) { acceptBtn.disabled = false; acceptBtn.textContent = 'Aceptar e inscribir'; }
     }
+}
+
+/**
+ * Torneos en los que el equipo ya está inscrito, con el enlace directo a la
+ * sala. Va en su propia sección (no en la de invitaciones, que es solo del
+ * capitán y se repinta entera cada vez que cambia una invitación) para que
+ * cualquier miembro del roster tenga a mano por dónde entrar, también al
+ * recargar la página días después.
+ */
+function loadRegisteredTournaments(teamId) {
+    const section = document.getElementById('tournamentActiveSection');
+    const listContainer = document.getElementById('tournamentActiveList');
+    if (!section || !listContainer || !teamId) return;
+
+    firebase.database().ref(`tournamentRegistrations/${teamId}`).on('value', (snapshot) => {
+        const entries = snapshot.val() || {};
+        const ids = Object.keys(entries);
+        if (!ids.length) {
+            section.style.display = 'none';
+            listContainer.innerHTML = '';
+            return;
+        }
+
+        section.style.display = 'block';
+        // Lo más reciente arriba: normalmente es el torneo que se está jugando.
+        ids.sort((a, b) => (entries[b].acceptedAt || 0) - (entries[a].acceptedAt || 0));
+        listContainer.innerHTML = '';
+        ids.forEach((tournamentId) => {
+            const card = document.createElement('div');
+            card.className = 'sg-tour-registered-card';
+            card.id = `tour-registered-${tournamentId}`;
+            renderRegisteredTournamentCard(card, teamId, tournamentId, entries[tournamentId] || {});
+            listContainer.appendChild(card);
+        });
+    }, () => { /* el usuario salió del equipo entre listeners: ignorar */ });
+}
+
+function renderRegisteredTournamentCard(card, teamId, tournamentId, entry) {
+    const safeName = sanitizeText(entry.tournamentName || 'Torneo');
+    const safeBy = sanitizeText(entry.acceptedBy || 'el capitán');
+    const href = '/tournament-details?id=' + encodeURIComponent(tournamentId);
+
+    card.innerHTML =
+        '<div class="sg-tour-registered-head">' +
+        '<i class="fas fa-check-circle"></i>' +
+        '<strong>' + safeName + '</strong>' +
+        '<span class="sg-tour-registered-status" data-role="status">Inscritos</span>' +
+        '</div>' +
+        '<p class="sg-tour-registered-sub">Aceptado por <strong>' + safeBy + '</strong>. ' +
+        'Todo el roster entra por aquí.</p>' +
+        '<div data-role="chips"></div>' +
+        '<div class="sg-tour-captain-actions">' +
+        '<a class="sg-tour-btn sg-tour-btn-primary" href="' + href + '">' +
+        '<i class="fas fa-broadcast-tower"></i> Ir al torneo</a>' +
+        '</div>';
+
+    // Estado y roster se leen del torneo: así la tarjeta dice si ya está en
+    // vivo y a quién le falta vincular Steam antes de que empiece.
+    firebase.database().ref(`tournaments/${tournamentId}`).once('value').then((snap) => {
+        const t = snap.val();
+        if (!t) return;
+        const statusEl = card.querySelector('[data-role="status"]');
+        const status = String(t.status || '').toLowerCase();
+        if (statusEl) {
+            if (status === 'en_vivo' || status === 'active' || status === 'live') {
+                statusEl.textContent = 'EN VIVO';
+                statusEl.classList.add('is-live');
+            } else if (status === 'finalizado' || status === 'finished' || status === 'completed') {
+                statusEl.textContent = 'Finalizado';
+                statusEl.classList.add('is-done');
+            } else if (t.schedule) {
+                statusEl.textContent = new Date(t.schedule).toLocaleString('es-ES', {
+                    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                });
+            }
+        }
+
+        const roster = (t.registeredRosters || {})[teamId];
+        const players = window.SGTournamentRoster ? window.SGTournamentRoster.playersOf(roster) : [];
+        if (!players.length) return;
+        const chipsEl = card.querySelector('[data-role="chips"]');
+        if (!chipsEl) return;
+        const pending = players.filter((p) => p.steam === false).length;
+        chipsEl.innerHTML =
+            '<div class="sg-tour-roster-chips">' + players.map((p) => {
+                return '<span class="sg-tour-roster-chip' + (p.steam === false ? ' is-warn' : '') + '">' +
+                    '<i class="fab fa-steam"></i>' + sanitizeText(p.nick) +
+                    (p.role === 'Captain' ? ' <b>(C)</b>' : '') + '</span>';
+            }).join('') + '</div>' +
+            (pending
+                ? '<p class="sg-tour-registered-warn"><i class="fas fa-exclamation-triangle"></i> ' +
+                  pending + ' sin Steam vinculado: el servidor no puede asignarlos a su equipo.</p>'
+                : '');
+    }).catch(() => {});
 }
 
 /**

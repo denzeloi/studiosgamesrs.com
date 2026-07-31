@@ -27,6 +27,14 @@
   var SENTINEL_REPORTS_PATH = 'security/sentinelReports';
   var PRESENCE_PATH = 'tournamentPresence';
   var AUDIT_PATH = 'security/auditLog';
+  var LAST_TOURNAMENT_LS_KEY = 'sg.cwr.lastTournamentId';
+
+  function lsGetLastTournament() {
+    try { return localStorage.getItem(LAST_TOURNAMENT_LS_KEY) || null; } catch (e) { return null; }
+  }
+  function lsSetLastTournament(tid) {
+    try { localStorage.setItem(LAST_TOURNAMENT_LS_KEY, tid); } catch (e) {}
+  }
 
   // Un espectador se considera presente si dio señal en los últimos 90 s.
   var PRESENCE_TTL_MS = 90 * 1000;
@@ -348,6 +356,7 @@
   }
 
   function refreshAll() {
+    renderActiveBanner();
     renderStatusStrip();
     renderServer();
     renderFleet();
@@ -381,6 +390,7 @@
       renderStatusStrip();
       renderLiveHealth();
       renderSpectators();
+      renderServerEta();
     }, 1000);
   }
 
@@ -452,10 +462,15 @@
     select.value = current;
   }
 
-  /** Prioriza el torneo en vivo; si no hay, el siguiente programado. */
+  /** Recuerda el último torneo elegido; si no aplica, prioriza el en vivo, si no, el siguiente programado. */
   function autoSelectTournament() {
     var ids = keys(state.tournamentList);
     if (!ids.length) return;
+    var remembered = lsGetLastTournament();
+    if (remembered && state.tournamentList[remembered]) {
+      selectTournament(remembered);
+      return;
+    }
     var live = ids.filter(function (id) { return state.tournamentList[id].status === 'en_vivo'; });
     var pool = live.length ? live : ids.filter(function (id) {
       var st = state.tournamentList[id].status;
@@ -511,6 +526,9 @@
 
     var publicLink = $('cwrPublicLink');
     if (publicLink) publicLink.href = 'tournament-details.html?id=' + encodeURIComponent(tid);
+
+    lsSetLastTournament(tid);
+    renderActiveBanner();
 
     bind('t:tournament', db.ref('tournaments/' + tid), function (snap) {
       state.tournament = snap.val() || null;
@@ -654,7 +672,8 @@
         case 'provisioning': return { key: 'provisioning', label: 'Creando servidor', tone: 'warn' };
         case 'booting': return { key: 'booting', label: 'Servidor arrancando', tone: 'warn' };
         case 'online': return { key: 'ready', label: 'Servidor listo — preparando', tone: 'ok' };
-        case 'udp_blocked': return { key: 'udp', label: 'UDP bloqueado', tone: 'error' };
+        // Estado heredado: se escribía cuando el sondeo UDP fallaba, aunque el servidor estuviera bien.
+        case 'udp_blocked': return { key: 'ready', label: 'Servidor listo — preparando', tone: 'ok' };
         case 'rcon_timeout': return { key: 'rcon', label: 'RCON sin respuesta', tone: 'error' };
         case 'error': return { key: 'error', label: 'Error del servidor', tone: 'error' };
         case 'match_complete': return { key: 'complete', label: 'Partida completada', tone: 'muted' };
@@ -691,6 +710,28 @@
       if (r.status && r.status !== 'open') return false;
       return !tid || !r.tournamentId || r.tournamentId === tid;
     }).length;
+  }
+
+  /** Banner grande y persistente: qué torneo está bajo mando ahora mismo (evita confusiones al probar). */
+  function renderActiveBanner() {
+    var nameEl = $('cwrActiveBannerName');
+    var statusEl = $('cwrActiveBannerStatus');
+    if (!nameEl || !statusEl) return;
+
+    var tid = state.tournamentId;
+    var listed = tid ? state.tournamentList[tid] : null;
+    var t = state.tournament || listed;
+
+    if (!tid || !t) {
+      nameEl.textContent = 'Ninguno seleccionado';
+      statusEl.textContent = '';
+      statusEl.className = 'cwr-active-banner-status';
+      return;
+    }
+
+    nameEl.textContent = (t.name || tid) + '  ·  ID: ' + tid;
+    statusEl.textContent = statusLabel(t.status);
+    statusEl.className = 'cwr-active-banner-status' + (t.status === 'en_vivo' ? ' is-live' : '');
   }
 
   function renderStatusStrip() {
@@ -744,46 +785,183 @@
   // Servidor de juego: toda la información disponible
   // ---------------------------------------------------------------------------
 
-  var SERVER_PIPELINE = [
-    { key: 'requested', label: 'VM solicitada', icon: 'fa-cloud-upload-alt' },
-    { key: 'booting', label: 'Arrancando SO', icon: 'fa-power-off' },
-    { key: 'portReady', label: 'Puerto TCP 27015', icon: 'fa-plug' },
-    { key: 'rconReady', label: 'RCON conectado', icon: 'fa-terminal' },
-    { key: 'gameUdpOk', label: 'UDP de juego', icon: 'fa-satellite-dish' },
-    { key: 'online', label: 'Servidor online', icon: 'fa-check-circle' }
+  // Tres fases en lenguaje llano. El detalle técnico (TCP, RCON, UDP) vive en el desplegable
+  // "Detalles técnicos" y nunca decide si el servidor cuenta como listo.
+  var SERVER_STAGES = [
+    { key: 'preparing', label: 'Preparando', icon: 'fa-cloud-upload-alt' },
+    { key: 'ready', label: 'Listo para conectar', icon: 'fa-plug' },
+    { key: 'live', label: 'Partida en vivo', icon: 'fa-broadcast-tower' }
   ];
 
-  function pipelineStepState(step, srv) {
-    if (!srv) return 'idle';
-    var st = srv.status;
-    switch (step) {
-      case 'requested':
-        return 'done';
-      case 'booting':
-        return (st === 'provisioning') ? 'active' : 'done';
-      case 'portReady':
-        if (srv.portReady) return 'done';
-        return (st === 'booting' || st === 'provisioning') ? 'active' : (st === 'error' ? 'fail' : 'idle');
-      case 'rconReady':
-        if (srv.rconReady) return 'done';
-        if (st === 'rcon_timeout') return 'fail';
-        return srv.portReady ? 'active' : 'idle';
-      case 'gameUdpOk':
-        if (srv.gameUdpOk) return 'done';
-        if (st === 'udp_blocked') return 'fail';
-        return srv.rconReady ? 'active' : 'idle';
-      case 'online':
-        if (st === 'online') return 'done';
-        if (st === 'error') return 'fail';
-        return 'idle';
-      default:
-        return 'idle';
+  /**
+   * RCON o el puerto TCP 27015 abierto bastan para dar el servidor por operativo.
+   * El sondeo UDP no puede ejecutarse desde Cloud Run, así que jamás se usa como condición.
+   */
+  function serverIsReachable(srv) {
+    if (!srv) return false;
+    return srv.status === 'online'
+      || srv.status === 'udp_blocked'
+      || srv.rconReady === true
+      || srv.portReady === true;
+  }
+
+  /**
+   * "Alcanzable" no es lo mismo que "confirmado". El backend puede marcar un
+   * servidor como online solo por antigüedad (readyReason 'boot_grace') sin que
+   * nada haya respondido. Solo RCON o el puerto de juego comprobados cuentan, y
+   * hasta entonces el reloj de espera sigue visible.
+   */
+  function serverReadyVerified(srv) {
+    if (!srv) return false;
+    if (srv.rconReady === true) return true;
+    if (srv.readyVerified === true) return true;
+    if (srv.readyVerified === false) return false;
+    // Registros creados antes de que existiera readyVerified.
+    return srv.readyReason === 'rcon' || srv.readyReason === 'port';
+  }
+
+  // Tiempos reales: Vultr tarda 20-40 min en restaurar el disco del snapshot y CS2
+  // arranca en 5-10 mas; una instalacion desde cero son 30-45 min.
+  var BOOT_ESTIMATES = {
+    snapshot: { minMs: 25 * 60000, maxMs: 50 * 60000, restoreMs: 20 * 60000 },
+    full: { minMs: 30 * 60000, maxMs: 45 * 60000, restoreMs: 0 }
+  };
+
+  function bootMode(srv) {
+    return srv && srv.provisionMode === 'full' ? 'full' : 'snapshot';
+  }
+
+  function bootWindowText(srv) {
+    var est = BOOT_ESTIMATES[bootMode(srv)];
+    return 'entre ' + Math.round(est.minMs / 60000) + ' y ' + Math.round(est.maxMs / 60000) + ' minutos';
+  }
+
+  function computeServerStage() {
+    var srv = state.server;
+    var live = state.live;
+    var t = state.tournament || {};
+    var ageMs = srv && srv.createdAt ? (Date.now() - num(srv.createdAt)) : 0;
+    var mins = Math.max(0, Math.floor(ageMs / 60000));
+
+    if (!srv && !t.serverIp) {
+      return {
+        stage: 'preparing',
+        tone: 'idle',
+        icon: 'fa-server',
+        title: 'Sin servidor asignado',
+        detail: isCommander()
+          ? 'Pulsa "Crear servidor" para levantar una VM. Tarda ' + bootWindowText(null) + '.'
+          : 'El Commander aún no ha levantado el servidor de esta partida.'
+      };
     }
+
+    if (srv && srv.status === 'error') {
+      return {
+        stage: 'preparing',
+        tone: 'fail',
+        icon: 'fa-triangle-exclamation',
+        title: 'El servidor falló al crearse',
+        detail: srv.error ? String(srv.error) : 'Apaga la VM y vuelve a crear el servidor.'
+      };
+    }
+
+    if (live && live.status === 'live') {
+      return {
+        stage: 'live',
+        tone: 'live',
+        icon: 'fa-broadcast-tower',
+        title: 'Partida en vivo',
+        detail: live.currentRound == null
+          ? 'En calentamiento. La ronda 1 empieza cuando los equipos estén listos.'
+          : 'Ronda ' + live.currentRound + ' · CT ' + num(live.scoreCT) + ' — ' + num(live.scoreT) + ' T'
+      };
+    }
+
+    if (live && live.status === 'finished') {
+      return {
+        stage: 'live',
+        tone: 'done',
+        icon: 'fa-flag-checkered',
+        title: 'Partida terminada',
+        detail: 'Falta cerrar el cruce en el cuadro para avanzar al ganador.'
+      };
+    }
+
+    if (serverIsReachable(srv)) {
+      var ip = (srv && srv.ip) || t.serverIp;
+      var port = (srv && srv.port) || t.serverPort || 27015;
+
+      if (serverReadyVerified(srv)) {
+        var how = (srv && srv.rconReady === true)
+          ? 'RCON responde correctamente.'
+          : 'Puerto de juego abierto (RCON todavía no responde, pero la partida se puede lanzar).';
+        return {
+          stage: 'ready',
+          tone: 'done',
+          icon: 'fa-circle-check',
+          title: 'Servidor listo para conectar',
+          detail: how + (ip ? ' Los jugadores ya pueden entrar a ' + ip + ':' + port + '.' : '')
+        };
+      }
+
+      // Marcado listo por antigüedad, sin que nada respondiera: la barra no avanza.
+      return {
+        stage: 'preparing',
+        tone: 'active',
+        icon: 'fa-hourglass-half',
+        title: 'Esperando respuesta del servidor',
+        detail: 'La VM existe y ya pasó el margen de arranque, pero ni RCON ni el puerto de juego '
+          + 'contestan todavía · ' + mins + ' min. Pulsa "Comprobar" para forzar una verificación.'
+      };
+    }
+
+    if (srv && srv.status === 'rcon_timeout') {
+      return {
+        stage: 'preparing',
+        tone: 'fail',
+        icon: 'fa-triangle-exclamation',
+        title: 'El servidor no arrancó a tiempo',
+        detail: 'Llevaba ' + mins + ' min sin responder. Pulsa "Comprobar" para reintentar, o apágalo y crea otro.'
+      };
+    }
+
+    if (srv && srv.status === 'provisioning') {
+      return {
+        stage: 'preparing',
+        tone: 'active',
+        icon: 'fa-cloud-upload-alt',
+        title: 'Creando la máquina en la nube',
+        detail: 'Esperando a que el proveedor asigne la IP · ' + mins + ' min.'
+      };
+    }
+
+    return {
+      stage: 'preparing',
+      tone: 'active',
+      icon: 'fa-hourglass-half',
+      title: 'Arrancando CS2',
+      detail: 'Preparando el juego y los plugins del torneo · ' + mins + ' min. '
+        + 'Lo normal son ' + bootWindowText(srv) + '; se comprueba solo cada minuto.'
+    };
+  }
+
+  function stageStepState(stepKey, current) {
+    var order = ['preparing', 'ready', 'live'];
+    var at = order.indexOf(current.stage);
+    var mine = order.indexOf(stepKey);
+    if (mine < at) return 'done';
+    if (mine > at) return 'idle';
+    if (current.tone === 'fail') return 'fail';
+    if (current.tone === 'idle') return 'idle';
+    if (current.tone === 'active') return 'active';
+    return 'done';
   }
 
   function renderServer() {
+    renderServerMode();
     renderConnectPanel();
     renderServerPipeline();
+    renderServerTech();
     renderServerGrid();
     renderLiveBlock();
     renderLiveHealth();
@@ -831,14 +1009,139 @@
   function renderServerPipeline() {
     var box = $('cwrServerPipeline');
     if (!box) return;
-    var srv = state.server;
-    box.innerHTML = SERVER_PIPELINE.map(function (step) {
-      var st = pipelineStepState(step.key, srv);
+    var current = computeServerStage();
+
+    var track = SERVER_STAGES.map(function (step) {
+      var st = stageStepState(step.key, current);
       return '<div class="cwr-step cwr-step-' + st + '">' +
         '<i class="fas ' + step.icon + '"></i>' +
         '<span>' + esc(step.label) + '</span>' +
       '</div>';
     }).join('<div class="cwr-step-sep"></div>');
+
+    box.innerHTML =
+      '<div class="cwr-stage cwr-stage-' + current.tone + '">' +
+        '<i class="fas ' + current.icon + ' cwr-stage-icon"></i>' +
+        '<div class="cwr-stage-body">' +
+          '<div class="cwr-stage-title">' + esc(current.title) + '</div>' +
+          '<div class="cwr-stage-detail">' + esc(current.detail) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div id="cwrServerEta"></div>' +
+      '<div class="cwr-pipeline">' + track + '</div>';
+
+    renderServerEta();
+  }
+
+  function fmtClock(ms) {
+    var total = Math.max(0, Math.floor(ms / 1000));
+    var mm = Math.floor(total / 60);
+    var ss = total % 60;
+    return (mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss;
+  }
+
+  function etaPhaseLabel(srv, mode, elapsedMs) {
+    if (!srv || !srv.ip) return 'Creando la máquina y asignando la IP';
+    if (mode === 'full') return 'Instalando CS2, Metamod y los plugins del torneo';
+    if (elapsedMs < BOOT_ESTIMATES.snapshot.restoreMs) return 'Restaurando el disco del snapshot en Vultr';
+    return 'Arrancando CS2 y cargando los plugins';
+  }
+
+  /**
+   * Reloj de espera. Solo desaparece cuando el servidor responde de verdad, nunca
+   * porque se haya cumplido un plazo. Lo repinta el ticker cada segundo.
+   */
+  function renderServerEta() {
+    var box = $('cwrServerEta');
+    if (!box) return;
+
+    var srv = state.server;
+    var live = state.live;
+    var hidden = !srv
+      || !srv.createdAt
+      || srv.status === 'error'
+      || serverReadyVerified(srv)
+      || (live && (live.status === 'live' || live.status === 'finished'));
+
+    if (hidden) {
+      if (box.innerHTML) box.innerHTML = '';
+      return;
+    }
+
+    var mode = bootMode(srv);
+    var est = BOOT_ESTIMATES[mode];
+    var elapsed = Date.now() - num(srv.createdAt);
+    var pct = Math.max(2, Math.min(100, Math.round((elapsed / est.maxMs) * 100)));
+    var toMin = est.minMs - elapsed;
+    var toMax = est.maxMs - elapsed;
+    var late = toMax <= 0;
+
+    var remaining;
+    if (late) {
+      remaining = 'Ya pasó de los ' + Math.round(est.maxMs / 60000) +
+        ' min habituales — pulsa "Comprobar", y si sigue así apágalo y crea otro';
+    } else if (toMin <= 0) {
+      remaining = 'Debería estar listo en cualquier momento (máximo ~' +
+        Math.max(1, Math.round(toMax / 60000)) + ' min)';
+    } else {
+      remaining = 'Quedan entre ~' + Math.max(1, Math.round(toMin / 60000)) +
+        ' y ~' + Math.max(1, Math.round(toMax / 60000)) + ' min';
+    }
+
+    box.innerHTML =
+      '<div class="cwr-eta' + (late ? ' cwr-eta-late' : '') + '">' +
+        '<div class="cwr-eta-head">' +
+          '<i class="fas ' + (late ? 'fa-triangle-exclamation' : 'fa-hourglass-half') + '"></i>' +
+          '<span class="cwr-eta-phase">' + esc(etaPhaseLabel(srv, mode, elapsed)) + '</span>' +
+          '<span class="cwr-eta-clock">' + esc(fmtClock(elapsed)) + '</span>' +
+        '</div>' +
+        '<div class="cwr-eta-bar"><i style="width:' + pct + '%"></i></div>' +
+        '<div class="cwr-eta-foot">' +
+          '<span>' + esc(remaining) + '</span>' +
+          '<span class="cwr-eta-mode">' +
+            (mode === 'snapshot' ? 'Arranque por snapshot' : 'Instalación completa') +
+          '</span>' +
+        '</div>' +
+      '</div>';
+  }
+
+  var TECH_CHECKS = [
+    { key: 'portReady', label: 'Puerto TCP 27015', icon: 'fa-plug' },
+    { key: 'rconReady', label: 'RCON', icon: 'fa-terminal' },
+    { key: 'gameUdpOk', label: 'UDP de juego', icon: 'fa-satellite-dish' }
+  ];
+
+  function renderServerTech() {
+    var box = $('cwrServerTech');
+    if (!box) return;
+    var srv = state.server;
+    if (!srv) {
+      box.innerHTML = '<p class="cwr-empty">Sin datos de servidor todavía.</p>';
+      return;
+    }
+
+    box.innerHTML = TECH_CHECKS.map(function (check) {
+      var value = srv[check.key];
+      var st = 'idle';
+      var text = 'Sin comprobar';
+      if (value === true) {
+        st = 'done';
+        text = 'OK';
+      } else if (value === false) {
+        st = 'fail';
+        text = 'Sin respuesta';
+      } else if (check.key === 'gameUdpOk') {
+        // El backend corre en Cloud Run, que no puede emitir UDP saliente sin Direct VPC egress.
+        text = 'No verificable desde el panel';
+      }
+      return '<div class="cwr-step cwr-step-' + st + '">' +
+        '<i class="fas ' + check.icon + '"></i>' +
+        '<span>' + esc(check.label) + ': ' + esc(text) + '</span>' +
+      '</div>';
+    }).join('') +
+      '<p class="cwr-hint"><i class="fas fa-info-circle"></i> El estado del servidor se decide por RCON o por el ' +
+      'puerto TCP. La comprobación UDP no puede ejecutarse desde el backend, así que es solo informativa y ' +
+      'nunca bloquea el arranque de una partida.</p>';
   }
 
   var SERVER_FIELD_LABELS = {
@@ -855,7 +1158,8 @@
     lastMatchId: 'Última partida',
     rconReady: 'RCON listo',
     portReady: 'Puerto TCP abierto',
-    gameUdpOk: 'UDP de juego OK',
+    gameUdpOk: 'UDP de juego (informativo)',
+    readyReason: 'Listo detectado por',
     createdAt: 'Creado',
     updatedAt: 'Última actualización',
     error: 'Último error',
@@ -905,6 +1209,16 @@
   }
 
   function formatServerValue(key, value) {
+    if (key === 'gameUdpOk') {
+      if (value === true) return 'Alcanzable';
+      if (value === false) return 'Sin respuesta';
+      return 'No verificable desde el panel';
+    }
+    if (key === 'readyReason' && value) {
+      if (value === 'rcon') return 'RCON';
+      if (value === 'port') return 'Puerto TCP';
+      return 'Tiempo de arranque';
+    }
     if (value === true) return 'Sí';
     if (value === false) return 'No';
     if (value == null || value === '') return '—';
@@ -918,7 +1232,7 @@
       case 'provisioning': return 'Creando VM';
       case 'booting': return 'Arrancando';
       case 'online': return 'Online';
-      case 'udp_blocked': return 'UDP bloqueado';
+      case 'udp_blocked': return 'Online (UDP sin verificar)';
       case 'rcon_timeout': return 'RCON sin respuesta';
       case 'error': return 'Error';
       case 'match_complete': return 'Partida completada';
@@ -948,12 +1262,16 @@
     var ct = live.scoreCT != null ? live.scoreCT : '—';
     var tt = live.scoreT != null ? live.scoreT : '—';
 
+    // El marcador es por bando (CT/T) y los bandos se cambian en el descanso, asi
+    // que no se puede afirmar que el equipo A sea el CT. Quien gano lo resuelve el
+    // backend cruzando los SteamID del bando ganador con los rosters.
     var html =
       '<div class="cwr-scoreboard">' +
-        '<div class="cwr-score-team">' + esc(nameA) + '<span class="cwr-score-side">CT (team1)</span></div>' +
+        '<div class="cwr-score-team">' + esc(nameA) + '<span class="cwr-score-side">Equipo A</span></div>' +
         '<div class="cwr-score-value">' + esc(ct) + ' <span>:</span> ' + esc(tt) + '</div>' +
-        '<div class="cwr-score-team cwr-score-team-right">' + esc(nameB) + '<span class="cwr-score-side">T (team2)</span></div>' +
+        '<div class="cwr-score-team cwr-score-team-right">' + esc(nameB) + '<span class="cwr-score-side">Equipo B</span></div>' +
       '</div>' +
+      '<p class="cwr-score-caption">Marcador por bando: CT ' + esc(ct) + ' &middot; T ' + esc(tt) + '</p>' +
       '<div class="cwr-info-grid">' +
         infoCell('Estado de la partida', live.status || '—') +
         infoCell('Ronda actual', live.currentRound != null ? live.currentRound : 'Calentamiento') +
@@ -961,13 +1279,22 @@
         infoCell('Último evento', live.lastEvent || '—') +
         infoCell('Recibido', live.lastEventAt ? fmtAgo(live.lastEventAt) : '—') +
         infoCell('Duración', live.durationSeconds ? fmtDuration(live.durationSeconds) : '—') +
-        infoCell('Duración de ronda', live.roundDuration ? fmtDuration(live.roundDuration) : '—') +
-        infoCell('MVP', live.lastMvp || live.mvp || '—') +
+        infoCell('Bandos', sidesLabel(live)) +
+        infoCell('MVP', mvpLabel(live)) +
         infoCell('RCON al lanzar', live.rconOk === true ? 'OK' : (live.rconOk === false ? 'Falló' : '—')) +
         infoCell('Modo de lanzamiento', live.launchMode || '—') +
         infoCell('MatchZy', live.matchzy === true ? 'Sí' : (live.matchzy === false ? 'No' : '—')) +
+        infoCell('Plugin NexusBridge', live.pluginVersion || '—') +
+        infoCell('Bando ganador', live.winnerSide || '—') +
         infoCell('Ganador reportado', live.winnerTeamId ? teamName(live.winnerTeamId) : '—') +
       '</div>';
+
+    if (live.status === 'finished' && !live.winnerTeamId) {
+      html += '<p class="cwr-alert cwr-alert-warn"><i class="fas fa-exclamation-triangle"></i> ' +
+        'La partida terminó pero el sistema no pudo deducir el equipo ganador (' +
+        esc(live.winnerResolution || 'motivo desconocido') +
+        '). Marca el ganador a mano en el cuadro.</p>';
+    }
 
     if (live.matchzyHint) {
       html += '<p class="cwr-hint"><i class="fas fa-lightbulb"></i> ' + esc(live.matchzyHint) + '</p>';
@@ -977,7 +1304,71 @@
     box.innerHTML = html;
   }
 
+  /**
+   * Qué equipo juega de CT y cuál de T ahora mismo. Lo publica el webhook: al
+   * arrancar sale del lado fijado al lanzar y luego se corrige con la plantilla
+   * viva, así que sirve para comprobar de un vistazo que el cambio de mitad se
+   * registró.
+   */
+  function sidesLabel(live) {
+    var byTeam = live && live.sideByTeam;
+    if (!byTeam || typeof byTeam !== 'object') return '—';
+    var ids = Object.keys(byTeam);
+    if (!ids.length) return '—';
+    var ct = ids.filter(function (id) { return byTeam[id] === 'CT'; }).map(teamName);
+    var t = ids.filter(function (id) { return byTeam[id] === 'T'; }).map(teamName);
+    if (!ct.length && !t.length) return '—';
+    return 'CT ' + (ct.join(', ') || '—') + ' · T ' + (t.join(', ') || '—');
+  }
+
+  // El backend manda el MVP final como objeto (nombre, ADR, bajas y si tiene
+  // cuenta vinculada); los eventos de MVP de ronda siguen llegando como texto.
+  function mvpLabel(live) {
+    var mvp = live.mvp;
+    if (mvp && typeof mvp === 'object') {
+      var parts = [mvp.name || 'Sin nombre'];
+      if (mvp.adr != null) parts.push(num(mvp.adr) + ' ADR');
+      if (mvp.kills != null) parts.push(num(mvp.kills) + ' bajas');
+      var label = parts.join(' · ');
+      return mvp.rewardable === false ? label + ' (sin cuenta vinculada)' : label;
+    }
+    if (typeof mvp === 'string' && mvp) return mvp;
+    return live.lastMvp || '—';
+  }
+
+  function renderStatBoard(rows, live) {
+    var mvpUid = live.mvp && typeof live.mvp === 'object' ? live.mvp.uid : null;
+    var mvpName = live.mvp && typeof live.mvp === 'object' ? live.mvp.name : null;
+    var max = rows.reduce(function (acc, r) { return Math.max(acc, num(r.kills)); }, 0) || 1;
+
+    return '<div class="cwr-kills">' +
+      '<div class="cwr-kills-title">Rendimiento por jugador</div>' +
+      '<div class="cwr-stat-head">' +
+        '<span>Jugador</span><span>Bajas</span><span>B/M/A</span><span>ADR</span>' +
+      '</div>' +
+      rows.map(function (r) {
+        var isMvp = (mvpUid && r.uid === mvpUid) || (!mvpUid && mvpName && r.name === mvpName);
+        var unlinked = r.uid ? '' : ' <span class="cwr-stat-unlinked">(sin cuenta)</span>';
+        return '<div class="cwr-stat-row' + (isMvp ? ' cwr-stat-row-mvp' : '') + '">' +
+          '<span class="cwr-kill-name">' + esc(r.name || '—') + unlinked + '</span>' +
+          '<span class="cwr-kill-bar"><i style="width:' +
+            Math.round((num(r.kills) / max) * 100) + '%"></i></span>' +
+          '<span class="cwr-stat-kda">' +
+            num(r.kills) + '/' + num(r.deaths) + '/' + num(r.assists) +
+          '</span>' +
+          '<span class="cwr-stat-adr">' + num(r.adr) + '</span>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+  }
+
   function renderKillsBoard(live) {
+    // El plugin nuevo manda estadisticas completas; el mapa de bajas por nombre
+    // se mantiene como respaldo para servidores con el plugin viejo.
+    if (Array.isArray(live.scoreboard) && live.scoreboard.length) {
+      return renderStatBoard(live.scoreboard, live);
+    }
+
     var kills = live.kills;
     if (!kills || typeof kills !== 'object') return '';
     var rows = Object.keys(kills).map(function (player) {
@@ -2795,26 +3186,124 @@
     return true;
   }
 
+  /**
+   * Un campeonato se puede correr de dos maneras y ninguna es "la buena":
+   * servidor por servidor (una partida viva, retransmitida, y la siguiente
+   * cuando esa acabe) o dos en paralelo para acabar antes. El modo vive en el
+   * torneo; el backend lo hace cumplir, esto es solo el mando.
+   */
+  function serverMode(t) {
+    return String((t && t.serverMode) || 'single').toLowerCase() === 'dual' ? 'dual' : 'single';
+  }
+
+  function concurrencyLimit(t) {
+    return serverMode(t) === 'dual' ? 2 : 1;
+  }
+
+  function busyMatchIds(t, exceptMatchId) {
+    var live = (t && t.liveMatches) || {};
+    return Object.keys(live).filter(function (mid) {
+      if (mid === exceptMatchId) return false;
+      var m = live[mid] || {};
+      return m.status === 'live' || m.status === 'starting' || m.status === 'provisioning';
+    });
+  }
+
+  function nextGsltIndex(t, matchId) {
+    if (concurrencyLimit(t) === 1) return 0;
+    var live = (t && t.liveMatches) || {};
+    var used = busyMatchIds(t, matchId).map(function (mid) {
+      return Number((live[mid] || {}).gsltIndex) || 0;
+    });
+    return used.indexOf(0) === -1 ? 0 : 1;
+  }
+
+  function renderServerMode() {
+    var sel = $('cwrServerMode');
+    var hint = $('cwrServerModeHint');
+    var t = state.tournament;
+    if (!sel) return;
+    var mode = serverMode(t);
+    if (sel.value !== mode) sel.value = mode;
+    sel.disabled = !state.tournamentId || !isCommander();
+    if (!hint) return;
+    var busy = busyMatchIds(t, null).length;
+    hint.textContent = mode === 'dual'
+      ? 'Dos partidas a la vez, una por servidor (' + busy + ' de 2 ocupados). Los espectadores eligen cruce en la sala.'
+      : 'Servidor por servidor: una partida viva a la vez (' + busy + ' de 1 ocupado). La siguiente arranca cuando esa cierre.';
+  }
+
+  function setServerMode(mode) {
+    if (!state.tournamentId) return;
+    var next = mode === 'dual' ? 'dual' : 'single';
+    var busy = busyMatchIds(state.tournament, null);
+    // Bajar a un servidor con dos partidas vivas no cierra ninguna: solo
+    // impediría lanzar la siguiente, y el panel quedaría diciendo algo que no
+    // se cumple. Mejor no dejar el cambio a medias.
+    if (next === 'single' && busy.length > 1) {
+      setMsg('Hay ' + busy.length + ' partidas en curso (' + busy.join(', ') + '). Cierra una antes de volver a modo servidor único.', true);
+      renderServerMode();
+      return;
+    }
+    db.ref('tournaments/' + state.tournamentId + '/serverMode').set(next).then(function () {
+      setMsg(next === 'dual'
+        ? 'Modo dos servidores: puedes levantar un segundo servidor y correr dos cruces a la vez.'
+        : 'Modo servidor único: el torneo corre servidor por servidor, una partida cada vez.');
+      audit('tournament.serverMode', { mode: next });
+    }).catch(function (err) {
+      setMsg(err.message || String(err), true);
+      renderServerMode();
+    });
+  }
+
   function provisionServer() {
     if (!state.tournamentId || !hasTournamentSystem()) return;
-    var matchId = (state.tournament && (state.tournament.currentMatchId || 'r1_m1')) || 'r1_m1';
-    setMsg('Creando servidor en la nube para ' + matchId + '…');
-    global.TournamentSystem.provisionServer(state.tournamentId, matchId, 0).then(function (res) {
-      setMsg('Servidor solicitado: ' + res.serverId + '. Sigue el progreso en la tubería de arranque.');
-      toast('success', 'Servidor en creación.');
-      audit('server.provision', { serverId: String(res.serverId), matchId: matchId });
+    var t = state.tournament || {};
+    var matchId = t.currentMatchId || 'r1_m1';
+    var busy = busyMatchIds(t, matchId);
+    if (busy.length >= concurrencyLimit(t)) {
+      setMsg(serverMode(t) === 'single'
+        ? 'Modo servidor único: ya hay una partida en curso (' + busy.join(', ') + '). Ciérrala o cambia a modo dos servidores.'
+        : 'Los dos servidores ya están ocupados (' + busy.join(', ') + ').', true);
+      return;
+    }
+    var slot = nextGsltIndex(t, matchId);
+    setMsg('Creando servidor en la nube para ' + matchId + ' (slot GSLT ' + slot + ')…');
+    global.TournamentSystem.provisionServer(state.tournamentId, matchId, slot).then(function (res) {
+      var used = res && res.gsltIndex != null ? res.gsltIndex : slot;
+      setMsg('Servidor solicitado: ' + res.serverId + ' · slot ' + used + '. Sigue el progreso en la tubería de arranque.');
+      toast('success', used === 1 ? 'Segundo servidor en creación.' : 'Servidor en creación.');
+      audit('server.provision', { serverId: String(res.serverId), matchId: matchId, gsltIndex: used });
     }).catch(function (err) {
       setMsg(err.message || String(err), true);
     });
   }
 
-  function launchMatch() {
+  /**
+   * 'random' es el reparto por defecto: el sorteo lo hace el servidor, no el navegador.
+   * 'knife' devuelve la decisión al juego, donde cualquier jugador del equipo que gana
+   * puede tomarla (MatchZy no distingue capitanes) y elegir bando a mano rompe el
+   * arranque. Por eso hay que pedirlo a propósito y queda etiquetado.
+   */
+  function sideLabel(side, teamIds) {
+    var a = teamIds && teamIds[0] ? teamName(teamIds[0]) : 'Equipo A';
+    var b = teamIds && teamIds[1] ? teamName(teamIds[1]) : 'Equipo B';
+    if (side === 'knife') return 'bandos por ronda de cuchillo';
+    if (side === 'random') return 'bandos por sorteo';
+    if (side === 'team1_t') return a + ' empieza T, ' + b + ' CT';
+    return a + ' empieza CT, ' + b + ' T';
+  }
+
+  function launchMatch(opts) {
     if (!state.tournamentId || !hasTournamentSystem()) return;
+    var options = opts || {};
     var t = state.tournament || {};
     var matchId = t.currentMatchId || 'r1_m1';
     var match = (t.bracket && t.bracket.matches && t.bracket.matches[matchId]) || null;
     var mapEl = $('cwrLaunchMap');
     var map = (mapEl && mapEl.value) || (match && match.map) || DEFAULT_SCHEDULE.defaultMap;
+    var sideEl = $('cwrLaunchSide');
+    var side = (sideEl && sideEl.value) || 'random';
 
     var teamIds;
     if (match && match.teamA && match.teamA.teamId && match.teamB && match.teamB.teamId) {
@@ -2828,20 +3317,67 @@
       teamIds = teamIds.slice(0, 2);
     }
 
-    var serverId = state.serverId || t.activeServerId;
-    if (!serverId) {
-      setMsg('No hay servidor asignado. Crea uno primero.', true);
+    var busy = busyMatchIds(t, matchId);
+    if (busy.length >= concurrencyLimit(t)) {
+      setMsg(serverMode(t) === 'single'
+        ? 'Modo servidor único: ' + busy.join(', ') + ' sigue en curso. Ciérrala antes de lanzar este cruce, o pasa a modo dos servidores.'
+        : 'Los dos servidores están ocupados (' + busy.join(', ') + '). Cierra una partida antes de lanzar otra.', true);
       return;
     }
 
-    setMsg('Lanzando ' + matchId + ' (' + map + ') con ' + teamName(teamIds[0]) + ' vs ' + teamName(teamIds[1]) + '…');
-    global.TournamentSystem.launchMatch(state.tournamentId, matchId, map, serverId, teamIds).then(function (res) {
-      setMsg('Partida en marcha. Conexión: connect ' + res.serverIp + ':' + (res.port || 27015));
-      toast('success', 'Partida lanzada.');
-      audit('server.launch', { matchId: matchId, map: map, teamIds: teamIds.join(',') });
+    var lm = t.liveMatches && t.liveMatches[matchId];
+    var serverId = (lm && lm.serverId) || state.serverId || t.activeServerId;
+    if (!serverId) {
+      setMsg('No hay servidor asignado. Crea uno primero (en modo dos servidores puedes tener uno por cruce).', true);
+      return;
+    }
+
+    setMsg('Lanzando ' + matchId + ' (' + map + ') con ' + teamName(teamIds[0]) + ' vs ' + teamName(teamIds[1]) +
+      ' · ' + sideLabel(side, teamIds) + '…');
+    global.TournamentSystem.launchMatch(state.tournamentId, matchId, map, serverId, teamIds, side, {
+      allowUnlockedRosters: options.allowUnlockedRosters === true,
+    }).then(function (res) {
+      // El sorteo lo resuelve el servidor, así que el resultado real viene en la respuesta.
+      var applied = sideLabel(res.startingSide || side, teamIds);
+      var drawn = res.sideWasDrawn ? 'Sorteo: ' : '';
+      setMsg(drawn + 'Partida en marcha · ' + applied + '. Conexión: connect ' +
+        res.serverIp + ':' + (res.port || 27015) +
+        (res.rostersLocked === false ? ' · Equipos SIN bloquear.' : ''));
+      toast('success', res.sideWasDrawn ? 'Partida lanzada. ' + applied : 'Partida lanzada.');
+      audit('server.launch', {
+        matchId: matchId,
+        map: map,
+        teamIds: teamIds.join(','),
+        side: res.startingSide || side,
+        drawn: res.sideWasDrawn === true,
+        rostersLocked: res.rostersLocked !== false
+      });
     }).catch(function (err) {
+      if (err && err.details && err.details.reason === 'rosters_unlocked') {
+        promptUnlockedRosters(err.details);
+        return;
+      }
       setMsg(err.message || String(err), true);
     });
+  }
+
+  /**
+   * Sin Steam vinculado el servidor no puede colocar a esos jugadores en su equipo, que
+   * es justo lo que dejó una partida a medias. Se avisa por nombre y el Commander decide.
+   */
+  function promptUnlockedRosters(details) {
+    var missing = (details && details.missing) || [];
+    var list = missing.length ? missing.join(', ') : 'varios jugadores';
+    setMsg('No lanzo todavía: falta vincular Steam a ' + list +
+      '. Sin eso el servidor no sabe a qué equipo pertenecen y pueden acabar en el bando contrario.', true);
+    toast('error', 'Faltan cuentas de Steam por vincular.');
+
+    var go = global.confirm(
+      'Estos jugadores no tienen Steam vinculado:\n\n' + list +
+      '\n\nSi lanzas igual, el servidor no podrá asignarlos a su equipo y tendrán que ' +
+      'colocarse a mano, que es lo que rompió la última partida.\n\n¿Lanzar igual?'
+    );
+    if (go) launchMatch({ allowUnlockedRosters: true });
   }
 
   function checkServer() {
@@ -2856,7 +3392,16 @@
       return;
     }
     setMsg('Comprobando servidor ' + serverId + '…');
-    global.TournamentSystem.checkServer(serverId, state.tournamentId).then(function () {
+    global.TournamentSystem.checkServer(state.tournamentId, serverId).then(function (result) {
+      if (result && result.stillInstalling) {
+        var mins = result.bootAgeMs ? Math.floor(result.bootAgeMs / 60000) : 0;
+        setMsg('CS2 sigue instalándose (' + mins + ' min). Vuelve a comprobar en unos minutos.');
+        return;
+      }
+      if (result && (result.status === 'online' || result.rconOk || result.portReady)) {
+        setMsg('Servidor listo en ' + (result.ip || '') + ':' + (result.port || 27015) + '.');
+        return;
+      }
       setMsg('Comprobación lanzada. Los indicadores se actualizan solos.');
     }).catch(function (err) {
       setMsg(err.message || String(err), true);
@@ -2932,8 +3477,10 @@
     });
 
     // Servidor
+    on('cwrServerMode', 'change', function (e) { setServerMode(e.target.value); });
     on('cwrBtnProvision', 'click', provisionServer);
-    on('cwrBtnLaunch', 'click', launchMatch);
+    // Sin envolver, el handler recibiría el MouseEvent como opciones de lanzamiento.
+    on('cwrBtnLaunch', 'click', function () { launchMatch(); });
     on('cwrBtnCheck', 'click', checkServer);
     on('cwrBtnShutdown', 'click', function () { shutdownServer(null); });
 

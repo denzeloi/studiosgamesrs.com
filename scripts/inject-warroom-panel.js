@@ -17,7 +17,7 @@ const fs = require('fs');
 const path = require('path');
 
 const FILE = path.join(__dirname, '..', 'commander-panel.html');
-const VERSION = '20260729warroom1';
+const VERSION = '20260731dual1';
 
 const CSS_LINK = `  <link rel="stylesheet" href="commander-warroom.css?v=${VERSION}">`;
 const SCRIPT_TAG = `  <script src="/commander-warroom.js?v=${VERSION}"></script>`;
@@ -33,6 +33,15 @@ const SECTION = `
         <p class="commander-comms-intro" id="cwrRoleIntro">
           Centro de mando en vivo: servidor de juego, equipos, calendario inteligente, premios, sentinelas y espectadores.
         </p>
+
+        <div class="cwr-active-banner" id="cwrActiveBanner">
+          <i class="fas fa-crosshairs"></i>
+          <div class="cwr-active-banner-text">
+            <span class="cwr-active-banner-label">Torneo bajo pruebas ahora mismo</span>
+            <span class="cwr-active-banner-name" id="cwrActiveBannerName">Ninguno seleccionado</span>
+          </div>
+          <span class="cwr-active-banner-status" id="cwrActiveBannerStatus"></span>
+        </div>
 
         <div class="cwr-command-bar">
           <div class="cwr-command-field">
@@ -64,15 +73,26 @@ const SECTION = `
           <div class="nexus-widget-header">
             <div class="nexus-widget-icon"><i class="fas fa-server"></i></div>
             <div class="nexus-widget-title">
-              <h3>Servidor de juego &mdash; informaci&oacute;n total</h3>
-              <p>IP en vivo, tuber&iacute;a de arranque, RCON, UDP, mapa y todo lo que publica el backend.</p>
+              <h3>Servidor de juego</h3>
+              <p>En qu&eacute; punto est&aacute; el servidor, la IP para conectarse y el detalle t&eacute;cnico cuando haga falta.</p>
             </div>
             <span class="nexus-widget-badge">Live</span>
           </div>
 
           <div id="cwrConnectPanel"></div>
-          <div class="cwr-pipeline" id="cwrServerPipeline"></div>
+          <div id="cwrServerPipeline"></div>
           <div id="cwrLiveHealth"></div>
+
+          <div class="cwr-server-mode" data-cwr-role="commander">
+            <div class="cwr-server-mode-copy">
+              <span class="cwr-label">C&oacute;mo se corre este campeonato</span>
+              <p id="cwrServerModeHint">Servidor por servidor: una partida viva a la vez.</p>
+            </div>
+            <select id="cwrServerMode" class="cwr-select" style="width:auto;" title="Cu&aacute;ntas partidas puede tener vivas este torneo a la vez.">
+              <option value="single">Un servidor (partidas en fila)</option>
+              <option value="dual">Dos servidores (partidas en paralelo)</option>
+            </select>
+          </div>
 
           <div class="cwr-btn-row" data-cwr-role="commander">
             <select id="cwrLaunchMap" class="cwr-select" style="width:auto;">
@@ -83,6 +103,12 @@ const SECTION = `
               <option value="de_anubis">de_anubis</option>
               <option value="de_dust2">de_dust2</option>
               <option value="de_overpass">de_overpass</option>
+            </select>
+            <select id="cwrLaunchSide" class="cwr-select" style="width:auto;" title="Qui&eacute;n empieza en cada bando. Se decide antes de lanzar, no dentro del juego.">
+              <option value="random">Sorteo de bandos (justo)</option>
+              <option value="team1_ct">Equipo A empieza CT</option>
+              <option value="team1_t">Equipo A empieza T</option>
+              <option value="knife">Ronda de cuchillo (lo deciden en el juego)</option>
             </select>
             <button type="button" class="cwr-btn cwr-btn-primary" id="cwrBtnProvision">
               <i class="fas fa-cloud-upload-alt"></i> Crear servidor
@@ -98,15 +124,25 @@ const SECTION = `
             </button>
           </div>
 
-          <h4 class="cwr-subtitle">Ficha completa del servidor</h4>
-          <div class="cwr-info-grid" id="cwrServerGrid"></div>
+          <details class="cwr-tech">
+            <summary class="cwr-tech-summary">
+              <i class="fas fa-microchip"></i> Detalles t&eacute;cnicos
+            </summary>
+            <div class="cwr-tech-body">
+              <h4 class="cwr-subtitle">Comprobaciones de red</h4>
+              <div class="cwr-pipeline" id="cwrServerTech"></div>
 
-          <div class="cwr-btn-row" data-cwr-role="commander">
-            <button type="button" class="cwr-btn" id="cwrRawToggle">
-              <i class="fas fa-code"></i> Ver JSON crudo del servidor
-            </button>
-          </div>
-          <pre class="cwr-raw-dump" id="cwrRawDump" style="display:none;"></pre>
+              <h4 class="cwr-subtitle">Ficha completa del servidor</h4>
+              <div class="cwr-info-grid" id="cwrServerGrid"></div>
+
+              <div class="cwr-btn-row" data-cwr-role="commander">
+                <button type="button" class="cwr-btn" id="cwrRawToggle">
+                  <i class="fas fa-code"></i> Ver JSON crudo del servidor
+                </button>
+              </div>
+              <pre class="cwr-raw-dump" id="cwrRawDump" style="display:none;"></pre>
+            </div>
+          </details>
         </div>
 
         <!-- Partida en vivo -->

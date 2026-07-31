@@ -2758,9 +2758,7 @@
     }
 
     function commanderCanOrganize(ud) {
-      if (!ud || !ud.rango) return false;
-      var r = String(ud.rango).toLowerCase().replace(/\s+/g, '_');
-      return r === 'commander' || r === 'divisional_commander' || r === 'boss_of_the_state';
+      return window.SGTournamentOrganizer.rankCanOrganize(ud);
     }
 
     window.SGTournamentOrganizer.init({

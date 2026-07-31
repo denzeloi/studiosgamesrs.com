@@ -1118,6 +1118,28 @@ body::before {
     margin-bottom: 20px;
 }
 
+/* Foto + XP/niveles + recompensas en el mismo bloque oscuro, más alto */
+.xp-master-container--unified {
+    padding: 22px 22px 24px;
+    margin-bottom: 0;
+    background: rgba(0, 0, 0, 0.42);
+}
+
+.xp-master-container--unified > .profile-card-top {
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.xp-master-container--unified > .rewards-container {
+    margin-top: 18px;
+    padding-top: 18px;
+}
+
+.nexus-hero-cine .xp-master-container--unified {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
 .xp-labels {
     display: flex;
     justify-content: space-between;

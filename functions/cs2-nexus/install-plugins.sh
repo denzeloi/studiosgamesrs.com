@@ -50,19 +50,23 @@ install_matchzy_configs() {
     echo "[plugins] MatchZy configs copied from /root/matchzy-cfg"
     return 0
   fi
+  # Fallback only, for a VM booted without /root/matchzy-cfg. Must stay in step with
+  # cs2-server/cfg/MatchZy/config.cfg; verify-cs2-matchzy.js compares the two.
   cat > "$dst/config.cfg" << 'MZCFG'
-# MatchZy — Studiosgamesrs Nexus tournament defaults
-matchzy_knife_enabled_default 1
+// MatchZy - Studiosgamesrs Nexus tournament defaults
+matchzy_knife_enabled_default 0
 matchzy_minimum_ready_required 2
 matchzy_stop_command_available 1
-matchzy_pause_after_freezetime_end 0
-matchzy_chat_prefix [{Green}MatchZy{Default}]
-matchzy_demo_path MatchZy
-matchzy_demo_name_format "{TIME}_{MATCHID}_{MAP}_{TEAM1}_vs_{TEAM2}"
-matchzy_use_pause_command 1
 matchzy_whitelist_enabled_default 0
 matchzy_kick_when_no_match_loaded 0
+matchzy_chat_prefix [{Gold}Studiosgamesrs{Default}]
+matchzy_admin_chat_prefix [{Red}Centinela{Default}]
+matchzy_show_credits_on_match_start 0
 matchzy_hostname_format "Studiosgamesrs | {TEAM1} vs {TEAM2}"
+matchzy_match_start_message "{Gold}Studiosgamesrs{Default} - partida oficial en marcha. Mucha suerte."
+matchzy_demo_path Studiosgamesrs/
+matchzy_demo_name_format "{TIME}_{MATCH_ID}_{MAP}_{TEAM1}_vs_{TEAM2}"
+matchzy_use_pause_command_for_tactical_pause false
 MZCFG
   cat > "$dst/warmup.cfg" << 'MZWU'
 mp_freezetime 5

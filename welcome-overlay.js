@@ -1198,7 +1198,20 @@
     overlayEl.querySelector('#sgWelcomeCloseX').addEventListener('click', function () { closeOverlay(); });
     btnEl.addEventListener('click', function () {
       var action = btnEl.getAttribute('data-action');
+      var href = btnEl.getAttribute('data-href');
       closeOverlay();
+      if (action === 'ack-tournament-rules') {
+        try {
+          if (typeof window.__sgOnTournamentRulesAck === 'function') {
+            window.__sgOnTournamentRulesAck();
+          }
+        } catch (e) { /* ignore */ }
+        return;
+      }
+      if (action === 'go-tournament-details' && href) {
+        setTimeout(function () { window.location.href = href; }, 200);
+        return;
+      }
       if (action === 'go-competition-hub') {
         setTimeout(function () { window.location.href = '/competition-hub'; }, 200);
       }
@@ -1306,12 +1319,53 @@
     if (mode === 'tournament-invite') {
       var tName = (payload && payload.tournamentName) || 'un torneo';
       var by = (payload && payload.invitedBy) || 'la organización';
+      var tid = (payload && payload.tournamentId) || '';
       titleEl.textContent = '¡Invitación a Torneo!';
       textEl.innerHTML = 'Tu equipo fue invitado al torneo <strong>' + escapeHtml(tName) + '</strong> por ' +
-        escapeHtml(by) + '. ¡Prepárense para la batalla!';
-      btnEl.textContent = 'Ver torneo';
-      btnEl.setAttribute('data-action', 'go-competition-hub');
+        escapeHtml(by) + '. El capitán debe aceptar en Competition Hub; después todos entran a la sala del torneo.';
+      btnEl.textContent = tid ? 'Ver sala del torneo' : 'Ir a Competition Hub';
+      if (tid) {
+        btnEl.setAttribute('data-action', 'go-tournament-details');
+        btnEl.setAttribute('data-href', '/tournament-details?id=' + encodeURIComponent(tid));
+      } else {
+        btnEl.setAttribute('data-action', 'go-competition-hub');
+        btnEl.removeAttribute('data-href');
+      }
       return { characterId: 'golem-tortoise', clip: 'roar' };
+    }
+    if (mode === 'tournament-registered') {
+      // Este lo ve TODO el roster, no solo el capitán: para el resto es el
+      // primer (y único) aviso de que ya están dentro y por dónde se entra.
+      var rName = (payload && payload.tournamentName) || 'un torneo';
+      var rBy = (payload && payload.acceptedBy) || 'tu capitán';
+      var rid = (payload && payload.tournamentId) || '';
+      titleEl.textContent = '¡Tu equipo está dentro!';
+      textEl.innerHTML = '<strong>' + escapeHtml(rBy) + '</strong> aceptó la invitación al torneo <strong>' +
+        escapeHtml(rName) + '</strong> y tu roster completo quedó inscrito. ' +
+        'En la sala del torneo verás las reglas, el cuadro, el marcador en vivo y la IP del servidor cuando arranque tu partida.';
+      btnEl.textContent = 'Entrar a la sala';
+      if (rid) {
+        btnEl.setAttribute('data-action', 'go-tournament-details');
+        btnEl.setAttribute('data-href', '/tournament-details?id=' + encodeURIComponent(rid));
+      } else {
+        btnEl.setAttribute('data-action', 'go-competition-hub');
+        btnEl.removeAttribute('data-href');
+      }
+      return { characterId: 'wyvern-dragon', clip: 'roar' };
+    }
+    if (mode === 'tournament-rules') {
+      var rules = (payload && payload.rules) || [];
+      var rulesHtml = rules.map(function (r) {
+        return '<div class="sg-welcome-rule"><i class="fas fa-shield-alt"></i><span>' + escapeHtml(r) + '</span></div>';
+      }).join('');
+      titleEl.textContent = (payload && payload.title) || 'Reglas del torneo';
+      textEl.innerHTML = '<p style="margin:0 0 10px;">' +
+        escapeHtml((payload && payload.subtitle) || 'Lee esto antes de conectar. Todos los jugadores del roster deben cumplirlas.') +
+        '</p><div class="sg-welcome-rules">' + rulesHtml + '</div>';
+      btnEl.textContent = 'Entendido, ver el torneo';
+      btnEl.setAttribute('data-action', 'ack-tournament-rules');
+      btnEl.removeAttribute('data-href');
+      return { characterId: 'soldier-specops', clip: 'rifle_pose' };
     }
     if (mode === 'tournament-result') {
       // Todo este payload lo escriben los servidores de partida, así que se
@@ -1536,17 +1590,98 @@
           if (seen[key]) return;
           var v = child.val() || {};
           if (!newest || (v.timestamp || 0) > (newest.ts || 0)) {
-            newest = { key: key, ts: v.timestamp || 0, tournamentName: v.tournamentName, invitedBy: v.invitedBy };
+            newest = {
+              key: key,
+              ts: v.timestamp || 0,
+              tournamentName: v.tournamentName,
+              invitedBy: v.invitedBy,
+              tournamentId: child.key
+            };
           }
         });
         if (!newest) return;
         var isFresh = newest.ts && (Date.now() - newest.ts) < 60 * 60 * 1000;
         invSnap.forEach(function (child) { markInviteSeen(uid, teamId + '_' + child.key); });
         if (isFresh) {
-          showOverlay('tournament-invite', { tournamentName: newest.tournamentName, invitedBy: newest.invitedBy }, 0);
+          showOverlay('tournament-invite', {
+            tournamentName: newest.tournamentName,
+            invitedBy: newest.invitedBy,
+            tournamentId: newest.tournamentId
+          }, 0);
         }
       }, function () { /* permission-denied si el usuario dejó el equipo entre listeners: ignorar */ });
     });
+  }
+
+  // ---------- Trigger 2b: el capitán aceptó, el equipo ya está inscrito ----------
+  // Las invitaciones las gestiona solo el capitán, así que el resto del roster
+  // no se enteraba de nada: ni de que están dentro ni de por dónde se entra.
+  // El capitán escribe tournamentRegistrations/{teamId}/{tid} al aceptar y aquí
+  // se convierte en un aviso con enlace directo a la sala.
+  //
+  // Se marca como visto en users/{uid}/notificationSeen (aguanta cambio de
+  // navegador) y solo se muestra si es reciente, para que al añadir esto no
+  // desfilen las inscripciones viejas de todos los torneos ya jugados.
+  var REGISTRATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+  function getSeenRegistrations(uid) {
+    try {
+      var raw = localStorage.getItem('sgSeenTourRegistrations_' + uid);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  }
+
+  function markRegistrationSeen(uid, db, key, seen) {
+    seen[key] = 1;
+    try { localStorage.setItem('sgSeenTourRegistrations_' + uid, JSON.stringify(seen)); } catch (e) {}
+    db.ref('users/' + uid + '/notificationSeen/tournamentRegistrations/' + key)
+      .set(Date.now()).catch(function () {});
+  }
+
+  /** ¿Estoy ya dentro de la sala de ese torneo? Entonces sobra el aviso. */
+  function isViewingTournament(tid) {
+    var path = window.location.pathname || '';
+    if (!/\/tournament-details(\.html)?(\/|$|\?)/i.test(path)) return false;
+    try {
+      return new URLSearchParams(window.location.search).get('id') === tid;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function listenForTournamentRegistrations(uid, db) {
+    var seen = getSeenRegistrations(uid);
+    db.ref('users/' + uid + '/notificationSeen/tournamentRegistrations').once('value')
+      .then(function (snap) {
+        var remote = snap.val() || {};
+        Object.keys(remote).forEach(function (k) { seen[k] = 1; });
+      }).catch(function () {})
+      .then(function () {
+        db.ref('users/' + uid + '/teamId').on('value', function (teamSnap) {
+          var teamId = teamSnap.val();
+          if (!teamId || typeof teamId !== 'string') return;
+          sgLog('escuchando tournamentRegistrations/' + teamId + '…');
+          db.ref('tournamentRegistrations/' + teamId).on('child_added', function (snap) {
+            var tid = snap.key;
+            var v = snap.val() || {};
+            var key = teamId + '_' + tid;
+            if (seen[key]) return;
+            markRegistrationSeen(uid, db, key, seen);
+            // Avisar de dónde ya estás es ruido: el que abrió la sala del
+            // torneo ya tiene delante el marcador y las reglas.
+            if (isViewingTournament(tid)) return;
+            var at = v.acceptedAt || 0;
+            if (!at || (Date.now() - at) > REGISTRATION_MAX_AGE_MS) return;
+            showOverlay('tournament-registered', {
+              tournamentName: v.tournamentName,
+              acceptedBy: v.acceptedBy,
+              tournamentId: tid
+            }, 0);
+          }, function (err) {
+            sgLog('ERROR leyendo tournamentRegistrations:', err && err.message);
+          });
+        });
+      });
   }
 
   // ---------- Trigger 3: broadcast en vivo (Boss of the State) ----------
@@ -1669,6 +1804,15 @@
       }, 2);
       return true;
     }
+    if (q.indexOf('sgtest=registered') !== -1) {
+      sgLog('modo prueba: forzando aviso de equipo inscrito');
+      showOverlay('tournament-registered', {
+        tournamentName: 'Studiosgamesrs CS2 Open',
+        acceptedBy: 'Zeta',
+        tournamentId: 'demo-player-flow'
+      }, 2);
+      return true;
+    }
     var wantsWelcome = q.indexOf('sgtest=welcome') !== -1 || q.indexOf('sgtest=1') !== -1;
     if (!wantsWelcome) return false;
     sgLog('modo prueba: forzando overlay de bienvenida con premios');
@@ -1696,6 +1840,11 @@
       var db = firebase.database();
       function startTriggers() {
         listenForMatchResults(user.uid, db);
+        // El aviso de "tu equipo ya está inscrito" no puede vivir solo en el
+        // dashboard: el jugador que entra directo al hub o a la sala nunca
+        // pasaba por ahí y no se enteraba. Los guards de visto (localStorage +
+        // notificationSeen) impiden que se repita al cambiar de página.
+        listenForTournamentRegistrations(user.uid, db);
         if (!isDashboardPage()) return;
         checkWelcomeReward(user.uid, db);
         listenForTournamentInvites(user.uid, db);
@@ -1714,5 +1863,20 @@
     bootAuth();
   }
 
-  window.SGWelcomeOverlay = { showOverlay: showOverlay, closeOverlay: closeOverlay };
+  window.SGWelcomeOverlay = {
+    showOverlay: showOverlay,
+    closeOverlay: closeOverlay,
+    showTournamentRules: function (payload, onAck) {
+      if (typeof onAck === 'function') window.__sgOnTournamentRulesAck = onAck;
+      showOverlay('tournament-rules', payload || {}, 0);
+    },
+    // El capitán que acaba de aceptar ya tiene la confirmación delante; no
+    // necesita que el aviso le salte después en el dashboard.
+    markTournamentRegistrationSeen: function (uid, teamId, tournamentId) {
+      if (!uid || !teamId || !tournamentId) return;
+      var key = teamId + '_' + tournamentId;
+      var seen = getSeenRegistrations(uid);
+      markRegistrationSeen(uid, firebase.database(), key, seen);
+    }
+  };
 })();

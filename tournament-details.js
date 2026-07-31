@@ -11,8 +11,20 @@
   var tournamentId = new URLSearchParams(window.location.search).get('id');
   var currentUser = null;
   var isAdmin = false;
+  var isPlayer = false;
+  var playerTeamId = null;
+  var presenceRole = 'spectator';
   var tournamentData = null;
   var liveListener = null;
+  var liveMatchesListener = null;
+  var serverRegistryListener = null;
+  var liveMatches = {};
+  var selectedMatchId = null;
+  var lastLivePayload = null;
+  var durationTickTimer = null;
+  var liveStartedAt = null;
+  var rulesPrompted = false;
+  var rosterBackfillDone = false;
   var activeServerId = null;
   var activeGameServer = null;
   var adminActionsWired = false;
@@ -76,14 +88,31 @@
     return !!(tournamentData && tournamentData.activeServerId);
   }
 
+  function getSelectedLiveMatch() {
+    if (selectedMatchId && liveMatches && liveMatches[selectedMatchId]) {
+      return liveMatches[selectedMatchId];
+    }
+    return null;
+  }
+
   function getServerIp() {
+    var lm = getSelectedLiveMatch();
+    if (lm && lm.serverIp) return lm.serverIp;
+    if (lastLivePayload && lastLivePayload.serverIp) return lastLivePayload.serverIp;
     if (activeGameServer && activeGameServer.ip) return activeGameServer.ip;
     return (tournamentData && tournamentData.serverIp) || null;
   }
 
   function getServerPort() {
+    var lm = getSelectedLiveMatch();
+    if (lm && lm.serverPort) return lm.serverPort;
+    if (lastLivePayload && lastLivePayload.serverPort) return lastLivePayload.serverPort;
     if (activeGameServer && activeGameServer.port) return activeGameServer.port;
     return (tournamentData && tournamentData.serverPort) || 27015;
+  }
+
+  function canSeeConnect() {
+    return !!(isAdmin || isPlayer);
   }
 
   function isServerReady() {
@@ -102,7 +131,7 @@
   }
 
   function shouldShowConnectPanel() {
-    return isMatchLive() && isServerReady();
+    return canSeeConnect() && isMatchLive() && isServerReady();
   }
 
   function copyConnectCommand() {
@@ -123,13 +152,19 @@
     var conn = $('tdConnectInfo');
     if (!conn) return;
 
+    if (!canSeeConnect()) {
+      conn.style.display = 'none';
+      conn.innerHTML = '';
+      return;
+    }
+
     if (!isServerReady()) {
       conn.style.display = 'none';
       conn.innerHTML = '';
       return;
     }
 
-    if (!shouldShowConnectPanel()) {
+    if (!(isMatchLive() && isServerReady())) {
       conn.style.display = 'block';
       conn.innerHTML =
         '<div class="td-connect-wait"><i class="fas fa-hourglass-half"></i> ' +
@@ -139,7 +174,9 @@
 
     var cmd = getConnectCommand();
     var steamUrl = getSteamConnectUrl();
-    var udpBlocked = activeGameServer && activeGameServer.gameUdpOk === false;
+    var lmUdp = getSelectedLiveMatch();
+    var udpBlocked = (lmUdp && lmUdp.gameUdpOk === false) ||
+      (activeGameServer && activeGameServer.gameUdpOk === false);
     conn.style.display = 'block';
     conn.innerHTML =
       (udpBlocked
@@ -491,9 +528,10 @@
   }
 
   function formatDuration(seconds) {
-    if (!seconds) return '—';
-    var m = Math.floor(seconds / 60);
-    var s = seconds % 60;
+    var n = Number(seconds);
+    if (seconds == null || !isFinite(n) || n < 0) return '—';
+    var m = Math.floor(n / 60);
+    var s = Math.floor(n % 60);
     return m + 'm ' + s + 's';
   }
 
@@ -524,19 +562,80 @@
     var teams = t.registeredTeams || {};
     var ids = Object.keys(teams);
     if (!ids.length) {
-      list.innerHTML = '<li>No teams registered yet.</li>';
+      list.innerHTML = '<li class="td-team-pending">Aún no hay equipos inscritos.</li>';
       return;
     }
-    ids.forEach(function (tid) {
-      var li = document.createElement('li');
-      li.textContent = tid;
-      li.dataset.teamId = tid;
-      list.appendChild(li);
-      db.ref('teams/' + tid + '/name').once('value').then(function (snap) {
-        var name = snap.val();
-        if (name) li.textContent = name;
-      });
+    var rosters = t.registeredRosters || {};
+    var target = toNum(t.playersPerTeam) ||
+      (global.SGTournamentRoster ? global.SGTournamentRoster.DEFAULT_TEAM_SIZE : 5);
+
+    list.innerHTML = ids.map(function (id) {
+      var entry = rosters[id];
+      var players = global.SGTournamentRoster ? global.SGTournamentRoster.playersOf(entry) : [];
+      var name = (entry && entry.name) || tName(id);
+      var mine = playerTeamId === id;
+      var pending = players.filter(function (p) { return p.steam === false; }).length;
+
+      var body = players.length
+        ? '<div class="td-team-players">' + players.map(function (p) {
+            var you = currentUser && p.uid === currentUser.uid;
+            return '<span class="td-team-player' + (you ? ' is-you' : '') +
+              (p.steam === false ? ' no-steam' : '') + '">' +
+              '<i class="fas ' + (p.role === 'Captain' ? 'fa-crown' : 'fa-user') + '"></i>' +
+              escHtml(p.nick) + (you ? ' <b>· tú</b>' : '') + '</span>';
+          }).join('') + '</div>'
+        // Equipos inscritos antes de que existiera la foto del roster: el
+        // capitán la rellena solo al entrar (ver backfillOwnRoster).
+        : '<p class="td-team-pending">Roster sin publicar todavía.</p>';
+
+      // Lo de Steam solo le sirve a quien puede arreglarlo.
+      var warn = (pending && (isAdmin || mine))
+        ? '<p class="td-team-warn"><i class="fas fa-exclamation-triangle"></i> ' + pending +
+          ' sin Steam vinculado</p>'
+        : '';
+
+      return '<li class="td-team' + (mine ? ' is-mine' : '') + '" data-team-id="' + escHtml(id) + '">' +
+        '<div class="td-team-head">' +
+          '<span class="td-team-name">' + escHtml(name) + '</span>' +
+          (players.length
+            ? '<span class="td-team-count">' + players.length + '/' + target + '</span>'
+            : '') +
+        '</div>' + body + warn +
+      '</li>';
+    }).join('');
+  }
+
+  /**
+   * Un equipo pudo inscribirse antes de que se guardara la foto del roster, o
+   * cambiar de jugadores después. Solo el capitán puede escribirla, así que se
+   * intenta al entrar él y el resto lo ve en cuanto llega el evento de RTDB.
+   */
+  function backfillOwnRoster() {
+    if (rosterBackfillDone || !currentUser || !tournamentId || !tournamentData) return;
+    if (!global.SGTournamentRoster) return;
+    rosterBackfillDone = true;
+    Object.keys(tournamentData.registeredTeams || {}).forEach(function (id) {
+      global.SGTournamentRoster.ensureSnapshot(tournamentId, id, currentUser.uid);
     });
+  }
+
+  function orderedBracketMatchIds(matches) {
+    return Object.keys(matches || {}).sort(function (a, b) {
+      var ma = matches[a] || {};
+      var mb = matches[b] || {};
+      var ra = toNum(ma.round);
+      var rb = toNum(mb.round);
+      if (ra !== rb) return ra - rb;
+      return toNum(String(a).split('_m')[1]) - toNum(String(b).split('_m')[1]);
+    });
+  }
+
+  function isMatchLiveId(mid, t) {
+    if (!mid) return false;
+    if (selectedMatchId === mid) return true;
+    if ((t.activeMatchId || t.currentMatchId) === mid) return true;
+    var lm = liveMatches && liveMatches[mid];
+    return !!(lm && (lm.status === 'live' || lm.status === 'starting'));
   }
 
   function renderBracket(t) {
@@ -544,23 +643,100 @@
     if (!box) return;
     var bracket = t.bracket;
     if (!bracket || !bracket.matches) {
-      box.textContent = 'Bracket will be generated when the match starts (needs 2+ registered teams).';
+      box.textContent = 'El cuadro se genera cuando el Commander siembra el bracket (2+ equipos).';
       return;
     }
-    box.innerHTML = '';
-    Object.keys(bracket.matches).forEach(function (mid) {
-      var m = bracket.matches[mid];
-      var div = document.createElement('div');
-      div.className = 'td-bracket-match' + (t.currentMatchId === mid ? ' active' : '');
-      var teamA = tName(m.teamA && m.teamA.teamId);
-      var teamB = tName(m.teamB && m.teamB.teamId);
-      var label = roundName(m.round, bracket.rounds);
-      var outcome = m.status === 'finished'
-        ? 'gana ' + tName(m.winnerTeamId)
-        : (m.status || 'pending');
-      div.textContent = label + ': ' + teamA + ' vs ' + teamB + ' [' + outcome + ']';
-      box.appendChild(div);
+    var matches = bracket.matches;
+    var rounds = toNum(bracket.rounds) || 1;
+    var ordered = orderedBracketMatchIds(matches);
+    var cols = [];
+
+    for (var r = 1; r <= rounds; r += 1) {
+      /* eslint-disable no-loop-func */
+      var ids = ordered.filter(function (mid) {
+        return toNum(matches[mid].round) === r && !matches[mid].bye;
+      });
+      /* eslint-enable no-loop-func */
+      cols.push(
+        '<div class="td-bracket-col">' +
+          '<div class="td-bracket-col-title">' + escHtml(roundName(r, rounds)) + '</div>' +
+          ids.map(function (mid) {
+            var m = matches[mid];
+            var live = isMatchLiveId(mid, t);
+            var done = m.status === 'finished';
+            var a = m.teamA && m.teamA.teamId;
+            var b = m.teamB && m.teamB.teamId;
+            var lm = (liveMatches && liveMatches[mid]) || null;
+            var mapName = (lm && lm.map) || m.map || null;
+            // Un cruce en vivo se puede abrir en el marcador; el resto es
+            // informativo, así que solo esos llevan foco y cursor de acción.
+            var pick = live && mid !== selectedMatchId;
+            var cls = 'td-bracket-match' +
+              (live ? ' live active' : '') +
+              (done ? ' done' : '') +
+              (live && mid === selectedMatchId ? ' is-selected' : '') +
+              (pick ? ' is-pickable' : '');
+            var state = done
+              ? 'Final'
+              : (live ? '<span class="live-tag">EN VIVO</span>' : 'Pendiente');
+            var scoreA = m.score && m.score.a != null ? m.score.a : '';
+            var scoreB = m.score && m.score.b != null ? m.score.b : '';
+            // El equipo que no gana se atenúa: así se lee de un vistazo quién
+            // sigue vivo en el cuadro.
+            var sideCls = function (teamId) {
+              if (!done || !m.winnerTeamId) return '';
+              return m.winnerTeamId === teamId ? ' win' : ' lost';
+            };
+            return '<div class="' + cls + '" data-match-id="' + escHtml(mid) + '"' +
+                (pick ? ' role="button" tabindex="0" title="Ver este cruce en el marcador"' : '') + '>' +
+              '<div class="td-bracket-match-meta">' +
+                '<span>' + escHtml(matchLabel(mid)) + '</span>' +
+                '<span>' + state + '</span>' +
+              '</div>' +
+              '<div class="td-bracket-side' + sideCls(a) + '">' +
+                '<span>' + escHtml(tName(a)) + '</span><span>' + escHtml(scoreA) + '</span></div>' +
+              '<div class="td-bracket-side' + sideCls(b) + '">' +
+                '<span>' + escHtml(tName(b)) + '</span><span>' + escHtml(scoreB) + '</span></div>' +
+              (mapName
+                ? '<div class="td-bracket-match-map"><i class="fas fa-map"></i>' +
+                  escHtml(prettyMapName(mapName)) + '</div>'
+                : '') +
+              '</div>';
+          }).join('') +
+        '</div>'
+      );
+    }
+
+    cols.push(
+      '<div class="td-bracket-col">' +
+        '<div class="td-bracket-col-title">Campeón</div>' +
+        '<div class="td-bracket-champ">' +
+          '<i class="fas fa-crown"></i>' +
+          '<div class="td-bracket-champ-name">' +
+            escHtml(t.championTeamId ? tName(t.championTeamId) : 'Por decidir') +
+          '</div>' +
+        '</div>' +
+      '</div>'
+    );
+
+    box.innerHTML = '<div class="td-bracket">' + cols.join('') + '</div>';
+
+    Array.prototype.forEach.call(box.querySelectorAll('.is-pickable'), function (card) {
+      var open = function () { selectMatch(card.getAttribute('data-match-id')); };
+      card.addEventListener('click', open);
+      card.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          open();
+        }
+      });
     });
+  }
+
+  /** "r2_m3" es lenguaje de bracket; el público lee "Cruce 3". */
+  function matchLabel(mid) {
+    var n = String(mid || '').split('_m')[1];
+    return n ? 'Cruce ' + n : String(mid || '');
   }
 
   function renderMeta(t) {
@@ -795,36 +971,209 @@
     }, 1800);
   }
 
+  function prettyMapName(map) {
+    if (!map) return 'Por definir';
+    return String(map).replace(/^de_/, '').replace(/_/g, ' ').toUpperCase();
+  }
+
+  function renderMapWidget(t) {
+    var widget = $('tdMapWidget');
+    var visual = $('tdMapVisual');
+    var nameEl = $('tdMapWidgetName');
+    if (!widget || !visual || !nameEl) return;
+    var lm = getSelectedLiveMatch();
+    var map = (lm && lm.map) || (lastLivePayload && lastLivePayload.map) || (t && t.activeMap) || null;
+    if (!map && t && t.bracket && t.bracket.matches) {
+      var mid = selectedMatchId || t.activeMatchId || t.currentMatchId;
+      var m = mid && t.bracket.matches[mid];
+      if (m && m.map) map = m.map;
+    }
+    // Con dos partidas a la vez el mapa por sí solo es ambiguo: se dice de qué
+    // cruce se está hablando, que es el mismo que muestra el marcador.
+    var kicker = widget.querySelector('.td-map-widget-kicker');
+    if (kicker) {
+      var liveIds = Object.keys(liveMatches || {}).filter(function (mid) {
+        var entry = liveMatches[mid];
+        return entry && (entry.status === 'live' || entry.status === 'starting');
+      });
+      kicker.textContent = (liveIds.length > 1 && selectedMatchId)
+        ? 'Mapa · ' + matchLabel(selectedMatchId)
+        : 'Mapa';
+    }
+
+    if (!map) {
+      widget.hidden = t && t.status === 'finalizado';
+      visual.setAttribute('data-map', 'pending');
+      nameEl.textContent = t && t.status === 'finalizado' ? 'Cerrado' : 'Por definir';
+      return;
+    }
+    widget.hidden = false;
+    visual.setAttribute('data-map', String(map));
+    nameEl.textContent = prettyMapName(map);
+  }
+
   function renderScoreboardMeta(t) {
     var liveBadge = $('tdSbLive');
     var mapEl = $('tdSbMap');
     if (liveBadge) liveBadge.classList.toggle('on', isMatchLive());
+    // Si el torneo dejó de estar en vivo (cierre a mano, servidor apagado sin
+    // match_end) el reloj no puede seguir sumando minutos él solo.
+    if (!isMatchLive()) stopDurationTick();
     if (mapEl) {
+      var lm = getSelectedLiveMatch();
+      var map = (lm && lm.map) || (t && t.activeMap);
       if (isMatchLive()) {
-        mapEl.textContent = (t.activeMap || 'CS2').toUpperCase();
+        mapEl.textContent = (map || 'CS2').toUpperCase();
       } else if (t.status === 'finalizado') {
         mapEl.textContent = 'Torneo finalizado';
       } else {
         mapEl.textContent = 'Esperando partida';
       }
     }
-    renderScoreboardTeams(t);
+    renderScoreboardTeams(t, lastLivePayload);
+    renderMapWidget(t);
   }
 
-  function renderScoreboardTeams(t) {
+  function resolveCtTTeams(t, live) {
+    var matchId = selectedMatchId || (t && (t.activeMatchId || t.currentMatchId)) || 'r1_m1';
+    var match = t && t.bracket && t.bracket.matches && t.bracket.matches[matchId];
+    var teamAId = match && match.teamA && match.teamA.teamId;
+    var teamBId = match && match.teamB && match.teamB.teamId;
+    var sideByTeam = (live && live.sideByTeam) || (getSelectedLiveMatch() && getSelectedLiveMatch().sideByTeam) || null;
+    var ctId = null;
+    var tId = null;
+
+    if (sideByTeam && teamAId && sideByTeam[teamAId]) {
+      if (sideByTeam[teamAId] === 'CT') {
+        ctId = teamAId;
+        tId = teamBId;
+      } else {
+        ctId = teamBId;
+        tId = teamAId;
+      }
+    } else if (live && live.startingSide && teamAId && teamBId) {
+      // MatchZy team1 is bracket teamA in our builder.
+      if (live.startingSide === 'team1_ct') {
+        ctId = teamAId;
+        tId = teamBId;
+      } else if (live.startingSide === 'team1_t') {
+        ctId = teamBId;
+        tId = teamAId;
+      }
+    }
+
+    // Sin bando resuelto (config a cuchillo antes de la primera ronda) se
+    // mantiene el orden del cuadro para no dejar el marcador vacío, pero queda
+    // marcado como no confirmado: afirmar CT/T a ciegas acierta la mitad de las
+    // veces y el equipo se ve etiquetado al revés durante media partida.
+    var resolved = !!(ctId || tId);
+    if (!resolved) {
+      ctId = teamAId;
+      tId = teamBId;
+    }
+    return { ctId: ctId, tId: tId, matchId: matchId, resolved: resolved };
+  }
+
+  function renderScoreboardTeams(t, live) {
     var labelA = $('tdSbTeamA');
     var labelB = $('tdSbTeamB');
+    var sideA = $('tdSbSideA');
+    var sideB = $('tdSbSideB');
     if (!labelA || !labelB || !t) return;
-    var matchId = t.activeMatchId || t.currentMatchId || 'r1_m1';
-    var match = t.bracket && t.bracket.matches && t.bracket.matches[matchId];
-    var a = match && match.teamA && match.teamA.teamId
-      ? tName(match.teamA.teamId)
+    var sides = resolveCtTTeams(t, live || lastLivePayload);
+    labelA.textContent = sides.ctId ? tName(sides.ctId) : 'Equipo CT';
+    labelB.textContent = sides.tId ? tName(sides.tId) : 'Equipo T';
+    if (sideA) sideA.textContent = sides.resolved ? 'CT' : 'Bando por definir';
+    if (sideB) sideB.textContent = sides.resolved ? 'T' : 'Bando por definir';
+  }
+
+  function stopDurationTick() {
+    if (durationTickTimer) {
+      clearInterval(durationTickTimer);
+      durationTickTimer = null;
+    }
+  }
+
+  function startDurationTick(startedAt, explicitSeconds) {
+    stopDurationTick();
+    liveStartedAt = startedAt || null;
+    var apply = function () {
+      var el = $('tdDuration');
+      if (!el) return;
+      if (explicitSeconds != null && isFinite(Number(explicitSeconds))) {
+        el.textContent = 'Duración: ' + formatDuration(explicitSeconds);
+        return;
+      }
+      if (!liveStartedAt) {
+        el.textContent = 'Duración: —';
+        return;
+      }
+      var secs = Math.max(0, Math.floor((Date.now() - Number(liveStartedAt)) / 1000));
+      el.textContent = 'Duración: ' + formatDuration(secs);
+    };
+    apply();
+    if (explicitSeconds == null && liveStartedAt) {
+      durationTickTimer = setInterval(apply, 1000);
+    }
+  }
+
+  /**
+   * Deja el marcador en blanco. Sin esto, una partida que desaparece o un
+   * cambio de cruce dejaban en pantalla el resultado de otra partida, que es
+   * peor que no mostrar nada.
+   */
+  function clearLiveScoreboard() {
+    stopDurationTick();
+    lastLivePayload = null;
+    liveStartedAt = null;
+    if ($('tdScore')) $('tdScore').textContent = '— : —';
+    if ($('tdRound')) $('tdRound').textContent = 'Ronda —';
+    if ($('tdDuration')) $('tdDuration').textContent = 'Duración: —';
+    renderFrags(null);
+  }
+
+  function applyLivePayload(live) {
+    if (!live) return;
+    lastLivePayload = live;
+    var ct = live.scoreCT != null ? live.scoreCT : '—';
+    var tt = live.scoreT != null ? live.scoreT : '—';
+    if ($('tdScore')) $('tdScore').textContent = ct + ' : ' + tt;
+    if ($('tdRound')) {
+      $('tdRound').textContent = 'Ronda ' + (live.currentRound != null ? live.currentRound : '—') +
+        ' • ' + (live.status || '');
+    }
+    // El servidor solo reporta la duración al cerrar cada ronda, así que
+    // tomarla como valor fijo dejaba el reloj congelado dos minutos entre
+    // rondas. Mientras se juega se cuenta en el cliente desde startedAt y la
+    // cifra del servidor queda como respaldo (plugins viejos que no lo mandan)
+    // y como valor definitivo al terminar.
+    var explicit = live.durationSeconds != null && isFinite(Number(live.durationSeconds))
+      ? Number(live.durationSeconds)
       : null;
-    var b = match && match.teamB && match.teamB.teamId
-      ? tName(match.teamB.teamId)
-      : null;
-    labelA.textContent = a || 'Equipo A';
-    labelB.textContent = b || 'Equipo B';
+    var startedAt = live.startedAt || liveStartedAt;
+    var finished = String(live.status || '') === 'finished';
+    if (finished) {
+      var finalSecs = explicit;
+      if (finalSecs == null && startedAt) {
+        // Sin duración ni hora de cierre el reloj se quedaba corriendo en una
+        // partida ya terminada. Se congela con lo que se sabe al enterarse.
+        var endAt = Number(live.finishedAt) || Number(live.lastEventAt) || Date.now();
+        finalSecs = Math.max(0, Math.floor((endAt - Number(startedAt)) / 1000));
+      }
+      // Sin punto de partida no hay duración que enseñar: un guion es honesto,
+      // un 0m 0s no. Lo que no puede pasar es que el reloj siga sumando.
+      if (finalSecs == null) startDurationTick(null, null);
+      else startDurationTick(startedAt, finalSecs);
+    } else if (startedAt) {
+      startDurationTick(startedAt, null);
+    } else {
+      startDurationTick(null, explicit);
+    }
+    renderFrags(live.kills);
+    if (tournamentData) {
+      renderScoreboardTeams(tournamentData, live);
+      renderMapWidget(tournamentData);
+    }
   }
 
   function renderHeader(t) {
@@ -851,18 +1200,99 @@
 
   function attachLiveListener(matchId) {
     if (liveListener) liveListener.off();
+    liveListener = null;
     if (!matchId) return;
+    selectedMatchId = matchId;
     liveListener = db.ref('partida_en_vivo/' + matchId);
     liveListener.on('value', function (snap) {
       var live = snap.val();
-      if (!live) return;
-      var ct = live.scoreCT != null ? live.scoreCT : '—';
-      var tt = live.scoreT != null ? live.scoreT : '—';
-      $('tdScore').textContent = ct + ' : ' + tt;
-      $('tdRound').textContent = 'Round ' + (live.currentRound || '—') + ' • ' + (live.status || '');
-      $('tdDuration').textContent = 'Duration: ' + formatDuration(live.durationSeconds);
-      renderFrags(live.kills);
+      if (!live) {
+        clearLiveScoreboard();
+        if (tournamentData) renderScoreboardMeta(tournamentData);
+        return;
+      }
+      applyLivePayload(live);
       if (tournamentData) renderScoreboardMeta(tournamentData);
+    });
+  }
+
+  function renderMatchTabs(t) {
+    var box = $('tdMatchTabs');
+    if (!box) return;
+    var ids = Object.keys(liveMatches || {}).filter(function (mid) {
+      var m = liveMatches[mid];
+      return m && (m.status === 'live' || m.status === 'starting');
+    });
+    if (!ids.length && t && t.activeMatchId && t.status === 'en_vivo') {
+      ids = [t.activeMatchId];
+    }
+    if (ids.length < 2) {
+      box.hidden = true;
+      box.innerHTML = '';
+      return;
+    }
+    box.hidden = false;
+    if (!selectedMatchId || ids.indexOf(selectedMatchId) === -1) {
+      selectedMatchId = ids[0];
+    }
+    box.innerHTML = ids.map(function (mid) {
+      var m = liveMatches[mid] || {};
+      var match = t && t.bracket && t.bracket.matches && t.bracket.matches[mid];
+      var a = match && match.teamA && match.teamA.teamId ? tName(match.teamA.teamId) : 'A';
+      var b = match && match.teamB && match.teamB.teamId ? tName(match.teamB.teamId) : 'B';
+      var active = mid === selectedMatchId ? ' active' : '';
+      return '<button type="button" class="td-match-tab' + active + '" data-match-id="' + escHtml(mid) + '">' +
+        '<span class="td-match-tab-live">●</span>' + escHtml(a) + ' vs ' + escHtml(b) +
+        '</button>';
+    }).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('[data-match-id]'), function (btn) {
+      btn.addEventListener('click', function () {
+        selectMatch(btn.getAttribute('data-match-id'));
+      });
+    });
+  }
+
+  /** Cambia el marcador (y la IP) a otra de las partidas en curso. */
+  function selectMatch(mid) {
+    if (!mid || mid === selectedMatchId) return;
+    selectedMatchId = mid;
+    // El marcador del cruce anterior seguiría en pantalla hasta que conteste
+    // Firebase, y en ese hueco parece el resultado del cruce nuevo.
+    clearLiveScoreboard();
+    attachLiveListener(mid);
+    renderMatchTabs(tournamentData);
+    renderConnectPanel();
+    if (tournamentData) {
+      renderScoreboardMeta(tournamentData);
+      renderBracket(tournamentData);
+    }
+  }
+
+  function attachLiveMatchesListener() {
+    if (!tournamentId || liveMatchesListener) return;
+    liveMatchesListener = db.ref('tournaments/' + tournamentId + '/liveMatches');
+    liveMatchesListener.on('value', function (snap) {
+      liveMatches = snap.val() || {};
+      renderMatchTabs(tournamentData || {});
+      var prefer = selectedMatchId ||
+        (tournamentData && (tournamentData.activeMatchId || tournamentData.currentMatchId));
+      var liveIds = Object.keys(liveMatches).filter(function (mid) {
+        var m = liveMatches[mid];
+        return m && (m.status === 'live' || m.status === 'starting');
+      });
+      var nextId = null;
+      if (prefer && liveIds.indexOf(prefer) !== -1) nextId = prefer;
+      else if (liveIds.length) nextId = liveIds[0];
+      if (nextId && nextId !== selectedMatchId) {
+        attachLiveListener(nextId);
+      } else if (nextId && !liveListener) {
+        attachLiveListener(nextId);
+      }
+      if (tournamentData) {
+        renderBracket(tournamentData);
+        renderConnectPanel();
+        renderMapWidget(tournamentData);
+      }
     });
   }
 
@@ -903,18 +1333,38 @@
       wireShareButtons();
       hydrateActiveServerFromTournament();
       syncServerStateFromRegistry();
+      resolvePlayerRole(currentUser, tournamentData).then(function () {
+        renderConnectPanel();
+        refreshPresenceRole();
+        renderTeams(tournamentData);
+        maybeShowRulesOverlay();
+      });
+      backfillOwnRoster();
       if (tournamentData.activeServerId && tournamentData.serverIp && !isMatchLive()) {
         ensureServerStatusPoll();
       }
       if (isBootGraceReady() && !isMatchLive() && isLaunchReady()) {
         setAdminMsg('Server at ' + getServerIp() + ':' + getServerPort() + ' — ready. Click Launch Match.');
       }
-      if (tournamentData.status === 'en_vivo' && tournamentData.activeMatchId) {
+      if (tournamentData.status === 'en_vivo' && tournamentData.activeMatchId && !selectedMatchId) {
         attachLiveListener(tournamentData.activeMatchId);
       }
     });
 
-    db.ref('gameServers').on('value', function (snap) {
+    attachLiveMatchesListener();
+    attachServerRegistryListener();
+  }
+
+  /**
+   * El registro de servidores es lectura de mando (regla de gameServers), así
+   * que engancharlo para todo el mundo solo servía para llenar la consola de
+   * cada jugador y espectador con permiso denegado. Lo que ellos necesitan
+   * (IP, puerto, aviso de puerto bloqueado) viaja por el cruce en liveMatches.
+   */
+  function attachServerRegistryListener() {
+    if (!tournamentId || !isAdmin || serverRegistryListener) return;
+    serverRegistryListener = db.ref('gameServers');
+    serverRegistryListener.on('value', function (snap) {
       if (!tournamentId) return;
       var matched = null;
       snap.forEach(function (child) {
@@ -1181,6 +1631,7 @@
           renderBracket(tournamentData);
           renderSchedule(tournamentData);
           renderPodium(tournamentData);
+          renderTeams(tournamentData);
         }
       }).catch(function () { teamNames[id] = id; });
     });
@@ -1378,8 +1829,154 @@
     }).join('');
   }
 
-  /** Registra al usuario como espectador del torneo, con limpieza al desconectar. */
-  function registerSpectatorPresence(user) {
+  function rosterUidsFrom(entry) {
+    if (!entry) return [];
+    if (Array.isArray(entry.uids)) return entry.uids.filter(Boolean);
+    if (entry.uids && typeof entry.uids === 'object') {
+      return Object.keys(entry.uids).map(function (k) {
+        var v = entry.uids[k];
+        return typeof v === 'string' ? v : k;
+      }).filter(Boolean);
+    }
+    if (entry.players && typeof entry.players === 'object') return Object.keys(entry.players);
+    return [];
+  }
+
+  function resolvePlayerRole(user, t) {
+    if (!user || !t) return Promise.resolve(presenceRole);
+    if (isAdmin) {
+      isPlayer = false;
+      presenceRole = 'commander';
+      return Promise.resolve(presenceRole);
+    }
+
+    var registered = Object.keys(t.registeredTeams || {});
+    var rosters = t.registeredRosters || {};
+    for (var i = 0; i < registered.length; i += 1) {
+      var tid = registered[i];
+      var uids = rosterUidsFrom(rosters[tid]);
+      if (uids.indexOf(user.uid) !== -1) {
+        isPlayer = true;
+        playerTeamId = tid;
+        presenceRole = 'player';
+        return Promise.resolve(presenceRole);
+      }
+    }
+
+    var checks = registered.map(function (tid) {
+      return db.ref('teams/' + tid).once('value').then(function (snap) {
+        var team = snap.val() || {};
+        if (team.captain === user.uid) return tid;
+        var roster = team.roster || team.members || {};
+        if (roster[user.uid]) return tid;
+        return null;
+      }).catch(function () { return null; });
+    });
+
+    return Promise.all(checks).then(function (hits) {
+      var hit = hits.filter(Boolean)[0] || null;
+      isPlayer = !!hit;
+      playerTeamId = hit;
+      presenceRole = hit ? 'player' : 'spectator';
+      return presenceRole;
+    });
+  }
+
+  function refreshPresenceRole() {
+    if (!presenceRef) return;
+    presenceRef.update({
+      role: presenceRole,
+      teamId: playerTeamId || null,
+      lastSeen: Date.now()
+    }).catch(function () {});
+  }
+
+  /** Datos del torneo que acompañan al reglamento como chips (mapa, pozo, hora). */
+  function tournamentRulesMeta(t) {
+    var meta = [];
+    if (t && t.activeMap) {
+      meta.push({ icon: 'fa-map', label: 'Mapa', value: prettyMapName(t.activeMap) });
+    }
+    var prizes = (t && t.prizes) || {};
+    var pool = toNum(prizes.tokenPool) || toNum(t && t.prizePool);
+    if (pool) {
+      meta.push({ icon: 'fa-coins', label: 'Pozo', value: pool.toLocaleString('es-ES') + ' tokens' });
+    }
+    if (t && t.schedule) {
+      meta.push({ icon: 'fa-clock', label: 'Inicia', value: fmtLocalDateTime(t.schedule) });
+    }
+    return meta;
+  }
+
+  function rulesPayload(t) {
+    return {
+      kicker: 'Reglas del torneo',
+      title: 'Código de Conducta',
+      tournamentName: (t && t.name) || 'Torneo Studiosgamesrs',
+      subtitle: 'Se lee una sola vez, antes de conectar. Aplica a todo el roster inscrito.',
+      buttonText: 'Entendido, entrar al torneo',
+      meta: tournamentRulesMeta(t)
+    };
+  }
+
+  /**
+   * Overlay de bienvenida al torneo. Se apoya en el escenario 3D del Nexus
+   * (la wyvern) y, si ese módulo no está en la página, cae al overlay plano.
+   */
+  function maybeShowRulesOverlay() {
+    if (rulesPrompted || !isPlayer || !currentUser || !tournamentId || !tournamentData) return;
+    if (isAdmin) return;
+    rulesPrompted = true;
+    var localKey = 'sgRulesAck:' + tournamentId + ':' + currentUser.uid;
+
+    function markSeen() {
+      try { localStorage.setItem(localKey, String(Date.now())); } catch (e) { /* noop */ }
+      db.ref('tournaments/' + tournamentId + '/rulesAck/' + currentUser.uid)
+        .set(Date.now())
+        .catch(function () {});
+    }
+
+    function show() {
+      var payload = rulesPayload(tournamentData);
+      var sensor = window.SGNexusSensor;
+      if (sensor && typeof sensor.showTournamentRules === 'function') {
+        sensor.showTournamentRules(payload, markSeen);
+        return;
+      }
+      var fallback = window.SGWelcomeOverlay;
+      if (fallback && typeof fallback.showTournamentRules === 'function') {
+        window.__sgOnTournamentRulesAck = markSeen;
+        fallback.showTournamentRules({
+          title: 'Reglas — ' + payload.tournamentName,
+          subtitle: payload.subtitle,
+          rules: [
+            'Respeto y cero toxicidad: la primera falta descalifica al equipo completo.',
+            'Grabación obligatoria: sin el clip pedido por el Centinela, culpable automático.',
+            'Puntualidad: 10 minutos de tolerancia o derrota por default (16 - 0).',
+            'Pausas técnicas: 1 por equipo y mapa, máximo 3 minutos, avisando en el chat.',
+            'Las decisiones del Centinela durante la partida son inapelables.'
+          ]
+        }, markSeen);
+      }
+    }
+
+    try {
+      if (localStorage.getItem(localKey)) return;
+    } catch (e) { /* continue */ }
+
+    db.ref('tournaments/' + tournamentId + '/rulesAck/' + currentUser.uid).once('value')
+      .then(function (snap) {
+        if (snap.val()) {
+          try { localStorage.setItem(localKey, String(snap.val())); } catch (e2) { /* noop */ }
+          return;
+        }
+        show();
+      })
+      .catch(function () { show(); });
+  }
+
+  /** Registra presencia con rol player/spectator/commander. */
+  function registerPresence(user) {
     if (!tournamentId || !user) return;
     db.ref('users/' + user.uid + '/nick').once('value').then(function (snap) {
       var nick = snap.val() || user.displayName || 'Espectador';
@@ -1387,7 +1984,8 @@
       presenceRef.onDisconnect().remove();
       presenceRef.set({
         nick: nick,
-        role: isAdmin ? 'commander' : 'spectator',
+        role: presenceRole,
+        teamId: playerTeamId || null,
         page: 'tournament-details',
         joinedAt: Date.now(),
         lastSeen: Date.now()
@@ -1425,6 +2023,7 @@
       var rango = (snap.val() || '').toLowerCase();
       isAdmin = rango === 'commander' || rango === 'boss_of_the_state' ||
         rango === 'divisional_commander';
+      presenceRole = isAdmin ? 'commander' : 'spectator';
       wireSettingsButton();
       wireTabs();
       if (isAdmin) {
@@ -1433,8 +2032,18 @@
         wireBannerUpload();
         hydrateActiveServerFromTournament();
         syncServerStateFromRegistry();
+        // El rango llega después de loadTournament(), así que el registro de
+        // servidores se engancha aquí, cuando ya se sabe que hay permiso.
+        attachServerRegistryListener();
       }
-      registerSpectatorPresence(user);
+      registerPresence(user);
+      if (tournamentData) {
+        resolvePlayerRole(user, tournamentData).then(function () {
+          renderConnectPanel();
+          refreshPresenceRole();
+          maybeShowRulesOverlay();
+        });
+      }
       renderSentinelLine();
     });
     loadTournament();

@@ -69,7 +69,11 @@
         if (res.status === 504) {
           throw new Error('Gateway timeout — the server may still be provisioning. Keep this page open.');
         }
-        throw new Error(payload.error || res.statusText || 'CS2 API request failed');
+        var apiErr = new Error(payload.error || res.statusText || 'CS2 API request failed');
+        // Lets callers react to the specific reason instead of parsing the message.
+        if (payload.code) apiErr.apiCode = payload.code;
+        if (payload.details) apiErr.details = payload.details;
+        throw apiErr;
       }
       return payload.result;
     } catch (fetchErr) {
@@ -265,13 +269,18 @@
     return callCs2Api('provision', payload);
   }
 
-  async function launchMatch(tournamentId, matchId, map, serverId, teamIds) {
+  async function launchMatch(tournamentId, matchId, map, serverId, teamIds, startingSide, options) {
+    var opts = options || {};
     var payload = {
       tournamentId: tournamentId,
       matchId: matchId,
       map: map || 'de_mirage',
       serverId: serverId,
       teamIds: teamIds,
+      // Sides are fixed before launch so no one can pick one in-game and break it.
+      // 'random' is a coin flip drawn on the server.
+      startingSide: startingSide || 'random',
+      allowUnlockedRosters: opts.allowUnlockedRosters === true,
     };
     if (useBridge()) {
       return bridgeFetch('/api/tournaments/' + encodeURIComponent(tournamentId) + '/launch', {

@@ -63,7 +63,16 @@ const REQUIRED_FILES = [
   { file: 'models/soldier-specops/soldier-death.glb', minKB: 1800 },
   // La wyvern lleva sus once animaciones dentro del mismo archivo, así que es
   // un único .glb en vez de uno por clip.
-  { file: 'models/wyvern-dragon/wyvern-dragon.glb', minKB: 2400 }
+  { file: 'models/wyvern-dragon/wyvern-dragon.glb', minKB: 2400 },
+  // Miniaturas del mapa en la sala del torneo. Si falta una, el widget cae al
+  // degradado y nadie se entera hasta que un jugador pregunta qué mapa es.
+  { file: 'map-thumbs/de_mirage.jpg', minKB: 8 },
+  { file: 'map-thumbs/de_inferno.jpg', minKB: 8 },
+  { file: 'map-thumbs/de_nuke.jpg', minKB: 8 },
+  { file: 'map-thumbs/de_ancient.jpg', minKB: 8 },
+  { file: 'map-thumbs/de_anubis.jpg', minKB: 8 },
+  { file: 'map-thumbs/de_dust2.jpg', minKB: 8 },
+  { file: 'map-thumbs/de_overpass.jpg', minKB: 8 }
 ];
 
 /**

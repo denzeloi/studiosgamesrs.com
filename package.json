@@ -8,8 +8,17 @@
     "verify:secrets": "node scripts/verify-no-secrets.js",
     "verify:functions": "node scripts/verify-cs2-functions.js",
     "verify:cloudinit": "node scripts/verify-cs2-cloudinit.js",
+    "verify:matchstats": "node scripts/verify-cs2-match-stats.js",
+    "verify:webhook": "node scripts/verify-cs2-webhook.js",
+    "verify:matchzy": "node scripts/verify-cs2-matchzy.js",
+    "verify:roster": "node scripts/verify-tournament-roster.js",
+    "verify:concurrency": "node scripts/verify-cs2-concurrency.js",
+    "verify:match": "npm run verify:matchstats && npm run verify:webhook && npm run verify:matchzy && npm run verify:concurrency",
+    "seed:tournament-demo": "node scripts/seed-tournament-demo.js",
+    "seed:tournament-demo:dual": "node scripts/seed-tournament-demo.js --mode=dual",
+    "seed:tournament-demo:dry": "node scripts/seed-tournament-demo.js --dry-run",
     "deploy:hosting": "npm run verify:secrets && npm run hosting:build && firebase deploy --only hosting && npm run hosting:verify",
-    "deploy:functions": "npm run verify:secrets && npm run verify:functions && npm run verify:cloudinit && firebase deploy --only functions:cs2-nexus",
-    "deploy:all": "npm run verify:secrets && npm run hosting:build && npm run verify:functions && npm run verify:cloudinit && firebase deploy --only functions:cs2-nexus,hosting && npm run hosting:verify"
+    "deploy:functions": "npm run verify:secrets && npm run verify:functions && npm run verify:cloudinit && npm run verify:match && firebase deploy --only functions:cs2-nexus",
+    "deploy:all": "npm run verify:secrets && npm run hosting:build && npm run verify:functions && npm run verify:cloudinit && npm run verify:match && firebase deploy --only functions:cs2-nexus,hosting && npm run hosting:verify"
   }
 }
