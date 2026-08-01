@@ -95,6 +95,21 @@ function serverAgeMs(gs) {
   return Date.now() - Number((gs && gs.createdAt) || 0);
 }
 
+/**
+ * Store what the server reported about its own branding. Until now the only way to know
+ * whether the Studiosgamesrs name reached the game chat was to join a match and read it,
+ * so a provisioning step that silently dropped the config looked identical to one that
+ * worked. This leaves the answer in gameServers/{id}/branding.
+ */
+function brandingRecord(report) {
+  return {
+    ok: !!(report && report.ok),
+    checkedAt: Date.now(),
+    error: (report && report.error) || null,
+    values: (report && report.values) || null,
+  };
+}
+
 function isBootGraceEligible(gs) {
   if (!gs || !gs.ip) return false;
   return serverAgeMs(gs) >= snapshotBootGraceMs(gs);
@@ -159,11 +174,16 @@ async function pollRconUntilReady(serverId, tournamentId, ip) {
       const gameUdpOk = await udpGameProbe(ip, CS2_GAME_PORT, 4000);
       if (ping.ok) {
         if (!(await isProvisionActive(serverId, tournamentId))) return;
+        // Brand the server the moment it answers, not only when a match is launched:
+        // players connect to the warmup lobby first and MatchZy talks to them there.
+        const branding = await rcon.brandServer(ip, CS2_GAME_PORT, password);
+        if (!(await isProvisionActive(serverId, tournamentId))) return;
         await rtdb.writeGameServer(String(serverId), {
           status: 'online',
           rconReady: true,
           portReady: true,
           gameUdpOk: !!gameUdpOk,
+          branding: brandingRecord(branding),
         });
         return;
       }
@@ -282,19 +302,25 @@ async function checkServerCore({ serverId, tournamentId, quick }) {
     ]);
     let status = gs.status || 'booting';
 
-    async function markOnline(rconReady, reason) {
+    async function markOnline(rconReady, reason, branding) {
       status = gameUdpOk ? 'online' : 'udp_blocked';
-      await rtdb.writeGameServer(String(serverId), {
+      const payload = {
         status,
         rconReady: !!rconReady,
         portReady: true,
         gameUdpOk: !!gameUdpOk,
         readyReason: reason || null,
-      });
+      };
+      if (branding) payload.branding = brandingRecord(branding);
+      await rtdb.writeGameServer(String(serverId), payload);
     }
 
     if (ping.ok) {
-      await markOnline(true, 'rcon');
+      // A server can sit online for hours; this is also how an already-verified
+      // machine gets re-branded after a config fix, since the boot-time push only
+      // runs once, in pollRconUntilReady.
+      const branding = await rcon.brandServer(ip, port, pwd, 8000);
+      await markOnline(true, 'rcon', branding);
     } else if (portOpen) {
       await markOnline(false, 'port');
       console.log('[checkServer]', serverId, ip, 'port open udp=', gameUdpOk);
