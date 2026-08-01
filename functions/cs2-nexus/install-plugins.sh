@@ -125,10 +125,40 @@ install_team_logos() {
   fi
 }
 
+# MultiAddonManager is the only way in current CS2 to push custom content (the same
+# logo install_team_logos already put on this server's own disk) to every connecting
+# client, since CS2 removed sv_downloadurl. It needs a published Steam Workshop item ID
+# — that has to be created once by hand from an actual Steam account (Workshop Tools is
+# a GUI game feature, nothing here can automate it) and passed in as
+# NEXUS_LOGO_WORKSHOP_ID. Until that exists, mm_extra_addons stays empty and the plugin
+# is a harmless no-op — everything else in this script still runs.
+write_multiaddon_config() {
+  local dst="$CS2_DIR/cfg/multiaddonmanager"
+  mkdir -p "$dst"
+  local workshop_id="${NEXUS_LOGO_WORKSHOP_ID:-}"
+  cat > "$dst/multiaddonmanager.cfg" << MAMCFG
+// Studiosgamesrs team logo, distributed as a Steam Workshop addon (CS2 has no FastDL).
+// Empty until a Workshop item is published and NEXUS_LOGO_WORKSHOP_ID is set at deploy time.
+mm_extra_addons "${workshop_id}"
+// Once a client has downloaded it, do not make them sit through the popup again on
+// rejoin or map change — this is the only lever CS2 gives us for a "professional",
+// low-friction experience; the first-time prompt itself cannot be suppressed.
+mm_cache_clients_with_addons 1
+mm_cache_clients_duration 0
+mm_addon_mount_download 0
+MAMCFG
+  if [ -n "$workshop_id" ]; then
+    echo "[plugins] multiaddonmanager.cfg written with Workshop addon $workshop_id"
+  else
+    echo "[plugins] multiaddonmanager.cfg written with no addon (NEXUS_LOGO_WORKSHOP_ID not set yet)"
+  fi
+}
+
 METAMOD_URL="${METAMOD_URL:-https://mms.alliedmods.net/mmsdrop/2.0/mmsource-2.0.0-git1410-linux.tar.gz}"
 CSS_URL="${CSS_URL:-https://github.com/roflmuffin/CounterStrikeSharp/releases/download/v1.0.371/counterstrikesharp-with-runtime-linux-1.0.371.zip}"
 MATCHZY_URL="${MATCHZY_URL:-https://github.com/shobhit-pathak/MatchZy/releases/download/0.8.15/MatchZy-0.8.15-with-cssharp-linux.zip}"
 FAKERCON_URL="${FAKERCON_URL:-https://github.com/Salvatore-Als/cs2-fake-rcon/releases/latest/download/linux.tar.gz}"
+MULTIADDON_URL="${MULTIADDON_URL:-https://github.com/Source2ZE/MultiAddonManager/releases/download/v1.5.1/MultiAddonManager-v1.5.1-linux.tar.gz}"
 
 echo "[plugins] Installing Metamod..."
 wget -qO "$TMP/metamod.tar.gz" "$METAMOD_URL"
@@ -155,6 +185,11 @@ if [ -n "$RCON_PASS" ]; then
   done
   echo "[plugins] Fake RCON password configured (rcon.txt + config.ini)"
 fi
+
+echo "[plugins] Installing MultiAddonManager (Steam Workshop content, e.g. team logo)..."
+wget -qO "$TMP/multiaddon.tar.gz" "$MULTIADDON_URL"
+tar -xzf "$TMP/multiaddon.tar.gz" -C "$CS2_DIR"
+write_multiaddon_config
 
 echo "[plugins] Installing CounterStrikeSharp..."
 wget -qO "$TMP/css.zip" "$CSS_URL"

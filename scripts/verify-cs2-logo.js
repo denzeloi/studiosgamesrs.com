@@ -192,6 +192,41 @@ console.log('\n--- baked-in server.cfg (both boot modes) sets the same cvars ---
   }
 });
 
+console.log('\n--- MultiAddonManager is wired for when a Workshop ID exists ---');
+
+function checkMultiAddon(relPath, label) {
+  const p = path.join(repoRoot, relPath);
+  if (!fs.existsSync(p)) {
+    fail(`${label}: ${relPath} not found`);
+    return;
+  }
+  const src = fs.readFileSync(p, 'utf8');
+  if (!/MultiAddonManager/.test(src)) {
+    fail(`${label}: does not install the MultiAddonManager plugin`);
+  } else if (!/mm_extra_addons/.test(src)) {
+    fail(`${label}: does not write mm_extra_addons into multiaddonmanager.cfg`);
+  } else if (!/NEXUS_LOGO_WORKSHOP_ID/.test(src)) {
+    fail(`${label}: does not read NEXUS_LOGO_WORKSHOP_ID for the addon ID`);
+  } else if (!/mm_cache_clients_with_addons 1/.test(src)) {
+    fail(`${label}: does not cache clients that already have the addon — every rejoin would re-show the download prompt`);
+  } else {
+    ok(`${label}: installs MultiAddonManager and wires mm_extra_addons to NEXUS_LOGO_WORKSHOP_ID`);
+  }
+}
+
+checkMultiAddon('functions/cs2-nexus/install-plugins.sh', 'install-plugins.sh (fresh install)');
+checkMultiAddon('scripts/fix-metamod-on-server.sh', 'fix-metamod-on-server.sh (snapshot boot)');
+
+// Empty by default (no Workshop item published yet) must never crash rcon.js and must
+// never push an empty mm_extra_addons that clobbers a value set some other way.
+delete require.cache[path.join(repoRoot, 'functions', 'cs2-nexus', 'lib', 'rcon.js')];
+const rconNoId = require(path.join(repoRoot, 'functions', 'cs2-nexus', 'lib', 'rcon.js'));
+if (rconNoId.SERVER_RULES_CVARS.some((c) => c.includes('mm_extra_addons'))) {
+  fail('rcon.js pushes mm_extra_addons even with CS2_LOGO_WORKSHOP_ID unset');
+} else {
+  ok('rcon.js pushes no mm_extra_addons while CS2_LOGO_WORKSHOP_ID is unset (safe no-op)');
+}
+
 if (failed) {
   console.error('\n[verify-cs2-logo]', failed, 'check(s) failed');
   process.exit(1);

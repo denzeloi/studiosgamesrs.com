@@ -86,7 +86,7 @@ const SERVER_RULES_CVARS = [
   // These two are string convars and do strip one pair of surrounding quotes, which they
   // need, because their values contain spaces.
   'matchzy_hostname_format "Studiosgamesrs | {TEAM1} vs {TEAM2}"',
-  '  matchzy_match_start_message "{Gold}Studiosgamesrs{Default} - partida oficial en marcha. Mucha suerte."',
+  'matchzy_match_start_message "{Gold}Studiosgamesrs{Default} - partida oficial en marcha. Mucha suerte."',
   // Studiosgamesrs watermark on the top-of-screen score bar and scoreboard. Re-pushing
   // this on an already-running server only helps if the files already reached its disk
   // (boot time, via install_team_logos / fix-metamod-on-server.sh) — RCON cannot place
@@ -95,6 +95,20 @@ const SERVER_RULES_CVARS = [
   'mp_teamlogo_1 sgrs',
   'mp_teamlogo_2 sgrs',
 ];
+
+/**
+ * The Steam Workshop item that carries the logo to every connecting client via the
+ * MultiAddonManager plugin (mm_extra_addons) — CS2 has no other way to do this since
+ * sv_downloadurl was removed. Empty until someone actually publishes that Workshop item
+ * from a real Steam account (Workshop Tools is a GUI game feature; nothing here can
+ * automate that) and records its numeric ID here. Kept as an explicit push, not baked
+ * into SERVER_RULES_CVARS unconditionally, so an unset ID never overwrites an addon
+ * list a server might already have configured by hand.
+ */
+const LOGO_WORKSHOP_ID = (process.env.CS2_LOGO_WORKSHOP_ID || '').trim();
+if (LOGO_WORKSHOP_ID) {
+  SERVER_RULES_CVARS.push('mm_extra_addons "' + LOGO_WORKSHOP_ID + '"');
+}
 
 /**
  * Convars that can be read back, and the value each one must report once the branding
@@ -109,6 +123,9 @@ const BRANDING_PROBES = [
   { cvar: 'mp_teamlogo_1', expect: 'sgrs' },
   { cvar: 'mp_teamlogo_2', expect: 'sgrs' },
 ];
+if (LOGO_WORKSHOP_ID) {
+  BRANDING_PROBES.push({ cvar: 'mm_extra_addons', expect: LOGO_WORKSHOP_ID });
+}
 
 async function applyServerRules(client) {
   for (let i = 0; i < SERVER_RULES_CVARS.length; i += 1) {
@@ -222,4 +239,5 @@ module.exports = {
   SERVER_RULES_CVARS,
   BRANDING_PROBES,
   LOGO_BASE_URL,
+  LOGO_WORKSHOP_ID,
 };

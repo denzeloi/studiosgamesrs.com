@@ -143,6 +143,33 @@ else
   echo "[fix] WARN: could not fetch the team logo from $LOGO_BASE — mp_teamlogo will precache nothing"
 fi
 
+# MultiAddonManager: the only way to push that same logo to every connecting client
+# (CS2 has no FastDL). Ensure the plugin is present even on an older golden snapshot,
+# and always rewrite the cfg so a NEXUS_LOGO_WORKSHOP_ID change reaches existing VMs
+# on their next boot, not only new ones.
+MULTIADDON_URL="${MULTIADDON_URL:-https://github.com/Source2ZE/MultiAddonManager/releases/download/v1.5.1/MultiAddonManager-v1.5.1-linux.tar.gz}"
+if [ ! -f "${CS2_DIR}/addons/multiaddonmanager/bin/multiaddonmanager.so" ]; then
+  MAM_TMP="/tmp/multiaddon-$$.tar.gz"
+  if wget -qO "$MAM_TMP" "$MULTIADDON_URL"; then
+    tar -xzf "$MAM_TMP" -C "$CS2_DIR"
+    echo "[fix] MultiAddonManager installed"
+  else
+    echo "[fix] WARN: could not download MultiAddonManager from $MULTIADDON_URL"
+  fi
+  rm -f "$MAM_TMP"
+fi
+MAM_CFG_DIR="${CS2_DIR}/cfg/multiaddonmanager"
+mkdir -p "$MAM_CFG_DIR"
+WORKSHOP_ID="${NEXUS_LOGO_WORKSHOP_ID:-}"
+cat > "${MAM_CFG_DIR}/multiaddonmanager.cfg" << MAMCFG
+// Studiosgamesrs team logo, distributed as a Steam Workshop addon (CS2 has no FastDL).
+mm_extra_addons "${WORKSHOP_ID}"
+mm_cache_clients_with_addons 1
+mm_cache_clients_duration 0
+mm_addon_mount_download 0
+MAMCFG
+echo "[fix] multiaddonmanager.cfg written (Workshop addon: ${WORKSHOP_ID:-none yet})"
+
 chown -R "$CS2_USER:$CS2_USER" "$CS2_ROOT"
 systemctl daemon-reload
 if ! systemctl restart cs2-server; then
