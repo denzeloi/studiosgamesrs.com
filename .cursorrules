@@ -1,0 +1,65 @@
+# Reglas para trabajar en este repositorio (Studiosgamesrs / CS2 Nexus)
+
+Estas reglas nacieron de decisiones y errores reales durante el trabajo de
+branding del servidor de CS2. Son un borrador — pídele al dueño del repo que
+las revise y las ajuste; no son un mandato fijo si el contexto cambia.
+
+## 1. Verificar contra la infraestructura real, no solo contra el código
+
+- Antes de decir que un cambio "ya funciona", si hay un servidor de CS2 en
+  vivo o una función de Firebase desplegada, pruébalo ahí (RCON, RTDB,
+  `firebase functions:log`), no solo con lectura de código.
+- El código en `main`/una rama, la Cloud Function realmente desplegada, y el
+  servidor de CS2 que ya está corriendo pueden estar en tres estados
+  distintos. No asumas que coinciden. Este repo ya tuvo el caso: el código
+  local tenía meses de adelanto sobre lo que había en GitHub, y lo que había
+  en GitHub tenía meses de atraso sobre lo que corría en producción.
+- Corre los scripts `scripts/verify-cs2-*.js` relevantes antes de dar por
+  cerrada cualquier tarea sobre el servidor de CS2.
+
+## 2. Secretos: nunca adivinar, nunca exponer, nunca arriesgar un deploy en blanco
+
+- No hay `functions/cs2-nexus/.env` en este entorno. Los secretos reales
+  (`VULTR_API_TOKEN`, `WEBHOOK_SECRET`, `GSLT_SERVER_1/2`, `RCON_PASSWORD`)
+  viven solo en la máquina de quien despliega.
+- **Nunca ejecutes `firebase deploy --only functions` sin confirmar antes que
+  el `.env` con los secretos de producción está presente.** Un deploy sin
+  ese archivo puede reemplazar/vaciar las variables de entorno de la Cloud
+  Function ya desplegada (comportamiento declarativo del CLI, no aditivo), y
+  eso rompe el aprovisionamiento de servidores en producción.
+- Si falta un secreto para probar algo, pídelo explícitamente al usuario. No
+  intentes leerlo de `firebase functions:config:get`, `gcloud secrets`, ni
+  imprimirlo en ningún log.
+- Si el usuario te da un secreto en el chat para una prueba puntual, úsalo
+  sin volver a imprimirlo, y no lo dejes en ningún archivo del repo.
+
+## 3. La "vibra original" de CS2 importa más que la funcionalidad
+
+- El branding de **texto** (prefijo de chat, admin, hostname vía MatchZy) es
+  bienvenido: no cambia la experiencia del jugador, es prácticamente gratis.
+- Cualquier cosa que cambie lo que un jugador *ve u obligue a descargar* al
+  conectarse (plugins de Workshop, mods, overlays dentro del cliente) necesita
+  aprobación explícita antes de implementarse, no solo antes de publicarse.
+  CS2 no tiene FastDL — cualquier contenido visual para todos los jugadores
+  pasa por Steam Workshop, que siempre implica un aviso de descarga la
+  primera vez. Explica ese costo con claridad antes de construir nada que
+  dependa de él.
+
+## 4. Git y Pull Requests
+
+- Nunca cierres, reabras ni mergees un Pull Request sin que el usuario lo
+  pida explícitamente, aunque el trabajo haya quedado descartado.
+- Si una rama de trabajo queda abandonada (como pasó con el intento de
+  Steam Workshop), pregunta qué hacer con su PR en vez de decidir solo.
+- Un commit por cambio lógico, con el porqué en el cuerpo del mensaje, no
+  solo el qué. La mitad de los bugs que se corrigieron en este repo se
+  explican solo leyendo por qué existían, no qué línea cambió.
+
+## 5. Antes de dar algo por terminado
+
+- ¿Lo probaste contra algo real (servidor, base de datos, deploy), o solo
+  contra el código?
+- ¿Dependía de un secreto, una cuenta externa (Steam, Vultr) o un paso
+  manual que no puedes ejecutar tú? Dilo explícitamente, no lo asumas resuelto.
+- ¿El cambio deja algo a medio camino (ej. un cvar seteado en el servidor en
+  vivo que el código ya no soporta)? Revierte lo que quede huérfano.
