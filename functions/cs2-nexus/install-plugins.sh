@@ -97,6 +97,28 @@ MZLV
   echo "[plugins] MatchZy configs written (embedded defaults, Studiosgamesrs branded)"
 }
 
+# Panorama (current UI) reads SVG from materials/panorama/images/tournaments/teams;
+# pre-Panorama UI (and the top-of-screen score bar on some clients) reads PNG from
+# resource/flash/econ/tournaments/teams. Ship both so mp_teamlogo_1/mp_teamlogo_2
+# render everywhere they can. The file must exist on the server's own disk for CS2 to
+# precache it — that precache is what tells connecting clients they need to fetch it,
+# which they then do over sv_downloadurl (FastDL), not over the game's slow channel.
+install_team_logos() {
+  local base="${NEXUS_LOGO_BASE_URL:-https://studiosgamesrs.web.app/cs2-fastdl}"
+  local svg_dst="$CS2_DIR/materials/panorama/images/tournaments/teams"
+  local png_dst="$CS2_DIR/resource/flash/econ/tournaments/teams"
+  mkdir -p "$svg_dst" "$png_dst"
+
+  if wget -qO "$svg_dst/sgrs.svg" "$base/materials/panorama/images/tournaments/teams/sgrs.svg" \
+      && wget -qO "$svg_dst/sgrs.png" "$base/materials/panorama/images/tournaments/teams/sgrs.png" \
+      && wget -qO "$png_dst/sgrs.png" "$base/resource/flash/econ/tournaments/teams/sgrs.png"; then
+    echo "[plugins] Studiosgamesrs team logo downloaded from $base"
+  else
+    echo "[plugins] WARN: could not fetch the team logo from $base — mp_teamlogo will precache nothing"
+    rm -f "$svg_dst/sgrs.svg" "$svg_dst/sgrs.png" "$png_dst/sgrs.png"
+  fi
+}
+
 METAMOD_URL="${METAMOD_URL:-https://mms.alliedmods.net/mmsdrop/2.0/mmsource-2.0.0-git1410-linux.tar.gz}"
 CSS_URL="${CSS_URL:-https://github.com/roflmuffin/CounterStrikeSharp/releases/download/v1.0.371/counterstrikesharp-with-runtime-linux-1.0.371.zip}"
 MATCHZY_URL="${MATCHZY_URL:-https://github.com/shobhit-pathak/MatchZy/releases/download/0.8.15/MatchZy-0.8.15-with-cssharp-linux.zip}"
@@ -198,6 +220,9 @@ fi
 
 echo "[plugins] Installing MatchZy tournament configs..."
 install_matchzy_configs
+
+echo "[plugins] Installing Studiosgamesrs team logo..."
+install_team_logos
 
 chown -R "$CS2_USER:$CS2_USER" "/home/$CS2_USER/cs2-server"
 echo "=== CS2 plugin install finished $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="

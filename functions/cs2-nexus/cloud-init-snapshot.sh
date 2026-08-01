@@ -103,6 +103,12 @@ tv_enable 1
 tv_delay 105
 log on
 sv_hibernate_when_empty 0
+// Studiosgamesrs watermark on the top-of-screen score bar and scoreboard.
+// The actual files are fetched by install-plugins.sh (install_team_logos) from
+// FastDL — this only tells the engine which precached name to use.
+sv_downloadurl "https://studiosgamesrs.web.app/cs2-fastdl"
+mp_teamlogo_1 sgrs
+mp_teamlogo_2 sgrs
 CFGEOF
 
 cat > /etc/cs2-nexus/bridge.env << ENVEOF

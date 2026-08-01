@@ -123,6 +123,23 @@ if [ -d /root/matchzy-cfg ]; then
   cp -a /root/matchzy-cfg/. "${CS2_DIR}/cfg/MatchZy/"
 fi
 
+# Studiosgamesrs team logo (top-of-screen score bar + scoreboard, via mp_teamlogo_1/2).
+# This is the path snapshot boots actually take (see cloud-init-snapshot.sh), so the
+# fetch lives here too, not only in install-plugins.sh's install_team_logos. Pulled from
+# FastDL rather than embedded in cloud-init: the SVG+PNG are too big for the 60KB
+# user-data cap that scripts/verify-cs2-cloudinit.js enforces.
+LOGO_BASE="${NEXUS_LOGO_BASE_URL:-https://studiosgamesrs.web.app/cs2-fastdl}"
+SVG_DST="${CS2_DIR}/materials/panorama/images/tournaments/teams"
+PNG_DST="${CS2_DIR}/resource/flash/econ/tournaments/teams"
+mkdir -p "$SVG_DST" "$PNG_DST"
+if wget -qO "$SVG_DST/sgrs.svg" "$LOGO_BASE/materials/panorama/images/tournaments/teams/sgrs.svg" \
+    && wget -qO "$SVG_DST/sgrs.png" "$LOGO_BASE/materials/panorama/images/tournaments/teams/sgrs.png" \
+    && wget -qO "$PNG_DST/sgrs.png" "$LOGO_BASE/resource/flash/econ/tournaments/teams/sgrs.png"; then
+  echo "[fix] Studiosgamesrs team logo downloaded from $LOGO_BASE"
+else
+  echo "[fix] WARN: could not fetch the team logo from $LOGO_BASE — mp_teamlogo will precache nothing"
+fi
+
 chown -R "$CS2_USER:$CS2_USER" "$CS2_ROOT"
 systemctl daemon-reload
 if ! systemctl restart cs2-server; then

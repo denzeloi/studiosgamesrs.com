@@ -50,6 +50,14 @@ async function sendCommand(host, port, password, command, timeoutMs) {
 }
 
 /**
+ * Where the team-logo files (sgrs.svg / sgrs.png) are hosted for FastDL and for the
+ * server's own precache fetch (see scripts/fix-metamod-on-server.sh and
+ * install-plugins.sh's install_team_logos). Overridable because the RCON push and the
+ * boot-time wget must agree, or a server ends up precaching a name nobody serves.
+ */
+const LOGO_BASE_URL = process.env.CS2_LOGO_BASE_URL || 'https://studiosgamesrs.web.app/cs2-fastdl';
+
+/**
  * Pushed over RCON on every launch, not only through cfg/MatchZy/config.cfg, so a
  * server that is already running or booted from an older snapshot behaves the same
  * as a freshly provisioned one. Without this, a config change would only take effect
@@ -71,6 +79,13 @@ const SERVER_RULES_CVARS = [
   // need, because their values contain spaces.
   'matchzy_hostname_format "Studiosgamesrs | {TEAM1} vs {TEAM2}"',
   'matchzy_match_start_message "{Gold}Studiosgamesrs{Default} - partida oficial en marcha. Mucha suerte."',
+  // Studiosgamesrs watermark on the top-of-screen score bar and scoreboard. Re-pushing
+  // this on an already-running server only helps if the files already reached its disk
+  // (boot time, via install_team_logos / fix-metamod-on-server.sh) — RCON cannot place
+  // files, it can only tell an already-fetched file to precache.
+  'sv_downloadurl "' + LOGO_BASE_URL + '"',
+  'mp_teamlogo_1 sgrs',
+  'mp_teamlogo_2 sgrs',
 ];
 
 /**
@@ -83,6 +98,9 @@ const SERVER_RULES_CVARS = [
 const BRANDING_PROBES = [
   { cvar: 'matchzy_hostname_format', expect: 'Studiosgamesrs | {TEAM1} vs {TEAM2}' },
   { cvar: 'matchzy_show_credits_on_match_start', expect: 'False' },
+  { cvar: 'mp_teamlogo_1', expect: 'sgrs' },
+  { cvar: 'mp_teamlogo_2', expect: 'sgrs' },
+  { cvar: 'sv_downloadurl', expect: LOGO_BASE_URL },
 ];
 
 async function applyServerRules(client) {
@@ -196,4 +214,5 @@ module.exports = {
   withTimeout,
   SERVER_RULES_CVARS,
   BRANDING_PROBES,
+  LOGO_BASE_URL,
 };

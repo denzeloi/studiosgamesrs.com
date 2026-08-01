@@ -186,7 +186,10 @@ console.log('\n--- the branding can be read back from a running server ---');
 // from one that had silently kept the plugin default. These two convars can be read, are
 // set by the same config, and stand in for it.
 const rcon = require(path.join(repoRoot, 'functions', 'cs2-nexus', 'lib', 'rcon.js'));
-const probes = rcon.BRANDING_PROBES || [];
+// Only the matchzy_ probes belong to this file — mp_teamlogo_*/sv_downloadurl are core
+// engine cvars set in server.cfg, not cfg/MatchZy/config.cfg, and are covered by
+// scripts/verify-cs2-logo.js instead.
+const probes = (rcon.BRANDING_PROBES || []).filter((p) => p.cvar.startsWith('matchzy_'));
 
 if (!probes.length) {
   fail('rcon.js exposes no readable probe, so a server cannot report its own branding');
