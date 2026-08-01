@@ -100,9 +100,15 @@ MZLV
 # Panorama (current UI) reads SVG from materials/panorama/images/tournaments/teams;
 # pre-Panorama UI (and the top-of-screen score bar on some clients) reads PNG from
 # resource/flash/econ/tournaments/teams. Ship both so mp_teamlogo_1/mp_teamlogo_2
-# render everywhere they can. The file must exist on the server's own disk for CS2 to
-# precache it — that precache is what tells connecting clients they need to fetch it,
-# which they then do over sv_downloadurl (FastDL), not over the game's slow channel.
+# render everywhere they can.
+#
+# This only gets the file onto the SERVER's own disk (CS2 has no sv_downloadurl to
+# re-serve it to clients — that cvar was removed; "find download" on a live 1.41.7.x
+# server returns nothing). That makes the logo visible to the server operator and to
+# anyone who drops the same 3 files under their own CS2 install. Showing it to every
+# connecting player needs a Steam Workshop addon mounted via the MultiAddonManager
+# Metamod plugin, which needs a Workshop item published from an actual Steam account —
+# not something this script can do unattended, so it is a deliberate follow-up.
 install_team_logos() {
   local base="${NEXUS_LOGO_BASE_URL:-https://studiosgamesrs.web.app/cs2-fastdl}"
   local svg_dst="$CS2_DIR/materials/panorama/images/tournaments/teams"

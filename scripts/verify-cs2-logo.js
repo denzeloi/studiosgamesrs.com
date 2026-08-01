@@ -5,17 +5,20 @@
  * Checks the in-game team-logo pipeline end to end, statically.
  *
  * CS2 shows mp_teamlogo_1/mp_teamlogo_2 in the top-of-screen score bar (SVG or PNG)
- * and the scoreboard/player panel (SVG only). Getting this in front of a connecting
- * player takes three things agreeing with each other:
+ * and the scoreboard/player panel (SVG only) — confirmed against a live 1.41.7.x server
+ * (mp_teamlogo_1/2 accepted "sgrs" and read it back).
  *
- *  1. The file must exist on the SERVER's own disk so CS2 can precache it — that
- *     precache is what tells a connecting client "you need this file".
- *  2. The client then fetches the actual bytes over sv_downloadurl (FastDL), not the
- *     slow game channel, so the FastDL host must serve the exact same relative path.
- *  3. mp_teamlogo_1 / mp_teamlogo_2 must be set to the same short name the files use.
+ * IMPORTANT: CS2 removed sv_downloadurl (FastDL). "find download" on a live server
+ * returns nothing. So this pipeline only gets the file onto the SERVER's own disk —
+ * that makes the logo visible to the server operator and to anyone who drops the same
+ * 3 files under their own CS2 install, but NOT automatically to every joining player.
+ * That needs a Steam Workshop addon mounted via the MultiAddonManager Metamod plugin,
+ * which needs a Workshop item published from an actual Steam account — a deliberate,
+ * documented follow-up, not something any of these scripts attempt.
  *
- * If any of these drift from the others, the server precaches a name FastDL does not
- * serve (or vice versa) and a connecting client silently shows nothing.
+ * What this DOES verify: the server-side file, the mp_teamlogo_1/mp_teamlogo_2 cvars,
+ * and the two boot scripts that fetch the file all agree on the same short name, and
+ * that nothing here quietly reintroduces the nonexistent sv_downloadurl.
  */
 
 const fs = require('fs');
@@ -127,14 +130,14 @@ if (!new RegExp('mp_teamlogo_2 ' + LOGO_NAME + '\\b').test(joinedRules)) {
 } else {
   ok(`SERVER_RULES_CVARS pushes mp_teamlogo_2 ${LOGO_NAME}`);
 }
-if (!joinedRules.includes('sv_downloadurl "' + rcon.LOGO_BASE_URL + '"')) {
-  fail('SERVER_RULES_CVARS does not push sv_downloadurl matching rcon.LOGO_BASE_URL');
+if (joinedRules.includes('sv_downloadurl')) {
+  fail('SERVER_RULES_CVARS still pushes sv_downloadurl — that cvar does not exist in CS2 (confirmed live: "Unknown command")');
 } else {
-  ok('SERVER_RULES_CVARS pushes sv_downloadurl matching rcon.LOGO_BASE_URL (' + rcon.LOGO_BASE_URL + ')');
+  ok('SERVER_RULES_CVARS does not push the nonexistent sv_downloadurl cvar');
 }
 
 const probeNames = (rcon.BRANDING_PROBES || []).map((p) => p.cvar);
-['mp_teamlogo_1', 'mp_teamlogo_2', 'sv_downloadurl'].forEach((cvar) => {
+['mp_teamlogo_1', 'mp_teamlogo_2'].forEach((cvar) => {
   if (!probeNames.includes(cvar)) {
     fail(`BRANDING_PROBES has no readback probe for ${cvar}`);
   } else {
@@ -182,10 +185,10 @@ console.log('\n--- baked-in server.cfg (both boot modes) sets the same cvars ---
   const body = block[1];
   if (!/^mp_teamlogo_1 sgrs$/m.test(body) || !/^mp_teamlogo_2 sgrs$/m.test(body)) {
     fail(`${rel}: server.cfg heredoc is missing mp_teamlogo_1/mp_teamlogo_2`);
-  } else if (!body.includes('sv_downloadurl "https://studiosgamesrs.web.app/cs2-fastdl"')) {
-    fail(`${rel}: server.cfg heredoc is missing the matching sv_downloadurl`);
+  } else if (body.includes('sv_downloadurl')) {
+    fail(`${rel}: server.cfg heredoc still sets sv_downloadurl, a cvar CS2 does not have`);
   } else {
-    ok(`${rel}: server.cfg bakes in mp_teamlogo_1/2 and sv_downloadurl`);
+    ok(`${rel}: server.cfg bakes in mp_teamlogo_1/2`);
   }
 });
 

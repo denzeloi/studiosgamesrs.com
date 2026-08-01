@@ -126,8 +126,11 @@ fi
 # Studiosgamesrs team logo (top-of-screen score bar + scoreboard, via mp_teamlogo_1/2).
 # This is the path snapshot boots actually take (see cloud-init-snapshot.sh), so the
 # fetch lives here too, not only in install-plugins.sh's install_team_logos. Pulled from
-# FastDL rather than embedded in cloud-init: the SVG+PNG are too big for the 60KB
-# user-data cap that scripts/verify-cs2-cloudinit.js enforces.
+# a hosted mirror rather than embedded in cloud-init: the SVG+PNG are too big for the
+# 60KB user-data cap that scripts/verify-cs2-cloudinit.js enforces. This only reaches
+# the server's own disk (CS2 dropped sv_downloadurl, so there is no FastDL to re-serve
+# it to clients) — see the LOGO_BASE_URL comment in lib/rcon.js for what that does and
+# does not cover.
 LOGO_BASE="${NEXUS_LOGO_BASE_URL:-https://studiosgamesrs.web.app/cs2-fastdl}"
 SVG_DST="${CS2_DIR}/materials/panorama/images/tournaments/teams"
 PNG_DST="${CS2_DIR}/resource/flash/econ/tournaments/teams"

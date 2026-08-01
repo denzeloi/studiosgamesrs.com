@@ -50,10 +50,18 @@ async function sendCommand(host, port, password, command, timeoutMs) {
 }
 
 /**
- * Where the team-logo files (sgrs.svg / sgrs.png) are hosted for FastDL and for the
- * server's own precache fetch (see scripts/fix-metamod-on-server.sh and
- * install-plugins.sh's install_team_logos). Overridable because the RCON push and the
- * boot-time wget must agree, or a server ends up precaching a name nobody serves.
+ * Where the team-logo files (sgrs.svg / sgrs.png) are hosted for the server's own boot-time
+ * fetch (see scripts/fix-metamod-on-server.sh and install-plugins.sh's install_team_logos).
+ *
+ * This is NOT FastDL — CS2 removed sv_downloadurl entirely (confirmed live: the engine
+ * answers "Unknown command 'sv_downloadurl'"). It only gets the file onto the SERVER's own
+ * disk so mp_teamlogo_1/2 have something to precache. That makes the logo visible to the
+ * server operator and to anyone who drops the same 3 files under their own CS2 install
+ * (Panorama reads a local material by name, no network involved). Getting it in front of
+ * every connecting player needs a Steam Workshop addon mounted via the MultiAddonManager
+ * Metamod plugin (mm_extra_addons "<workshop id>") — that requires publishing the logo as
+ * a Workshop item from an actual Steam account, which nothing here can do unattended, so
+ * it is intentionally not wired up yet.
  */
 const LOGO_BASE_URL = process.env.CS2_LOGO_BASE_URL || 'https://studiosgamesrs.web.app/cs2-fastdl';
 
@@ -78,12 +86,12 @@ const SERVER_RULES_CVARS = [
   // These two are string convars and do strip one pair of surrounding quotes, which they
   // need, because their values contain spaces.
   'matchzy_hostname_format "Studiosgamesrs | {TEAM1} vs {TEAM2}"',
-  'matchzy_match_start_message "{Gold}Studiosgamesrs{Default} - partida oficial en marcha. Mucha suerte."',
+  '  matchzy_match_start_message "{Gold}Studiosgamesrs{Default} - partida oficial en marcha. Mucha suerte."',
   // Studiosgamesrs watermark on the top-of-screen score bar and scoreboard. Re-pushing
   // this on an already-running server only helps if the files already reached its disk
   // (boot time, via install_team_logos / fix-metamod-on-server.sh) — RCON cannot place
-  // files, it can only tell an already-fetched file to precache.
-  'sv_downloadurl "' + LOGO_BASE_URL + '"',
+  // files, it can only tell an already-fetched file to precache. No sv_downloadurl here:
+  // that cvar does not exist in CS2 (see LOGO_BASE_URL comment above).
   'mp_teamlogo_1 sgrs',
   'mp_teamlogo_2 sgrs',
 ];
@@ -100,7 +108,6 @@ const BRANDING_PROBES = [
   { cvar: 'matchzy_show_credits_on_match_start', expect: 'False' },
   { cvar: 'mp_teamlogo_1', expect: 'sgrs' },
   { cvar: 'mp_teamlogo_2', expect: 'sgrs' },
-  { cvar: 'sv_downloadurl', expect: LOGO_BASE_URL },
 ];
 
 async function applyServerRules(client) {

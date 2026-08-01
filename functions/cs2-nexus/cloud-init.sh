@@ -148,10 +148,9 @@ tv_enable 1
 tv_delay 105
 log on
 sv_hibernate_when_empty 0
-// Studiosgamesrs watermark on the top-of-screen score bar and scoreboard.
-// The actual files are fetched by install-plugins.sh (install_team_logos) from
-// FastDL — this only tells the engine which precached name to use.
-sv_downloadurl "https://studiosgamesrs.web.app/cs2-fastdl"
+// Studiosgamesrs watermark on the top-of-screen score bar and scoreboard. The actual
+// files are fetched by install-plugins.sh (install_team_logos), which must run before
+// this precache attempt or CS2 finds nothing under that name.
 mp_teamlogo_1 sgrs
 mp_teamlogo_2 sgrs
 CFGEOF
