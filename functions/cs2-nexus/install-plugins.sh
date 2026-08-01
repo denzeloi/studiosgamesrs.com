@@ -51,20 +51,24 @@ install_matchzy_configs() {
     return 0
   fi
   cat > "$dst/config.cfg" << 'MZCFG'
-# MatchZy — Studiosgamesrs Nexus tournament defaults
-matchzy_knife_enabled_default 1
+// MatchZy - Studiosgamesrs Nexus tournament defaults
+// "#" is not a comment for the game console - use "//" or CS2 logs "Unknown command".
+matchzy_knife_enabled_default 0
 matchzy_minimum_ready_required 2
 matchzy_stop_command_available 1
-matchzy_pause_after_freezetime_end 0
-matchzy_chat_prefix [{Green}MatchZy{Default}]
-matchzy_demo_path MatchZy
-matchzy_demo_name_format "{TIME}_{MATCHID}_{MAP}_{TEAM1}_vs_{TEAM2}"
-matchzy_use_pause_command 1
 matchzy_whitelist_enabled_default 0
 matchzy_kick_when_no_match_loaded 0
+matchzy_chat_prefix [{Gold}Studiosgamesrs{Default}]
+matchzy_admin_chat_prefix [{Red}Centinela{Default}]
+matchzy_show_credits_on_match_start 0
 matchzy_hostname_format "Studiosgamesrs | {TEAM1} vs {TEAM2}"
+matchzy_match_start_message "{Gold}Studiosgamesrs{Default} - partida oficial en marcha. Mucha suerte."
+matchzy_demo_path Studiosgamesrs/
+matchzy_demo_name_format "{TIME}_{MATCH_ID}_{MAP}_{TEAM1}_vs_{TEAM2}"
+matchzy_use_pause_command_for_tactical_pause false
 MZCFG
   cat > "$dst/warmup.cfg" << 'MZWU'
+// Calentamiento - Studiosgamesrs
 mp_freezetime 5
 mp_warmuptime 300
 mp_warmup_pausetimer 1
@@ -75,12 +79,14 @@ mp_autoteambalance 0
 mp_limitteams 0
 MZWU
   cat > "$dst/knife.cfg" << 'MZKN'
+// Ronda de cuchillo - Studiosgamesrs
 mp_freezetime 0
 mp_warmuptime 0
 mp_roundtime 1.92
 mp_roundtime_defuse 1.92
 MZKN
   cat > "$dst/live.cfg" << 'MZLV'
+// Partida en vivo - Studiosgamesrs
 mp_freezetime 15
 mp_warmuptime 0
 mp_maxrounds 24
@@ -88,7 +94,7 @@ mp_overtime_enable 1
 mp_halftime 1
 mp_match_can_clinch 1
 MZLV
-  echo "[plugins] MatchZy configs written (embedded defaults)"
+  echo "[plugins] MatchZy configs written (embedded defaults, Studiosgamesrs branded)"
 }
 
 METAMOD_URL="${METAMOD_URL:-https://mms.alliedmods.net/mmsdrop/2.0/mmsource-2.0.0-git1410-linux.tar.gz}"
