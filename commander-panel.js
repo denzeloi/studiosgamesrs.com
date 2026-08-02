@@ -433,10 +433,21 @@
       var matchId = snap.val();
       if (!matchId) return;
       if (cmdLiveMatchListener) cmdLiveMatchListener.off();
-      cmdLiveMatchListener = db.ref('partida_en_vivo/' + matchId);
+      // El marcador cuelga del torneo desde que dos campeonatos con el mismo
+      // identificador de cruce se pisaban el resultado.
+      cmdLiveMatchListener = db.ref('partida_en_vivo/' + tournamentId + '/' + matchId);
       cmdLiveMatchListener.on('value', function(liveSnap) {
         var feed = document.getElementById('cmdLiveMatchFeed');
-        if (feed) feed.textContent = JSON.stringify(liveSnap.val(), null, 2) || 'Waiting for live match...';
+        if (!feed) return;
+        var live = liveSnap.val();
+        if (live) {
+          feed.textContent = JSON.stringify(live, null, 2);
+          return;
+        }
+        // Partidas lanzadas antes del cambio de sitio.
+        db.ref('partida_en_vivo/' + matchId).once('value').then(function(legacy) {
+          feed.textContent = JSON.stringify(legacy.val(), null, 2) || 'Waiting for live match...';
+        });
       });
     });
   }

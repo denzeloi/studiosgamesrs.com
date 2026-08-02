@@ -26,6 +26,7 @@ const rtdb = require(path.join(libDir, 'firebase-rtdb.js'));
 const matchzy = require(path.join(libDir, 'matchzy.js'));
 const stats = require(path.join(libDir, 'match-stats.js'));
 const bracket = require(path.join(libDir, 'bracket.js'));
+const verification = require(path.join(libDir, 'verification.js'));
 const webhook = require(path.join(libDir, 'webhook.js'));
 
 let failed = 0;
@@ -69,7 +70,7 @@ const recorded = {};
 
 // Lo que ya hay guardado del cruce. El plugin no sabe en qué servidor corre,
 // así que match_end tiene que sacarlo de aquí para poder cerrarlo.
-let storedLiveMatch = { serverId: 'srv-from-index' };
+let storedLiveMatch = { serverId: 'srv-from-index', map: 'de_nuke' };
 
 // Los dos equipos del cruce salen del cuadro: el marcador viene por bandos y
 // los bandos cambian a la mitad, así que no sirven para saber a quién avisar.
@@ -87,6 +88,15 @@ function resetRecorder() {
   recorded.bracket = [];
   recorded.tournaments = [];
   recorded.notices = [];
+  recorded.verification = [];
+  recorded.results = [];
+}
+
+function resultFor(uid) {
+  const batch = recorded.results[0];
+  if (!batch) return null;
+  const row = batch.entries.find(function (e) { return e.uid === uid; });
+  return row ? row.data : null;
 }
 
 function noticeFor(teamId) {
@@ -95,8 +105,8 @@ function noticeFor(teamId) {
   }) || null;
 }
 
-rtdb.writeMatchLive = async function (matchId, data) {
-  recorded.live.push({ matchId: matchId, data: data });
+rtdb.writeMatchLive = async function (tournamentId, matchId, data) {
+  recorded.live.push({ tournamentId: tournamentId, matchId: matchId, data: data });
 };
 rtdb.writeTournamentLiveMatch = async function (tournamentId, matchId, data) {
   recorded.liveMatches = recorded.liveMatches || [];
@@ -108,8 +118,20 @@ rtdb.getTournamentLiveMatch = async function () {
 rtdb.writeGameServer = async function (serverId, data) {
   recorded.servers.push({ serverId: serverId, data: data });
 };
+// El orquestador mira las máquinas del torneo al cerrar un cruce: sin esto la
+// comprobación se iba a la red de verdad y se colgaba en vez de fallar.
+rtdb.getGameServer = async function (serverId) {
+  return { ip: '10.0.0.1', port: 27015, status: 'online', gsltIndex: 0, id: serverId };
+};
+rtdb.getGameServersByTournament = async function () {
+  return {};
+};
 rtdb.writeTournament = async function (tournamentId, data) {
   recorded.tournaments.push({ tournamentId: tournamentId, data: data });
+};
+verification.consumeForMatch = async function (tournamentId, matchId, teamIds) {
+  recorded.verification.push({ tournamentId: tournamentId, matchId: matchId, teamIds: teamIds });
+  return { consumed: teamIds.map(function (id) { return { teamId: id }; }), skipped: false };
 };
 matchzy.getStoredMatchConfig = async function () {
   return STORED_CONFIG;
@@ -133,7 +155,18 @@ rtdb.getBracketMatch = async function () {
   return storedBracketMatch;
 };
 rtdb.getTournament = async function () {
-  return { name: 'Copa Demo' };
+  return { name: 'Copa Demo', activeMap: 'de_mirage' };
+};
+const TEAM_SUMMARIES = {
+  'team-alpha': { id: 'team-alpha', name: 'Alpha', uids: ['uid-a1', 'uid-a2'] },
+  'team-bravo': { id: 'team-bravo', name: 'Bravo', uids: ['uid-b1'] },
+};
+rtdb.getTeamSummary = async function (teamId) {
+  return TEAM_SUMMARIES[teamId] || null;
+};
+rtdb.writeMatchResults = async function (resultId, entries) {
+  recorded.results.push({ resultId: resultId, entries: entries });
+  return entries.length;
 };
 rtdb.notifyTeamRosters = async function (teamIds, noticeId, payload) {
   recorded.notices.push({
@@ -185,10 +218,23 @@ async function run() {
 
   let live = lastLive();
   eq('the match is marked finished', live.status, 'finished');
+  // Dos torneos con un 'r1_m1' en marcha escribían en el mismo sitio y se
+  // pisaban el marcador: ahora cada uno cuelga del suyo.
+  eq('el marcador se guarda bajo su torneo',
+    recorded.live[recorded.live.length - 1].tournamentId, 't-001');
   eq('the winning side is resolved to a Nexus team', live.winnerTeamId, 'team-alpha');
   eq('the bracket is advanced', recorded.bracket.length, 1);
   eq('the bracket receives the resolved winner', recorded.bracket[0].payload.winnerTeamId, 'team-alpha');
   eq('the server is released', recorded.servers[0].data.status, 'match_complete');
+  // Sin esta marca la máquina se queda encendida en Vultr hasta que alguien
+  // pulsa Shutdown a mano, que es como se iba la factura de la noche.
+  eq('the shutdown countdown starts',
+    typeof recorded.servers[0].data.shutdownAfter, 'number');
+  eq('the shutdown says why', recorded.servers[0].data.shutdownReason, 'match_complete');
+  // La verificación cubre tres partidas y hasta ahora no las gastaba nadie.
+  eq('la partida gasta verificación de los dos equipos',
+    (recorded.verification[0] && recorded.verification[0].teamIds || []).join(','),
+    'team-alpha,team-bravo');
   eq('final stats are archived', recorded.matchStats.length, 1);
   eq('tournament totals are credited', recorded.accumulated.length, 1);
   eq('only linked accounts are credited',
@@ -223,6 +269,22 @@ async function run() {
   eq('la clave del aviso es la del cruce',
     noticeFor('team-bravo').noticeId, 'tourend_t-001_r1_m1');
 
+  console.log('\n--- el resultado llega a la ficha de cada jugador ---');
+  // De aquí cuelgan el overlay de victoria/derrota y la EXP de torneo, que
+  // escuchaban un nodo que nadie escribía.
+  eq('se escribe una vez por cruce', recorded.results.length, 1);
+  eq('con la clave del torneo y el cruce', recorded.results[0].resultId, 't-001_r1_m1');
+  eq('a todo el roster de los dos equipos', recorded.results[0].entries.length, 3);
+  eq('el ganador lo ve como victoria', resultFor('uid-a1').result, 'win');
+  eq('con su marcador a favor', resultFor('uid-a1').score, '13-11');
+  eq('y el nombre del rival', resultFor('uid-a1').opponentName, 'Bravo');
+  eq('el perdedor lo ve como derrota', resultFor('uid-b1').result, 'loss');
+  eq('con su marcador en contra', resultFor('uid-b1').score, '11-13');
+  eq('el mapa sale del cruce', resultFor('uid-b1').map, 'de_nuke');
+  // Sin marca de tiempo fresca welcome-overlay.js lo trata como histórico y no
+  // lo enseña; sin 'result' reconocible tournamentXp.js no reparte EXP.
+  eq('lleva marca de tiempo', typeof resultFor('uid-a2').at, 'number');
+
   console.log('\n--- a T-side win after the halftime swap ---');
   resetRecorder();
   await webhook.processMatchEvent(matchEndPayload({
@@ -251,6 +313,9 @@ async function run() {
   eq('a los dos equipos a la vez', recorded.notices[0].teamIds.length, 2);
   eq('y sin decir quién ganó',
     /Ganaste|Perdiste/.test(recorded.notices[0].payload.text), false);
+  // El overlay da por victoria todo lo que no diga 'loss': escribir el
+  // resultado aquí le diría a los dos equipos que ganaron.
+  eq('tampoco se escribe resultado por jugador', recorded.results.length, 0);
 
   console.log('\n--- a commander-reported winner is honoured ---');
   resetRecorder();
@@ -364,7 +429,9 @@ async function run() {
   storedLiveMatch = null;
   await webhook.processMatchEvent(matchEndPayload({ serverId: undefined }));
   eq('sin servidor conocido no se inventa ninguno', recorded.servers.length, 0);
-  storedLiveMatch = { serverId: 'srv-from-index' };
+  // Sin mapa en el cruce se usa el del torneo, que es el que se está jugando.
+  eq('el mapa cae al del torneo', resultFor('uid-a1').map, 'de_mirage');
+  storedLiveMatch = { serverId: 'srv-from-index', map: 'de_nuke' };
 
   console.log('\n--- una ronda sin bandos claros no borra los del arranque ---');
   resetRecorder();

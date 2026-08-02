@@ -9,6 +9,7 @@
  */
 
 const admin = require('firebase-admin');
+const matchzy = require('./matchzy');
 
 // ADR is the standard individual measure. Kills and the game's own round-MVP
 // stars separate players with similar damage, and deaths penalise a fragger who
@@ -25,6 +26,16 @@ function num(value) {
 
 function round1(value) {
   return Math.round(value * 10) / 10;
+}
+
+/**
+ * El bando solo vale si es uno de los dos que juegan. Un espectador o un hueco
+ * sin asignar se publica sin bando y la sala lo deja fuera de las dos tablas en
+ * vez de colocarlo a dedo en una.
+ */
+function normalizeSide(value) {
+  const side = String(value || '').toUpperCase();
+  return side === 'CT' || side === 'T' ? side : null;
 }
 
 function ratePlayer(stat, roundsPlayed) {
@@ -62,6 +73,11 @@ function buildScoreboard(players, roundsPlayed, steamMap) {
       {
         uid: map[steamId] || null,
         name: stat.name || 'unknown',
+        // La sala parte la tabla en CT y T como el marcador del juego, y no hay
+        // otra forma de saber en cuál va cada fila: el bando cambia a la mitad
+        // y el equipo del cuadro no dice nada del lado que ocupa ahora.
+        side: normalizeSide(stat.side),
+        bot: stat.bot === true,
       },
       ratePlayer(stat, roundsPlayed)
     );
@@ -72,6 +88,58 @@ function buildScoreboard(players, roundsPlayed, steamMap) {
     return b.kills - a.kills;
   });
   return rows;
+}
+
+/**
+ * Quién está dentro del servidor, para la sala durante el calentamiento.
+ *
+ * Antes de la primera ronda no hay ni una estadística que enseñar y el jugador
+ * que ya entró se queda mirando una tabla vacía sin saber si el resto llegó.
+ * Esto es lo único que se puede contar en ese hueco.
+ *
+ * El SteamID64 se traduce a cuenta de Nexus y se tira: partida_en_vivo lo lee
+ * cualquiera, y ahí no puede acabar el identificador de Steam de nadie.
+ */
+function buildLobby(connected, steamMap) {
+  const map = steamMap || {};
+  // Con la plantilla conocida, el que no esté en ella no pinta nada en el
+  // tablero: la IP del servidor circula y cualquiera puede entrar a mirar. Si no
+  // se pudo resolver la plantilla no se descarta a nadie, que es preferible a
+  // dejar la sala vacía por no haber podido comprobarlo.
+  const knownRoster = Object.keys(map).length > 0;
+  const all = (connected || [])
+    .filter(function (entry) { return entry && (entry.name || entry.steamId); });
+
+  const players = [];
+  let intruders = 0;
+  all.forEach(function (entry) {
+    const uid = map[String(entry.steamId)] || null;
+    const bot = entry.bot === true;
+    if (knownRoster && !uid && !bot) {
+      intruders += 1;
+      return;
+    }
+    players.push({
+      uid: uid,
+      name: entry.name || 'unknown',
+      side: normalizeSide(entry.side),
+      bot: bot,
+    });
+  });
+
+  players.sort(function (a, b) {
+    return String(a.name).localeCompare(String(b.name));
+  });
+
+  return {
+    count: players.length,
+    ct: players.filter(function (p) { return p.side === 'CT'; }).length,
+    t: players.filter(function (p) { return p.side === 'T'; }).length,
+    // El organizador quiere saber que hay gente de fuera dentro del servidor
+    // aunque el tablero no los liste.
+    intruders: intruders,
+    players: players,
+  };
 }
 
 /**
@@ -185,13 +253,40 @@ function sideByTeamAtStart(config) {
   return { team1Side: team1Side, team2Side: team2Side, sideByTeam: sideByTeam };
 }
 
+/**
+ * El mapa steamId -> cuenta se escribe una vez al lanzar y ya no cambia, pero
+ * ahora se consulta en cada baja para poder mover la tabla en vivo: sin caché
+ * eso son cien lecturas extra por partida para leer siempre lo mismo. El plazo
+ * corto es por si una partida se relanza sobre el mismo cruce.
+ */
+const STEAM_MAP_TTL_MS = 5 * 60 * 1000;
+const steamMapCache = new Map();
+
 async function getSteamMap(tournamentId, matchId) {
   if (!tournamentId || !matchId) return {};
+  const key = tournamentId + '/' + matchId;
+  const cached = steamMapCache.get(key);
+  if (cached && Date.now() - cached.at < STEAM_MAP_TTL_MS) return cached.value;
+
   const snap = await admin
     .database()
     .ref('matchConfigs/' + tournamentId + '/' + matchId + '/steamMap')
     .once('value');
-  return snap.val() || {};
+  let value = snap.val() || {};
+
+  // La plantilla del cruce no existe hasta que se lanza la partida, y el
+  // calentamiento empieza mucho antes: sin este respaldo la sala no sabría
+  // quién es cada uno de los que ya están dentro.
+  if (!Object.keys(value).length) {
+    value = await matchzy.rosterSteamMap(tournamentId, matchId);
+  }
+
+  // Un mapa vacío casi siempre es un cuadro a medio armar. Guardarlo cinco
+  // minutos dejaría la sala sin poder identificar a nadie durante ese rato.
+  if (Object.keys(value).length) {
+    steamMapCache.set(key, { at: Date.now(), value: value });
+  }
+  return value;
 }
 
 async function saveMatchStats(tournamentId, matchId, data) {
@@ -253,6 +348,7 @@ function rankTournamentPlayers(statsByUid, limit) {
 module.exports = {
   ratePlayer,
   buildScoreboard,
+  buildLobby,
   pickMvp,
   resolveWinnerTeamId,
   resolveSideByTeam,

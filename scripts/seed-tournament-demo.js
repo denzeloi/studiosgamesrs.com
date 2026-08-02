@@ -113,6 +113,37 @@ const MATCH_TWO = {
   kills: { Ember: 12, Frost: 10, Volt: 9, Shade: 7, Orbit: 5 },
 };
 
+/**
+ * La tabla que publica el webhook al terminar cada ronda.
+ *
+ * El seed solo traía las bajas sueltas, así que las vistas caían al listado
+ * antiguo y no se podía comprobar la tabla completa sin jugar de verdad. Los
+ * números se derivan de las bajas para que sean coherentes entre sí.
+ */
+function scoreboardOf(m) {
+  const names = Object.keys(m.kills);
+  return names.map(function (name, idx) {
+    const kills = m.kills[name];
+    const deaths = Math.max(3, m.currentRound - kills + idx);
+    const assists = Math.max(0, Math.round(kills / 3) + (idx % 2));
+    const adr = 55 + kills * 4 - idx * 3;
+    return {
+      name: name,
+      uid: 'demo-uid-' + name.toLowerCase(),
+      kills: kills,
+      deaths: deaths,
+      assists: assists,
+      adr: adr,
+      score: kills * 2 + assists,
+    };
+  });
+}
+
+function mvpOf(m) {
+  const top = scoreboardOf(m)[0];
+  return { name: top.name, uid: top.uid, kills: top.kills, adr: top.adr };
+}
+
 function liveMatchEntry(m) {
   return {
     status: 'live',
@@ -149,6 +180,8 @@ function livePayload(m) {
     team1Side: m.team1Side,
     team2Side: m.team2Side,
     kills: m.kills,
+    scoreboard: scoreboardOf(m),
+    mvp: mvpOf(m),
     updatedAt: NOW,
   };
 }
@@ -234,7 +267,9 @@ function buildPayload() {
       tokenPool: 5000,
       entryFee: 0,
       mvpTokens: 250,
+      cashPool: 250,
       cashCurrency: 'USD',
+      places: { first: { tokens: 5000, cash: 250 } },
       updatedAt: NOW,
       notes: 'Torneo demo para validar look en vivo.',
     },
@@ -267,7 +302,7 @@ async function writeLive(admin, payload) {
   // El modo único deja limpio lo que sembró el modo dual, si no el marcador
   // seguiría mostrando una segunda partida que ya no existe en el torneo.
   ['r1_m1', 'r1_m2'].forEach(function (mid) {
-    updates['partida_en_vivo/' + mid] = payload.live[mid] || null;
+    updates['partida_en_vivo/' + TID + '/' + mid] = payload.live[mid] || null;
   });
   await db.ref().update(updates);
 }

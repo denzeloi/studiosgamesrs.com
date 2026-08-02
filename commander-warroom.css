@@ -259,6 +259,9 @@
 
 .cwr-btn-danger:hover { background: rgba(229, 57, 53, 0.28); }
 
+/* display:inline-flex gana a la regla del navegador para [hidden]. */
+.cwr-btn[hidden] { display: none; }
+
 .cwr-btn-row {
   display: flex;
   flex-wrap: wrap;
@@ -318,6 +321,14 @@
 }
 
 .cwr-mini-btn-danger:hover { background: rgba(229, 57, 53, 0.18); }
+
+/* El saque del cruce: el único botón de la tarjeta que arranca una partida. */
+.cwr-mini-btn-go {
+  border-color: rgba(126, 217, 87, 0.45);
+  color: #b6f09a;
+}
+
+.cwr-mini-btn-go:hover { background: rgba(126, 217, 87, 0.18); }
 
 .cwr-toggle {
   display: inline-flex;
@@ -1320,6 +1331,14 @@
 }
 
 .cwr-podium-actions { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; justify-content: center; }
+
+.cwr-podium-bulk {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 0.7rem;
+}
 
 .cwr-prize-grid {
   display: grid;

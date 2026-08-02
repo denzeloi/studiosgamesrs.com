@@ -324,6 +324,19 @@
             return out;
         }
 
+        /**
+         * De la campana solo se sale hacia dentro del sitio: el enlace de un
+         * aviso viene de la base y no puede llevar a un dominio de fuera que
+         * imite la página para pedir la contraseña.
+         */
+        function safeNotifLink(raw) {
+            const link = String(raw == null ? '' : raw).trim();
+            if (!link || link.charAt(0) !== '/') return null;
+            if (link.charAt(1) === '/' || link.charAt(1) === '\\') return null;
+            if (/[\u0000-\u001f]/.test(link)) return null;
+            return link;
+        }
+
         function renderNotificationList(items) {
             const list = panel.querySelector('.notifications-list');
             const empty = panel.querySelector('.notifications-empty');
@@ -356,7 +369,8 @@
                     if (n.section === SECTION.SYSTEM && n.id && db && user) {
                         db.ref('users/' + user.uid + '/notifications/' + n.id).update({ read: true }).catch(function() {});
                     }
-                    if (n.link) window.location.href = n.link;
+                    const dest = safeNotifLink(n.link);
+                    if (dest) window.location.href = dest;
                     close();
                 });
                 list.appendChild(el);

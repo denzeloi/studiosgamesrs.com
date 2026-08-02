@@ -73,7 +73,7 @@ function getProvisionImage() {
   return envValue('HETZNER_IMAGE', 'ubuntu-24.04');
 }
 
-async function createServer({ name, labels = {}, location } = {}) {
+async function createServer({ name, labels = {}, location, gsltSlot, tournamentId, matchId } = {}) {
   const client = getClient();
   const snapshot = usesSnapshot();
   const loc = resolveLocation(location);
@@ -84,7 +84,11 @@ async function createServer({ name, labels = {}, location } = {}) {
       location: loc,
       image: getProvisionImage(),
       labels: sanitizeLabels(labels),
-      user_data: cloudInit.loadCloudInitYaml(),
+      user_data: cloudInit.loadCloudInitYaml({
+        gsltSlot: gsltSlot,
+        tournamentId: tournamentId,
+        matchId: matchId,
+      }),
       start_after_create: true,
     });
     return {

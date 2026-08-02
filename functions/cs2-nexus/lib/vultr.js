@@ -67,12 +67,20 @@ function getOsOrSnapshot() {
   return { os_id: Number(envValue('VULTR_OS_ID', '2284')) };
 }
 
-async function createServer({ name, labels = {}, location }) {
+async function createServer({ name, labels = {}, location, gsltSlot, tournamentId, matchId }) {
   const client = getClient();
   const region = location || envValue('VULTR_LOCATION', 'mia');
   const planId = envValue('VULTR_PLAN', 'vc2-4c-8gb');
   const label = sanitizeServerName(name || 'cs2-nexus-' + Date.now());
-  const userData = Buffer.from(cloudInit.loadCloudInitYaml(), 'utf8').toString('base64');
+  // Cada ranura arranca con su propio token de Steam: con el mismo, la segunda
+  // máquina echa a la primera de la red de Valve.
+  const userData = Buffer.from(
+    cloudInit.loadCloudInitYaml({
+      gsltSlot: gsltSlot,
+      tournamentId: tournamentId,
+      matchId: matchId,
+    }), 'utf8'
+  ).toString('base64');
   const body = Object.assign(
     {
       region: region,
@@ -144,6 +152,9 @@ async function listProjectServers() {
       name: inst.label,
       public_net: { ipv4: { ip: inst.main_ip } },
       status: inst.status,
+      // La fecha viene del proveedor porque una máquina huérfana, por
+      // definición, no tiene registro nuestro del que sacar la edad.
+      createdAt: inst.date_created || null,
       provider: 'vultr',
     };
   });

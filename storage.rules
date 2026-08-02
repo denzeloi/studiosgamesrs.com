@@ -35,17 +35,38 @@ service firebase.storage {
       allow delete: if request.auth != null
                     && (type == 'background' || type == 'frame');
     }
-    match /tournament_banners/{tournamentId}/{fileName} {
+    // Las reglas de Storage no pueden consultar Realtime Database, así que aquí
+    // no hay forma de preguntar quién organiza el torneo o capitanea el equipo.
+    // Lo que sí se puede es que nadie escriba encima de nadie: cada quien sube
+    // dentro de su propia carpeta. Antes bastaba con conocer el identificador
+    // para reemplazar la portada de un torneo ajeno o el emblema de un rival,
+    // porque el archivo tenía nombre fijo y estaba abierto a cualquiera.
+    //
+    // Quién manda de verdad es el puntero en la base: tournaments/{id}/bannerUrl
+    // solo lo escribe la organización y teams/{id}/emblem solo el capitán. Una
+    // subida sin permiso se queda en un archivo que no mira nadie.
+    match /tournament_banners/{tournamentId}/{userId}/{fileName} {
       allow read: if true;
       allow write: if request.auth != null
+                   && request.auth.uid == userId
                    && request.resource.size < 6 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+    // Portadas subidas antes del cambio: se siguen viendo, ya no se tocan.
+    match /tournament_banners/{tournamentId}/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /team_emblems/{teamId}/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 4 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
     match /team_emblems/{teamId}/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null
-                   && request.resource.size < 4 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
+      allow write: if false;
     }
     match /profile_images/{userId}/{fileName} {
       allow read: if true;

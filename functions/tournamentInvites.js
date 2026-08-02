@@ -130,13 +130,43 @@ exports.sendTournamentInvite = functions.https.onCall(async (data, context) => {
 
 
 
-  const max = (tournament.teams && tournament.teams.max) || 0;
+  // El cupo se escribe en dos sitios; el creador nuevo usa maxTeams.
+
+  const max = Number(tournament.maxTeams) || Number(tournament.teams && tournament.teams.max) || 0;
 
   const regCount = Object.keys(reg).filter(function (k) { return reg[k]; }).length;
 
   if (max > 0 && regCount >= max) {
 
     throw new functions.https.HttpsError('resource-exhausted', 'El torneo está lleno.');
+
+  }
+
+
+
+  // Las invitaciones sin responder también ocupan sitio: si no se cuentan, se
+
+  // pueden invitar veinte equipos a un torneo de cuatro y los cuatro primeros
+
+  // en aceptar dejan fuera al resto sin avisar.
+
+  const pending = tournament.outboundInvites || {};
+
+  const pendingCount = Object.keys(pending).filter(function (k) {
+
+    return k !== teamId && !reg[k];
+
+  }).length;
+
+  if (max > 0 && regCount + pendingCount >= max) {
+
+    throw new functions.https.HttpsError(
+
+      'resource-exhausted',
+
+      'No quedan plazas libres: ' + regCount + ' inscritos y ' + pendingCount + ' invitaciones sin responder para ' + max + ' plazas.'
+
+    );
 
   }
 

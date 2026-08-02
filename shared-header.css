@@ -46,6 +46,18 @@
     filter: drop-shadow(0 0 8px rgba(229, 57, 53, 0.5));
 }
 
+/* Emblema de la marca junto al nombre. El margen va en la imagen y no como gap del
+   enlace: un gap separaria tambien "Studios" de "gamesrs" en las paginas que solo
+   llevan el nombre escrito. */
+.unified-header .header-logo-mark {
+    height: 2.1rem;
+    width: auto;
+    margin-right: 0.55rem;
+    align-self: center;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 7px rgba(229, 57, 53, 0.45));
+}
+
 .unified-header .header-logo .studio {
     color: #fff;
 }
@@ -537,6 +549,7 @@
         padding: 0.6rem 0.75rem;
     }
     .unified-header .header-logo { font-size: 1.1rem; }
+    .unified-header .header-logo-mark { height: 1.8rem; margin-right: 0.45rem; }
     .unified-header .header-subtitle { font-size: 0.72rem; }
     .unified-header .header-version { font-size: 0.65rem; }
     .unified-header .nav-dropdown-trigger {
@@ -563,6 +576,7 @@
         padding: 0.5rem 0.6rem;
     }
     .unified-header .header-logo { font-size: 1rem; }
+    .unified-header .header-logo-mark { height: 1.55rem; margin-right: 0.4rem; }
 }
 
 /* ========== EFECTO BRAZAS (todas las páginas) ========== */

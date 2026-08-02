@@ -40,6 +40,7 @@ function deepEq(label, actual, expected) {
 
 // ── Firebase falso ─────────────────────────────────────────────────────────
 const writes = [];
+const calls = [];
 let data = {};
 
 function valueAt(pathStr) {
@@ -61,10 +62,25 @@ function ref(pathStr) {
   };
 }
 
-mod.firebase = { database: function () { return { ref: ref }; } };
+// El resincronizado ya no escribe: llama a resyncTournamentRoster, que es
+// quien tiene permiso sobre el nodo.
+mod.firebase = {
+  database: function () { return { ref: ref }; },
+  functions: function () {
+    return {
+      httpsCallable: function (name) {
+        return function (payload) {
+          calls.push({ name: name, payload: payload });
+          return Promise.resolve({ data: { success: true } });
+        };
+      },
+    };
+  },
+};
 
 function seed() {
   writes.length = 0;
+  calls.length = 0;
   data = {
     teams: {
       alpha: {
@@ -112,10 +128,10 @@ SGTournamentRoster.snapshotFor('alpha').then(function (snap) {
   eq('foto antigua sin players sigue dando jugadores', legacy.length, 1);
   eq('foto antigua marca al capitán', legacy[0].role, 'Captain');
 
-  // ── registrationUpdates ─────────────────────────────────────────────────
-  const updates = SGTournamentRoster.registrationUpdates('t1', 'alpha', snap);
-  eq('marca el equipo como inscrito', updates['tournaments/t1/registeredTeams/alpha'], true);
-  eq('guarda la foto del roster', updates['tournaments/t1/registeredRosters/alpha'], snap);
+  // El cliente ya no arma las escrituras de inscripción: eso vive en el
+  // servidor, que es el único con permiso sobre esos nodos.
+  eq('el cliente no expone escrituras de inscripción',
+    typeof SGTournamentRoster.registrationUpdates, 'undefined');
 
   // ── isStale ─────────────────────────────────────────────────────────────
   eq('foto idéntica no se reescribe', SGTournamentRoster.isStale(snap, snap), false);
@@ -149,20 +165,23 @@ function runEnsure() {
   // que ni se intenta.
   return SGTournamentRoster.ensureSnapshot('t1', 'alpha', 'u2').then(function (res) {
     eq('un miembro no reescribe la foto', res, null);
-    eq('un miembro no escribe nada', writes.length, 0);
+    eq('un miembro no llama a la función', calls.length, 0);
     return SGTournamentRoster.ensureSnapshot('t1', 'alpha', 'u1');
   }).then(function (res) {
     eq('el capitán rellena la foto que falta', !!res, true);
-    eq('una sola escritura', writes.length, 1);
-    eq('ruta de escritura', writes[0].path, 'tournaments/t1/registeredRosters/alpha');
-    eq('la foto rellenada trae al equipo entero', writes[0].value.size, 3);
+    eq('nunca escribe el cliente directamente', writes.length, 0);
+    eq('una sola llamada al servidor', calls.length, 1);
+    eq('llama a la función de resincronizado', calls[0].name, 'resyncTournamentRoster');
+    deepEq('la llamada lleva equipo y torneo', calls[0].payload,
+      { teamId: 'alpha', tournamentId: 't1' });
+    eq('la foto rellenada trae al equipo entero', res.size, 3);
 
-    // Ya guardada e igual: no debe volver a escribir en cada visita.
-    data.tournaments.t1.registeredRosters = { alpha: writes[0].value };
+    // Ya guardada e igual: no debe volver a pedir nada en cada visita.
+    data.tournaments.t1.registeredRosters = { alpha: res };
     return SGTournamentRoster.ensureSnapshot('t1', 'alpha', 'u1');
   }).then(function (res) {
     eq('foto al día no se reescribe', res, null);
-    eq('sigue habiendo una sola escritura', writes.length, 1);
+    eq('sigue habiendo una sola llamada', calls.length, 1);
 
     // Entra un jugador nuevo al equipo: la foto tiene que actualizarse.
     data.teams.alpha.roster.u4 = { role: 'Member' };

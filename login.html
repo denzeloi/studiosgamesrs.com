@@ -905,7 +905,7 @@
 
 				} catch (error) {
 					console.error("Error recuperando clave:", error);
-					showAlert("Hubo un error al intentar comunicar con el servidor.", "error");
+					showAlert("No se pudo contactar al servidor de correo. Revisa tu conexión e inténtalo de nuevo.", "error");
 				} finally {
 					this.innerText = originalText;
 					this.style.pointerEvents = "auto";

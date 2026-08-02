@@ -1,0 +1,529 @@
+/* td-live-board.css — tablero en vivo de la sala del torneo.
+   Vive dentro de .td-score-stage y usa los tokens de tournament-details.css. */
+
+.td-board {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* —— Cabecera: bandos, marcador, mapa —— */
+.td-board-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+
+.td-board-side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.td-board-side-t { flex-direction: row-reverse; }
+
+.td-board-badge {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--td-display);
+  font-size: 1.35rem;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.td-board-side-ct .td-board-badge {
+  color: var(--td-ct);
+  background: rgba(110, 168, 254, 0.12);
+  border: 1px solid rgba(110, 168, 254, 0.32);
+}
+
+.td-board-side-t .td-board-badge {
+  color: var(--td-t);
+  background: rgba(216, 157, 63, 0.12);
+  border: 1px solid rgba(216, 157, 63, 0.32);
+}
+
+.td-board-side-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.td-board-side-t .td-board-side-copy { align-items: flex-end; text-align: right; }
+
+.td-board-side-name {
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--td-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-board-side-tag {
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--td-dim);
+}
+
+.td-board-score {
+  flex: 0 0 auto;
+  min-width: 52px;
+  height: 52px;
+  padding: 0 10px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--td-display);
+  font-size: 1.9rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.td-board-side-ct .td-board-score {
+  color: var(--td-ct);
+  border: 2px solid rgba(110, 168, 254, 0.38);
+}
+
+.td-board-side-t .td-board-score {
+  color: var(--td-t);
+  border: 2px solid rgba(216, 157, 63, 0.38);
+}
+
+.td-board-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.td-board-center-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.td-board-views {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid var(--td-line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.td-board-view {
+  width: 26px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--td-dim);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+
+.td-board-view:hover { color: var(--td-text); }
+.td-board-view.is-on { background: rgba(232, 184, 74, 0.14); color: var(--td-gold); }
+
+/* —— Rejilla: tabla CT · kill feed · tabla T —— */
+.td-board-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 250px) minmax(0, 1fr);
+  gap: 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--td-line);
+}
+
+.td-board-col { min-width: 0; padding: 0 0.9rem; }
+.td-board-col-ct { padding-left: 0; }
+.td-board-col-t { padding-right: 0; }
+
+/* Sin bando reportado (build antiguo del plugin) no se puede partir la tabla
+   en dos: se enseña una sola en vez de repartir a los jugadores a ojo. */
+.td-board.is-unsided .td-board-grid { grid-template-columns: minmax(0, 1fr) minmax(190px, 250px); }
+.td-board.is-unsided .td-board-col-t { display: none; }
+
+.td-board-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  color: var(--td-muted);
+}
+
+.td-board-table th {
+  padding: 0 5px 7px;
+  text-align: right;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--td-dim);
+  white-space: nowrap;
+}
+
+.td-board-table th:first-child { text-align: left; }
+.td-board-table tbody tr { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+
+.td-board-table td {
+  padding: 7px 5px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.td-board-player {
+  text-align: left !important;
+  color: var(--td-text);
+  font-weight: 600;
+  max-width: 0;
+  width: 99%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-board-col-ct .td-board-table tbody tr.is-you { background: rgba(110, 168, 254, 0.08); }
+.td-board-col-t .td-board-table tbody tr.is-you { background: rgba(216, 157, 63, 0.08); }
+.td-board-table tbody tr.is-you .td-board-player { color: var(--td-gold); }
+
+/* Quien está dentro pero todavía no ha disparado: la fila existe para que se
+   vea que el hueco está cubierto, sin fingir que ya tiene estadísticas. */
+.td-board-table tbody tr.is-pending td { color: var(--td-dim); }
+.td-board-table tbody tr.is-pending .td-board-player { color: var(--td-muted); font-weight: 500; }
+
+.td-board-tag {
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--td-dim);
+  border: 1px solid var(--td-line);
+  vertical-align: middle;
+}
+
+.td-board-diff-up { color: #6bcf8e; }
+.td-board-diff-down { color: #e07a6a; }
+.td-board-pts { color: var(--td-gold); font-weight: 700; }
+
+.td-board-empty {
+  padding: 14px 5px;
+  color: var(--td-dim);
+  font-size: 0.78rem;
+  text-align: left !important;
+}
+
+/* —— Kill feed —— */
+.td-board-feed {
+  min-width: 0;
+  padding: 0 0.9rem;
+  border-left: 1px solid var(--td-line);
+  border-right: 1px solid var(--td-line);
+}
+
+.td-board-feed-title {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--td-dim);
+}
+
+.td-board-feed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.td-kf-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--td-line);
+  background: rgba(0, 0, 0, 0.28);
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.td-kf-row.is-new { animation: tdKfIn 0.35s ease-out both; }
+
+@keyframes tdKfIn {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.td-kf-name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 42%;
+}
+
+.td-kf-ct { color: var(--td-ct); }
+.td-kf-t { color: var(--td-t); }
+.td-kf-none { color: var(--td-dim); }
+.td-kf-victim { margin-right: auto; }
+.td-kf-icon { color: var(--td-muted); font-size: 0.68rem; }
+.td-kf-hs { color: var(--td-live); font-size: 0.62rem; }
+.td-kf-row.is-ff .td-kf-icon { color: var(--td-live); }
+
+.td-kf-weapon {
+  flex: 0 0 auto;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--td-dim);
+  text-transform: uppercase;
+}
+
+.td-board-feed-empty {
+  margin: 0;
+  text-align: center;
+  color: var(--td-dim);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+/* —— Conectados sin bando ——
+   El que acaba de entrar está en espectadores hasta que elige equipo, y no cabe
+   en ninguna de las dos tablas sin mentir sobre su bando. */
+.td-board-bench {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.55rem;
+  margin-top: 0.85rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px dashed var(--td-line);
+  border-radius: 8px;
+}
+
+.td-board-bench-label {
+  margin-right: 0.25rem;
+  color: var(--td-dim);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.td-board-bench-name {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--td-line);
+  color: var(--td-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.td-board-bench-name.is-you {
+  border-color: var(--td-gold);
+  color: var(--td-gold);
+}
+
+/* —— Asistencia: quién de cada plantilla ya está dentro —— */
+.td-lobby-check {
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--td-line);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.td-lobby-check[hidden] { display: none; }
+
+.td-lobby-title {
+  display: block;
+  margin-bottom: 0.6rem;
+  color: var(--td-dim);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.td-lobby-teams {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.7rem;
+}
+
+.td-lobby-team {
+  min-width: 0;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--td-line);
+  border-radius: 8px;
+}
+
+/* La plantilla completa deja de pedir atención. */
+.td-lobby-team.is-full {
+  border-color: rgba(126, 217, 87, 0.4);
+  background: rgba(126, 217, 87, 0.07);
+}
+
+.td-lobby-team-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.td-lobby-team-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: 0.84rem;
+}
+
+.td-lobby-team-count {
+  flex: none;
+  color: var(--td-muted);
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.td-lobby-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.4rem;
+}
+
+.td-lobby-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 2px 8px;
+  border: 1px solid var(--td-line);
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.td-lobby-player i { font-size: 0.68rem; }
+
+.td-lobby-player.is-in {
+  border-color: rgba(126, 217, 87, 0.45);
+  color: #b6f09a;
+}
+
+/* El que falta se lee de un vistazo: es la única razón de esta lista. */
+.td-lobby-player.is-out {
+  color: var(--td-dim);
+  border-style: dashed;
+}
+
+.td-lobby-player.is-you {
+  border-color: var(--td-gold);
+  color: var(--td-gold);
+}
+
+.td-lobby-guests {
+  margin: 0.65rem 0 0;
+  color: var(--td-muted);
+  font-size: 0.74rem;
+}
+
+.td-lobby-guests i { margin-right: 0.3rem; }
+
+/* —— Pie: fase, ronda, reloj —— */
+.td-board-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem 1.1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--td-line);
+  font-size: 0.78rem;
+  color: var(--td-muted);
+}
+
+.td-board-phase {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--td-line);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.td-board-phase i { font-size: 0.55rem; color: var(--td-dim); }
+.td-board-phase.is-warmup { border-color: rgba(232, 184, 74, 0.3); color: var(--td-gold); }
+.td-board-phase.is-warmup i { color: var(--td-gold); animation: tdPulse 1.6s ease-in-out infinite; }
+.td-board-phase.is-live { border-color: rgba(229, 57, 53, 0.35); color: #ff8a85; }
+.td-board-phase.is-live i { color: var(--td-live); animation: tdPulse 1.4s ease-in-out infinite; }
+
+/* —— Conmutador tablero / feed —— */
+.td-board[data-view="feed"] .td-board-grid { grid-template-columns: minmax(0, 1fr); }
+.td-board[data-view="feed"] .td-board-col { display: none; }
+
+.td-board[data-view="feed"] .td-board-feed {
+  border-left: none;
+  border-right: none;
+  padding: 0;
+}
+
+.td-board[data-view="feed"] .td-kf-row { font-size: 0.82rem; padding: 8px 12px; }
+
+@media (max-width: 860px) {
+  .td-board-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .td-board.is-unsided .td-board-grid { grid-template-columns: minmax(0, 1fr); }
+  .td-board-col { padding: 0; }
+
+  .td-board-feed {
+    order: 3;
+    padding: 0.9rem 0 0;
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid var(--td-line);
+  }
+}
+
+@media (max-width: 560px) {
+  .td-board-head { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; }
+  .td-board-badge { display: none; }
+  .td-board-score { min-width: 42px; height: 42px; font-size: 1.5rem; }
+  .td-board-side-name { font-size: 0.7rem; }
+  /* La puntuación del torneo es lo primero que sobra: el resto de columnas son
+     las que el jugador reconoce de la tabla del juego. */
+  .td-board-table .td-board-pts,
+  .td-board-table th.td-board-pts { display: none; }
+}

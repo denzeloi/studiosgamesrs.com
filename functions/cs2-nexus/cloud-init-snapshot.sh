@@ -35,28 +35,68 @@ elif [ -x /root/install-plugins.sh ]; then
   bash /root/install-plugins.sh "$CS2_DIR" "$CS2_USER" "$RCON_PASS" || true
 fi
 
-# The snapshot carries a prebuilt NexusBridge.dll and the branch above usually
-# takes the fix-metamod path, which never runs install-plugins.sh. Without this
-# rebuild a plugin change would never reach a snapshot-booted server. Runs before
-# cs2-server.service starts, so CS2 loads the fresh DLL on first boot.
+# The branch above decides who copies the tournament configs, and each branch had its own
+# way of not doing it: fix-metamod skips them when /root/matchzy-cfg is absent and it also
+# exits early on any failure. A snapshot ships MatchZy's stock config, so a miss here is
+# invisible — the server just keeps calling itself MatchZy in chat. Copy them here too,
+# unconditionally and before the service starts.
+if [ -d /root/matchzy-cfg ]; then
+  mkdir -p "$CS2_DIR/cfg/MatchZy"
+  cp -a /root/matchzy-cfg/. "$CS2_DIR/cfg/MatchZy/"
+  chown -R "$CS2_USER:$CS2_USER" "$CS2_DIR/cfg/MatchZy" 2>/dev/null || true
+  echo "[snapshot] MatchZy tournament configs in place: $(grep -c . "$CS2_DIR/cfg/MatchZy/config.cfg" 2>/dev/null || echo 0) lines"
+else
+  echo "[snapshot] WARN: /root/matchzy-cfg missing — MatchZy keeps its stock config"
+fi
+
+# El puente es lo que le cuenta al sitio quién entra, quién mata y cómo acaba
+# la partida: sin él la máquina funciona, MatchZy funciona, y la web no se
+# entera de nada. La rama de arriba suele tomar el camino de fix-metamod, que
+# nunca ejecuta install-plugins.sh, así que este bloque es el único que instala
+# el puente en un arranque desde imagen. Va antes de cs2-server.service para que
+# CS2 lo cargue en el primer arranque.
+#
+# Antes esto pedía que la imagen ya trajera dotnet y, si no lo traía, se saltaba
+# el bloque entero sin decir nada; el fallo se atribuía al DLL de la imagen, que
+# tampoco existía. Ahora se instala lo que falte, el build deja registro y al
+# final se comprueba que el archivo esté de verdad donde CS2 lo busca.
+NEXUS_DEST="${CS2_DIR}/addons/counterstrikesharp/plugins/NexusBridge"
+if [ -f /root/NexusBridgePlugin.cs ]; then
+  if ! command -v dotnet >/dev/null 2>&1; then
+    echo "[snapshot] dotnet missing — installing SDK to build NexusBridge"
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -qq || true
+    apt-get install -y -qq dotnet-sdk-8.0 >/dev/null 2>&1 || true
+  fi
+fi
+
 if [ -f /root/NexusBridgePlugin.cs ] && command -v dotnet >/dev/null 2>&1; then
-  echo "[snapshot] Rebuilding NexusBridge from cloud-init source"
+  echo "[snapshot] Building NexusBridge from cloud-init source"
   NEXUS_SRC="/root/nexus-bridge-build"
   NEXUS_OUT="/tmp/nexus-out"
-  NEXUS_DEST="${CS2_DIR}/addons/counterstrikesharp/plugins/NexusBridge"
+  NEXUS_LOG="/var/log/cs2-nexus-bridge-build.log"
   mkdir -p "$NEXUS_SRC"
   cp /root/NexusBridgePlugin.cs "$NEXUS_SRC/"
   if [ -f /root/NexusBridge.csproj ]; then
     cp /root/NexusBridge.csproj "$NEXUS_SRC/"
   fi
-  if (cd "$NEXUS_SRC" && dotnet build -c Release -o "$NEXUS_OUT" >/dev/null 2>&1); then
+  if (cd "$NEXUS_SRC" && dotnet build -c Release -o "$NEXUS_OUT" > "$NEXUS_LOG" 2>&1); then
     mkdir -p "$NEXUS_DEST"
     cp "$NEXUS_OUT/NexusBridge.dll" "$NEXUS_DEST/"
     chown -R "${CS2_USER}:${CS2_USER}" "$NEXUS_DEST" 2>/dev/null || true
-    echo "[snapshot] NexusBridge rebuilt ($(date -u +%H:%M:%SZ))"
+    echo "[snapshot] NexusBridge built ($(date -u +%H:%M:%SZ))"
   else
-    echo "[snapshot] WARN: NexusBridge rebuild failed — keeping the snapshot DLL"
+    echo "[snapshot] WARN: NexusBridge build failed — see $NEXUS_LOG"
+    tail -n 25 "$NEXUS_LOG" 2>/dev/null || true
   fi
+elif [ -f /root/NexusBridgePlugin.cs ]; then
+  echo "[snapshot] WARN: no dotnet available — NexusBridge cannot be built"
+fi
+
+if [ -f "${NEXUS_DEST}/NexusBridge.dll" ]; then
+  echo "[snapshot] NexusBridge.dll in place ($(stat -c %s "${NEXUS_DEST}/NexusBridge.dll" 2>/dev/null || echo '?') bytes)"
+else
+  echo "[snapshot] ERROR: NexusBridge.dll missing — the site will not see this server"
 fi
 
 mkdir -p "$CS2_DIR/cfg" /etc/cs2-nexus /var/lib/cs2-nexus
@@ -133,6 +173,8 @@ cat > /etc/cs2-nexus/bridge.env << ENVEOF
 WEBHOOK_SECRET=__WEBHOOK_SECRET__
 BRIDGE_WEBHOOK_URL=__BRIDGE_WEBHOOK_URL__
 RCON_PASSWORD=__RCON_PASSWORD__
+NEXUS_TOURNAMENT_ID=__NEXUS_TOURNAMENT_ID__
+NEXUS_MATCH_ID=__NEXUS_MATCH_ID__
 ENVEOF
 
 RCON_TXT="${CS2_ROOT}/game/bin/linuxsteamrt64/rcon.txt"

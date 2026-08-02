@@ -11,10 +11,11 @@
   <link rel="stylesheet" href="shared-notifications.css?v=20260731close1">
   <link rel="stylesheet" href="competition-hub.css">
   <link rel="stylesheet" href="campfire-chat.css?v=20260731close1">
-  <link rel="stylesheet" href="tournament-details.css?v=20260731close3">
+  <link rel="stylesheet" href="tournament-details.css?v=20260801lobby1">
+  <link rel="stylesheet" href="td-live-board.css?v=20260801lobby1">
   <link rel="stylesheet" href="welcome-overlay.css?v=20260731close1">
   <link rel="stylesheet" href="sg-level-badge.css?v=20260731close1">
-  <link rel="stylesheet" href="shared-nexus-sensor.css?v=20260731close1">
+  <link rel="stylesheet" href="shared-nexus-sensor.css?v=20260731rules2">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
@@ -22,12 +23,13 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-functions-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
   <script src="/sg-firebase-init.js?v=20260724nocaptcha"></script>
+  <script src="/site-config.js?v=20260724"></script>
   <script src="cs2-bridge-config.js?v=20260731close1"></script>
-  <script src="tournament-system.js?v=20260731close1"></script>
+  <script src="tournament-system.js?v=20260801kickoff1"></script>
   <script src="campfire-chat.js?v=20260731close1"></script>
   <script src="sg-levels.js?v=20260731close1"></script>
   <script src="sg-level-badge.js?v=20260731close1"></script>
-  <script src="tournament-roster.js?v=20260731close1"></script>
+  <script src="tournament-roster.js?v=20260731reg1"></script>
 </head>
 <body class="td-body-page">
   <header class="unified-header">
@@ -111,6 +113,7 @@
         <div class="td-hero-meta-main">
           <span class="td-status pending" id="tdStatus">pending</span>
           <span class="td-hero-sub" id="tdBannerName">Torneo Studiosgamesrs</span>
+          <span class="td-cash-prize" id="tdCashPrize" hidden></span>
         </div>
         <aside class="td-map-widget" id="tdMapWidget" hidden aria-label="Mapa del cruce">
           <div class="td-map-widget-visual" id="tdMapVisual" data-map="pending"></div>
@@ -126,52 +129,105 @@
   <div class="td-shell">
     <div class="td-note-banner" id="tdNoteBanner"></div>
 
-    <!-- Live scoreboard — public -->
+    <!-- Live scoreboard — public. Lo pinta td-live-board.js con lo que publica
+         NexusBridge; tournament-details.js solo le pasa el parte y los nombres. -->
     <section class="td-score-stage" aria-label="Marcador en vivo">
       <div class="td-match-tabs" id="tdMatchTabs" hidden role="tablist" aria-label="Partidas en vivo"></div>
-      <div class="td-sb-top">
-        <div class="td-sb-team td-sb-ct">
-          <div class="td-sb-team-badge"><i class="fas fa-shield-alt"></i></div>
-          <div class="td-sb-team-label" id="tdSbTeamA">Equipo A</div>
-          <div class="td-sb-team-side" id="tdSbSideA">CT</div>
+
+      <div class="td-board" id="tdBoard" data-view="board">
+        <div class="td-board-head">
+          <div class="td-board-side td-board-side-ct">
+            <span class="td-board-badge">CT</span>
+            <div class="td-board-side-copy">
+              <span class="td-board-side-name" id="tdSbTeamA">Counter-Terrorists</span>
+              <span class="td-board-side-tag" id="tdSbSideA">CT</span>
+            </div>
+            <span class="td-board-score" id="tdScoreCt">0</span>
+          </div>
+
+          <div class="td-board-center">
+            <div class="td-board-center-row">
+              <span class="td-sb-live" id="tdSbLive"><i class="fas fa-circle"></i> LIVE</span>
+              <div class="td-board-views" role="group" aria-label="Vista del tablero">
+                <button type="button" class="td-board-view is-on" data-board-view="board" aria-pressed="true" title="Marcador" aria-label="Marcador">
+                  <i class="fas fa-th-large"></i>
+                </button>
+                <button type="button" class="td-board-view" data-board-view="feed" aria-pressed="false" title="Kill feed" aria-label="Kill feed">
+                  <i class="fas fa-stream"></i>
+                </button>
+              </div>
+            </div>
+            <div class="td-sb-map" id="tdSbMap">Esperando partida</div>
+          </div>
+
+          <div class="td-board-side td-board-side-t">
+            <span class="td-board-badge">T</span>
+            <div class="td-board-side-copy">
+              <span class="td-board-side-name" id="tdSbTeamB">Terrorists</span>
+              <span class="td-board-side-tag" id="tdSbSideB">T</span>
+            </div>
+            <span class="td-board-score" id="tdScoreT">0</span>
+          </div>
         </div>
-        <div class="td-sb-center">
-          <span class="td-sb-live" id="tdSbLive"><i class="fas fa-circle"></i> LIVE</span>
-          <div class="td-score" id="tdScore">&mdash; : &mdash;</div>
-          <div class="td-sb-map" id="tdSbMap">Esperando partida</div>
+
+        <div class="td-board-grid">
+          <div class="td-board-col td-board-col-ct">
+            <table class="td-board-table">
+              <thead>
+                <tr>
+                  <th scope="col">Jugador</th>
+                  <th scope="col" title="Bajas">K</th>
+                  <th scope="col" title="Muertes">D</th>
+                  <th scope="col" title="Asistencias">A</th>
+                  <th scope="col" title="Diferencia entre bajas y muertes">+/-</th>
+                  <th scope="col" title="Bajas por muerte">K/D</th>
+                  <th scope="col" class="td-board-pts" title="Puntuaci&oacute;n del torneo">Pts</th>
+                </tr>
+              </thead>
+              <tbody id="tdBoardCtBody"></tbody>
+            </table>
+          </div>
+
+          <div class="td-board-feed">
+            <h5 class="td-board-feed-title">Kill Feed</h5>
+            <ul class="td-board-feed-list" id="tdKillFeed" aria-live="polite"></ul>
+            <p class="td-board-feed-empty" id="tdKillFeedEmpty">Sin bajas todav&iacute;a.</p>
+          </div>
+
+          <div class="td-board-col td-board-col-t">
+            <table class="td-board-table">
+              <thead>
+                <tr>
+                  <th scope="col">Jugador</th>
+                  <th scope="col" title="Bajas">K</th>
+                  <th scope="col" title="Muertes">D</th>
+                  <th scope="col" title="Asistencias">A</th>
+                  <th scope="col" title="Diferencia entre bajas y muertes">+/-</th>
+                  <th scope="col" title="Bajas por muerte">K/D</th>
+                  <th scope="col" class="td-board-pts" title="Puntuaci&oacute;n del torneo">Pts</th>
+                </tr>
+              </thead>
+              <tbody id="tdBoardTBody"></tbody>
+            </table>
+          </div>
         </div>
-        <div class="td-sb-team td-sb-t">
-          <div class="td-sb-team-badge"><i class="fas fa-skull-crossbones"></i></div>
-          <div class="td-sb-team-label" id="tdSbTeamB">Equipo B</div>
-          <div class="td-sb-team-side" id="tdSbSideB">T</div>
+
+        <div class="td-board-bench" id="tdBoardBench" hidden></div>
+
+        <!-- Asistencia por plantilla mientras no hay estadisticas. -->
+        <div class="td-lobby-check" id="tdLobbyCheck" hidden></div>
+
+        <div class="td-board-foot">
+          <span class="td-board-phase" id="tdBoardPhase"><i class="fas fa-circle"></i> Esperando partida</span>
+          <span id="tdRound">Ronda &mdash;</span>
+          <span id="tdDuration">Duraci&oacute;n: &mdash;</span>
         </div>
-      </div>
-      <div class="td-sb-meta">
-        <span id="tdRound">Ronda &mdash;</span>
-        <span id="tdDuration">Duraci&oacute;n: &mdash;</span>
-      </div>
-      <div class="td-connect" id="tdConnectInfo" style="display:none;"></div>
-      <div class="td-frags-wrap">
-        <h4 class="td-frags-title"><i class="fas fa-crosshairs"></i> <span id="tdFragsTitle">Top Fraggers</span></h4>
+
         <div class="td-mvp" id="tdMvp" hidden></div>
-        <table class="td-stats-table" id="tdStatsTable" style="display:none;">
-          <thead>
-            <tr>
-              <th scope="col">Jugador</th>
-              <th scope="col" title="Bajas">K</th>
-              <th scope="col" title="Muertes">D</th>
-              <th scope="col" title="Asistencias">A</th>
-              <th scope="col" title="Da&ntilde;o por ronda">ADR</th>
-              <th scope="col" class="td-stats-score" title="Puntuaci&oacute;n del torneo">Pts</th>
-            </tr>
-          </thead>
-          <tbody id="tdStatsBody"></tbody>
-        </table>
-        <table class="td-kills-table" id="tdKillsTable" style="display:none;">
-          <tbody id="tdKillsBody"></tbody>
-        </table>
-        <p class="td-frags-empty" id="tdFragsEmpty">Los kills se publican en vivo cuando arranca la partida.</p>
       </div>
+
+      <div class="td-connect" id="tdConnectInfo" style="display:none;"></div>
+      <div class="td-steam-cta" id="tdSteamCta" style="display:none;"></div>
     </section>
 
     <nav class="td-mobile-tabs" role="tablist" aria-label="Vista del torneo">
@@ -365,14 +421,17 @@
   </div>
 
   <script src="shared-unified-header.js?v=20260731close1"></script>
-  <script src="shared-notifications.js?v=20260731close1"></script>
-  <script src="shared-header.js?v=20260731close1"></script>
+  <script src="shared-notifications.js?v=20260731hard1"></script>
+  <script src="shared-header.js?v=20260731hard1"></script>
   <script src="shared-header-search.js?v=20260730arena2"></script>
   <script src="td-hero-video.js?v=20260731player1"></script>
   <!-- welcome-overlay.js publica SGCreatureViewer, que es el visor 3D que usa
        el overlay de reglas del sensor de Nexus. -->
   <script src="welcome-overlay.js?v=20260731close3"></script>
-  <script src="shared-nexus-sensor.js?v=20260731close1"></script>
-  <script src="tournament-details.js?v=20260731close3"></script>
+  <script src="shared-nexus-sensor.js?v=20260731rules2"></script>
+  <!-- Publica TDLiveBoard; tiene que estar cargado antes de que la sala pinte
+       el primer parte del cruce. -->
+  <script src="td-live-board.js?v=20260801lobby1"></script>
+  <script src="tournament-details.js?v=20260801lobby1"></script>
 </body>
 </html>

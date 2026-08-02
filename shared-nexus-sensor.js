@@ -66,29 +66,41 @@
   var TOURNAMENT_RULES = {
     major: [
       {
-        icon: 'fa-comment-slash',
-        title: 'Respeto y cero toxicidad',
-        text: 'Prohibidos insultos, discriminación, acoso o lenguaje ofensivo por voz o texto.',
-        sanction: 'Primera falta: partida cancelada y equipo completo descalificado.'
+        icon: 'fa-handshake',
+        title: 'Respeto y juego limpio',
+        text: 'Se exige un comportamiento profesional en chat de voz y texto. Quedan prohibidos insultos, discriminación, acoso o cualquier lenguaje ofensivo hacia rivales, compañeros o personal de la organización.',
+        sanction: 'La primera infracción puede cancelar la partida y descalificar al equipo completo.'
       },
       {
+        icon: 'fa-ban',
+        title: 'Cero trampas',
+        text: 'Queda estrictamente prohibido el uso de software no autorizado, exploits o cualquier ventaja externa. Un Centinela supervisa la partida en todo momento.',
+        sanction: 'El uso confirmado de trampas conlleva la descalificación inmediata del jugador y de su equipo.'
+      },
+      {
+        id: 'record',
         icon: 'fa-video',
-        title: 'Grabación obligatoria (anti-cheat)',
-        text: 'Todos graban su pantalla con el software de la organización antes de empezar. Al denunciar hay que indicar la ronda exacta al Centinela.',
-        sanction: 'Sin grabación o con ella desactivada: culpable automático y fuera del torneo.'
+        title: 'Grabación de pantalla',
+        text: 'Cada jugador debe grabar su pantalla durante toda la partida con el programa que prefiera. Ante una denuncia, el Centinela solicitará el fragmento de la ronda indicada.',
+        sanction: 'Si no se entrega la grabación solicitada, o esta no está disponible, el caso se resolverá en contra del jugador denunciado y podrá quedar fuera del torneo.'
       },
       {
         icon: 'fa-stopwatch',
-        title: 'Puntualidad: 10 minutos',
-        text: 'Diez minutos de tolerancia desde la hora fijada para estar completos en el servidor.',
-        sanction: 'Equipo incompleto: derrota por default (16 - 0).'
+        title: 'Puntualidad',
+        text: 'Los equipos disponen de un máximo de 10 minutos de tolerancia, contados desde la hora programada, para presentarse completos en el servidor.',
+        sanction: 'Transcurrido ese plazo, el equipo incompleto pierde por forfeit (16 - 0).'
       }
     ],
     fine: [
       {
+        icon: 'fa-flag',
+        title: 'Denuncias por trampas',
+        text: 'Cada equipo dispone de un máximo de dos denuncias por partida, y solo ante jugadas que el roster considere plenamente confirmadas. Reportar en exceso retrasa el torneo: denuncia a tiempo y con precisión. Recuerda que un Centinela observa la partida.'
+      },
+      {
         icon: 'fa-pause-circle',
         title: 'Pausas técnicas',
-        text: '1 pausa por equipo y mapa (máx. 3 min), avisando por el chat del servidor. El jugador caído vuelve dentro de la pausa o se sigue con el equipo incompleto.'
+        text: 'Se permite 1 pausa por equipo y mapa (máximo 3 minutos), previa notificación en el chat del servidor. El jugador desconectado dispone de ese tiempo para reconectar; de lo contrario, la partida continúa con el equipo incompleto.'
       },
       {
         icon: 'fa-gavel',
@@ -746,19 +758,21 @@
   /**
    * HTML del overlay de reglas del torneo. Función pura.
    *
-   * Es el mismo escenario que la subida de tramo (foto, brasas, logo y el 3D
-   * arriba): lo que cambia es el cuerpo, con las tres reglas que descalifican en
-   * grande y el resto como letra pequeña.
+   * Mismo escenario que la subida de tramo: las reglas principales van en
+   * grande y el resto como nota secundaria. El botón de grabar no cierra el
+   * overlay; solo señala la norma de grabación.
    */
   function buildTournamentRulesHtml(payload) {
     var data = payload || {};
-    var major = (data.major && data.major.length ? data.major : TOURNAMENT_RULES.major).slice(0, 3);
+    var major = (data.major && data.major.length ? data.major : TOURNAMENT_RULES.major).slice(0, 4);
     var fine = (data.fine && data.fine.length ? data.fine : TOURNAMENT_RULES.fine);
     var meta = (data.meta || []).filter(function (m) { return m && m.value; });
 
     var majorHtml = major.map(function (rule, i) {
       return '' +
-        '<article class="sg-nexus-rule" style="--sg-nexus-rule-delay:' + (120 + i * 110) + 'ms;">' +
+        '<article class="sg-nexus-rule"' +
+          (rule.id ? ' data-sg-rule="' + esc(rule.id) + '"' : '') +
+          ' style="--sg-nexus-rule-delay:' + (120 + i * 110) + 'ms;">' +
           '<span class="sg-nexus-rule-index">' + (i + 1) + '</span>' +
           '<span class="sg-nexus-rule-icon"><i class="fas ' + esc(rule.icon || 'fa-shield-alt') + '"></i></span>' +
           '<div class="sg-nexus-rule-body">' +
@@ -781,7 +795,9 @@
 
     var metaHtml = meta.length
       ? '<div class="sg-nexus-rules-meta">' + meta.map(function (m) {
-          return '<span class="sg-nexus-rules-chip">' +
+          // El tono 'cash' pinta el dinero real en verde; el resto van en dorado.
+          return '<span class="sg-nexus-rules-chip' +
+            (m.tone === 'cash' ? ' sg-nexus-rules-chip-cash' : '') + '">' +
             (m.icon ? '<i class="fas ' + esc(m.icon) + '"></i>' : '') +
             '<span class="sg-nexus-rules-chip-label">' + esc(m.label || '') + '</span>' +
             '<strong>' + esc(m.value) + '</strong></span>';
@@ -814,8 +830,15 @@
         metaHtml +
         '<div class="sg-nexus-rules">' + majorHtml + '</div>' +
         fineHtml +
-        '<button type="button" class="sg-nexus-overlay-btn">' +
-          esc(data.buttonText || 'Entendido, entrar al torneo') + '</button>' +
+        '<div class="sg-nexus-rules-actions">' +
+          '<button type="button" class="sg-nexus-rules-record-btn">' +
+            '<i class="fas fa-circle" aria-hidden="true"></i> ' +
+            esc(data.recordButtonText || 'Graba tu pantalla') +
+          '</button>' +
+          '<button type="button" class="sg-nexus-overlay-btn">' +
+            esc(data.buttonText || 'Entendido, entrar al torneo') +
+          '</button>' +
+        '</div>' +
       '</div>';
   }
 
@@ -880,6 +903,34 @@
           var node = el.querySelector(sel);
           if (node && node.addEventListener) node.addEventListener('click', ackAndClose);
         });
+
+      // No cierra el overlay: solo señala la norma de grabación. Cada jugador
+      // usa el programa que quiera; el botón es un recordatorio, no un enlace
+      // a un software de la organización.
+      var recordBtn = el.querySelector('.sg-nexus-rules-record-btn');
+      if (recordBtn && recordBtn.addEventListener) {
+        recordBtn.addEventListener('click', function (ev) {
+          if (ev && ev.stopPropagation) ev.stopPropagation();
+          var box = el.querySelector('.sg-nexus-overlay-box');
+          var rule = el.querySelector('[data-sg-rule="record"]');
+          if (!rule) return;
+          if (box && typeof box.scrollTo === 'function') {
+            var top = rule.offsetTop - 24;
+            box.scrollTo({ top: top > 0 ? top : 0, behavior: 'smooth' });
+          } else if (typeof rule.scrollIntoView === 'function') {
+            rule.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          if (rule.classList) {
+            rule.classList.remove('is-spotlight');
+            // Fuerza el reinicio de la animación si el jugador pulsa dos veces.
+            void rule.offsetWidth;
+            rule.classList.add('is-spotlight');
+            setTimeout(function () {
+              if (rule.classList) rule.classList.remove('is-spotlight');
+            }, 1800);
+          }
+        });
+      }
     }
 
     if (typeof requestAnimationFrame === 'function') {

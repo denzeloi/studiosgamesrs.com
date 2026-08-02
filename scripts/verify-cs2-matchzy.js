@@ -143,7 +143,8 @@ if (!rulesBlock) {
     ok(`rcon.js pushes ${Object.keys(pushed).length} real convars at launch`);
   }
 
-  ['matchzy_knife_enabled_default', 'matchzy_chat_prefix', 'matchzy_show_credits_on_match_start'].forEach((key) => {
+  ['matchzy_knife_enabled_default', 'matchzy_chat_prefix', 'matchzy_show_credits_on_match_start',
+    'matchzy_hostname_format'].forEach((key) => {
     const fromCfg = (repoVars[key] || '').replace(/^"|"$/g, '');
     const fromRcon = (pushed[key] || '').replace(/^"|"$/g, '');
     if (!fromRcon) {
@@ -154,6 +155,68 @@ if (!rulesBlock) {
       ok(`${key} is identical in the config and the RCON push`);
     }
   });
+
+  // Two families of settings that look alike and are not. The prefixes are console
+  // commands and MatchZy keeps the argument string verbatim, so quotes end up printed in
+  // chat as [ "[Studiosgamesrs]" ]. The rest are string convars, which strip one pair of
+  // quotes and need them, because their values contain spaces.
+  ['matchzy_chat_prefix', 'matchzy_admin_chat_prefix'].forEach((key) => {
+    if (/^".*"$/.test(pushed[key] || '')) {
+      fail(`${key} is pushed quoted; MatchZy stores the raw argument, so the quotes show up in chat`);
+    } else {
+      ok(`${key} is pushed unquoted, the way MatchZy reads it`);
+    }
+  });
+
+  ['matchzy_hostname_format', 'matchzy_match_start_message'].forEach((key) => {
+    const value = pushed[key];
+    if (value === undefined) {
+      fail(`${key} is not pushed over RCON`);
+    } else if (/\s/.test(value) && !/^".*"$/.test(value)) {
+      fail(`${key} has spaces and is pushed unquoted, so only the first word arrives`);
+    } else {
+      ok(`${key} is pushed quoted, as a string convar needs`);
+    }
+  });
+}
+
+console.log('\n--- the branding can be read back from a running server ---');
+
+// A chat prefix cannot be read back, so nobody could tell a server that had the branding
+// from one that had silently kept the plugin default. These two convars can be read, are
+// set by the same config, and stand in for it.
+const rcon = require(path.join(repoRoot, 'functions', 'cs2-nexus', 'lib', 'rcon.js'));
+const probes = rcon.BRANDING_PROBES || [];
+
+if (!probes.length) {
+  fail('rcon.js exposes no readable probe, so a server cannot report its own branding');
+} else {
+  probes.forEach((probe) => {
+    const fromCfg = (repoVars[probe.cvar] || '').replace(/^"|"$/g, '');
+    if (!fromCfg) {
+      fail(`${probe.cvar} is probed but never set in config.cfg`);
+      return;
+    }
+    // A boolean convar reports True/False, never the 0/1 the config writes.
+    const expected = String(probe.expect).toLowerCase();
+    const asBool = fromCfg === '0' ? 'false' : (fromCfg === '1' ? 'true' : fromCfg.toLowerCase());
+    if (expected !== asBool) {
+      fail(`the probe for ${probe.cvar} expects "${probe.expect}" but config.cfg sets "${fromCfg}"`);
+    } else {
+      ok(`${probe.cvar} is probed against the value the config sets`);
+    }
+  });
+}
+
+const indexSrcForBranding = fs.readFileSync(
+  path.join(repoRoot, 'functions', 'cs2-nexus', 'index.js'), 'utf8'
+);
+if (!/rcon\.brandServer\(/.test(indexSrcForBranding)) {
+  fail('nothing brands the server when it comes online, so a warmup lobby keeps the plugin name');
+} else if (!/branding: brandingRecord\(/.test(indexSrcForBranding)) {
+  fail('the branding result is not recorded, so a silent failure stays invisible again');
+} else {
+  ok('the server is branded as soon as it answers, and the result is recorded');
 }
 
 console.log('\n--- comment syntax ---');
@@ -324,7 +387,7 @@ if (!/reason: 'rosters_unlocked'/.test(indexSrc)) {
 }
 
 const warroomSrc = fs.readFileSync(path.join(repoRoot, 'commander-warroom.js'), 'utf8');
-if (!/details\.reason === 'rosters_unlocked'/.test(warroomSrc)) {
+if (!/reason === 'rosters_unlocked'/.test(warroomSrc)) {
   fail('The War Room does not handle the unlocked-roster refusal');
 } else {
   ok('the War Room names who is missing Steam and lets the Commander decide');

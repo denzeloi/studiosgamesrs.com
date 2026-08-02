@@ -8,8 +8,24 @@ if (!admin.apps.length) {
 
 const db = admin.database();
 
-async function writeMatchLive(matchId, data) {
-  await db.ref(`partida_en_vivo/${matchId}`).update({
+/**
+ * Marcador público del cruce.
+ *
+ * Vivía en partida_en_vivo/{cruce}, y los identificadores de cruce se repiten
+ * entre torneos: dos campeonatos con un 'r1_m1' en marcha escribían en el mismo
+ * sitio y se pisaban el marcador delante de los espectadores. Ahora cuelga del
+ * torneo. Sin torneo (eventos sueltos de un servidor sin contexto) se queda
+ * donde estaba, que es mejor que perderlo.
+ */
+function matchLivePath(tournamentId, matchId) {
+  return tournamentId
+    ? `partida_en_vivo/${tournamentId}/${matchId}`
+    : `partida_en_vivo/${matchId}`;
+}
+
+async function writeMatchLive(tournamentId, matchId, data) {
+  if (!matchId) return;
+  await db.ref(matchLivePath(tournamentId, matchId)).update({
     ...data,
     updatedAt: Date.now(),
   });
@@ -64,6 +80,27 @@ async function gameServerExists(serverId) {
   return snap.exists();
 }
 
+async function getGameServer(serverId) {
+  const snap = await db.ref(`gameServers/${serverId}`).once('value');
+  return snap.val() || null;
+}
+
+/**
+ * Todas las máquinas que dicen ser de este torneo, estén colgadas de un cruce o
+ * no. Al cerrar el torneo hay que apagarlas todas, y las que se quedaron sin
+ * cruce (un aprovisionamiento a medias, un cruce liberado) no aparecen por
+ * ningún otro sitio: son justo las que se quedaban encendidas facturando.
+ */
+async function getGameServersByTournament(tournamentId) {
+  if (!tournamentId) return {};
+  const snap = await db
+    .ref('gameServers')
+    .orderByChild('tournamentId')
+    .equalTo(String(tournamentId))
+    .once('value');
+  return snap.val() || {};
+}
+
 async function getTournament(tournamentId) {
   const snap = await db.ref(`tournaments/${tournamentId}`).once('value');
   return snap.val();
@@ -84,13 +121,19 @@ async function getBracketMatch(tournamentId, matchId) {
   return snap.val() || null;
 }
 
-async function rosterUidsOf(teamId) {
+async function getTeamSummary(teamId) {
+  if (!teamId) return null;
   const snap = await db.ref(`teams/${teamId}`).once('value');
   const team = snap.val() || {};
   const roster = team.roster || team.members || {};
   const uids = Object.keys(roster);
   if (team.captain && !uids.includes(team.captain)) uids.push(team.captain);
-  return uids;
+  return { id: String(teamId), name: team.name || String(teamId), uids };
+}
+
+async function rosterUidsOf(teamId) {
+  const summary = await getTeamSummary(teamId);
+  return (summary && summary.uids) || [];
 }
 
 /**
@@ -136,8 +179,37 @@ async function notifyTeamRosters(teamIds, notificationId, payload) {
   return written;
 }
 
+/**
+ * El resultado de la partida, uno por jugador.
+ *
+ * De aquí cuelgan dos cosas que llevaban tiempo sin dispararse: la animación de
+ * victoria o derrota que welcome-overlay.js enseña al volver a la página, y la
+ * EXP de torneo, que reparte un trigger sobre este mismo nodo. Nadie escribía
+ * aquí, así que ni una ni otra llegaban a ocurrir nunca.
+ *
+ * Se escribe una sola vez por jugador y cruce: el trigger de EXP es onCreate y
+ * un reintento del webhook no puede pagar dos veces.
+ */
+async function writeMatchResults(resultId, entries) {
+  const rows = (entries || []).filter((e) => e && e.uid && e.data);
+  if (!resultId || !rows.length) return 0;
+
+  let written = 0;
+  await Promise.all(
+    rows.map(async (row) => {
+      const ref = db.ref(`tournamentMatchResults/${row.uid}/${resultId}`);
+      const existing = await ref.once('value');
+      if (existing.exists()) return;
+      await ref.set(row.data);
+      written += 1;
+    })
+  );
+  return written;
+}
+
 module.exports = {
   db,
+  matchLivePath,
   writeMatchLive,
   writeTournamentLiveMatch,
   getTournamentLiveMatch,
@@ -146,8 +218,13 @@ module.exports = {
   removeGameServer,
   clearTournamentServerFields,
   gameServerExists,
+  getGameServer,
+  getGameServersByTournament,
   getTournament,
   writeBracketMatch,
   getBracketMatch,
+  getTeamSummary,
+  rosterUidsOf,
   notifyTeamRosters,
+  writeMatchResults,
 };

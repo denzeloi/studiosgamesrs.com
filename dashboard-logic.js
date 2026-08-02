@@ -359,7 +359,7 @@ function listenForCompetitiveData(userId) {
                     // --- INICIO: AÑADIDO PARA INICIALIZAR EL CHAT FLOTANTE ---
                     if (authUser) { // Asegurarse de que el usuario de auth esté listo
                         // MODIFICADO: Se pasa teamData completo en lugar de teamData.name
-                        const chatData = { name: teamData.name, emblemUrl: teamData.emblemUrl || 'dragon_profile_studiosgamesrs.png' };
+                        const chatData = { name: teamData.name, emblemUrl: SGTeamEmblem.urlFor(teamData, { small: true }) };
                         initializeFloatingChat(authUser, newTeamId, chatData, teamData.roster);
                     }
                     // --- FIN: AÑADIDO PARA INICIALIZAR EL CHAT FLOTANTE ---
@@ -3488,22 +3488,11 @@ async function registerProfileVisit(viewerUser, viewedProfileId, viewerProfileDa
             visitedAt: visitedAt
         });
 
-        // Anti-spam: only push one explicit notification per viewer every 12 hours.
-        const gateRef = db.ref(`users/${viewedProfileId}/profileVisitNoticeGate/${viewerUser.uid}`);
-        const gateSnap = await gateRef.once('value');
-        const lastNotified = Number(gateSnap.val() || 0);
-        const cooldownMs = 12 * 60 * 60 * 1000;
-        if (!lastNotified || (visitedAt - lastNotified) >= cooldownMs) {
-            await db.ref(`users/${viewedProfileId}/notifications`).push({
-                text: `${String(nick || 'Someone')} visited your profile`,
-                icon: '👀',
-                link: `/dashboard?uid=${viewerUser.uid}`,
-                read: false,
-                timestamp: visitedAt,
-                type: 'profile_visit'
-            });
-            await gateRef.set(visitedAt);
-        }
+        // La visita ya sale en la campana por la sección Visitas, que se arma
+        // leyendo profileVisitors. Antes se escribía además un aviso directo en
+        // la campana del visitado, y para permitirlo las reglas dejaban a
+        // cualquiera escribir en la campana ajena si el texto decía "visited
+        // your profile": bastaba con eso para colar spam o un enlace falso.
     } catch (e) {
         console.warn('Profile visit tracking failed:', e);
     }
@@ -5302,7 +5291,7 @@ window.showTeamPopup = async function(linkElement, teamId) {
     if (!popupCard || !teamId) return;
 
     // Set loading state (usar imagen predeterminada mientras carga)
-    document.getElementById('popupTeamEmblem').src = 'dragon_profile_studiosgamesrs.png';
+    document.getElementById('popupTeamEmblem').src = SGTeamEmblem.DEFAULT_SMALL;
     document.getElementById('popupTeamName').textContent = 'Loading...';
     document.getElementById('popupTeamGame').textContent = '...';
     document.getElementById('popupTeamMembers').textContent = '...';
@@ -5330,7 +5319,7 @@ window.showTeamPopup = async function(linkElement, teamId) {
         const teamData = snapshot.val();
 
         if (teamData) {
-            document.getElementById('popupTeamEmblem').src = teamData.emblemUrl || 'dragon_profile_studiosgamesrs.png';
+            SGTeamEmblem.bind(document.getElementById('popupTeamEmblem'), teamData, { small: true });
             document.getElementById('popupTeamName').textContent = teamData.name || 'Unknown Team';
             document.getElementById('popupTeamGame').textContent = teamData.game || 'N/A';
             document.getElementById('popupTeamMembers').textContent = `${Object.keys(teamData.roster || {}).length} / 10`;
@@ -5406,8 +5395,7 @@ function initializeFloatingChat(user, chatId, chatData, roster) {
     }
 
     // --- Emblema: usar imagen predeterminada si el equipo no tiene foto ---
-    chatEmblem.src = (chatData && chatData.emblemUrl) ? chatData.emblemUrl : 'dragon_profile_studiosgamesrs.png';
-    chatEmblem.onerror = function() { this.src = 'dragon_profile_studiosgamesrs.png'; };
+    SGTeamEmblem.bind(chatEmblem, chatData, { small: true });
     
     // 1. Mostrar el botón flotante ("pestaña")
     if (isViewingOwnProfile) {

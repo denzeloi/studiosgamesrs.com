@@ -181,6 +181,33 @@ async function buildMatchConfig({ tournamentId, matchId, map, teamIds, startingS
   };
 }
 
+/**
+ * Los diez que tienen derecho a estar en este cruce, por SteamID64.
+ *
+ * La plantilla del cruce solo se guarda al lanzar la partida, y la sala tiene
+ * que poder distinguir al inscrito del que se coló mucho antes de eso: en cuanto
+ * hay servidor, la gente entra a calentar. Se saca del cuadro, que ya está
+ * decidido desde que se acepta la participación, sin construir el config entero.
+ */
+async function rosterSteamMap(tournamentId, matchId) {
+  if (!tournamentId || !matchId) return {};
+  const snap = await admin
+    .database()
+    .ref('tournaments/' + tournamentId + '/bracket/matches/' + matchId)
+    .once('value');
+  const bracketMatch = snap.val() || {};
+  const teamIds = [
+    bracketMatch.teamA && bracketMatch.teamA.teamId,
+    bracketMatch.teamB && bracketMatch.teamB.teamId,
+  ].filter(Boolean);
+  if (!teamIds.length) return {};
+
+  const teams = await Promise.all(teamIds.map(loadTeamPlayers));
+  return teams.reduce(function (acc, team) {
+    return Object.assign(acc, team.uidBySteamId);
+  }, {});
+}
+
 async function storeMatchConfig(tournamentId, matchId, config, steamMap) {
   await admin.database().ref('matchConfigs/' + tournamentId + '/' + matchId).set({
     config: config,
@@ -198,6 +225,7 @@ module.exports = {
   buildMatchConfig,
   storeMatchConfig,
   getStoredMatchConfig,
+  rosterSteamMap,
   loadTeamPlayers,
   normalizeSide,
   resolveSide,

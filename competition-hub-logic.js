@@ -281,7 +281,7 @@ async function loadTeamDashboard(teamId, currentUserId) {
 
         // Fill header
         document.getElementById('dashboardTeamName').textContent = sanitizeText(teamData.name);
-        document.getElementById('dashboardTeamEmblem').src = teamData.emblemUrl || 'https://placehold.co/100x100/333/ccc?text=TEAM';
+        SGTeamEmblem.bind(document.getElementById('dashboardTeamEmblem'), teamData);
 
         // Fill Team Info widget (founded, founder, wins/losses, nivel, verificación) con datos reales
         populateTeamInfoWidget(teamData, teamId);
@@ -607,7 +607,7 @@ function openEditTeamModal(teamId, currentEmblemUrl) {
     const emblemInput = document.getElementById('editEmblemInput');
     let newEmblemFile = null;
 
-    emblemPreview.src = currentEmblemUrl || 'https://placehold.co/100x100/333/ccc?text=TEAM';
+    emblemPreview.src = SGTeamEmblem.urlFor(currentEmblemUrl);
     modal.style.display = 'flex';
 
     emblemInput.onchange = () => {
@@ -865,7 +865,7 @@ function initializeModal(user, userRank) {
         // Limpiar inputs
         teamNameInput.value = '';
         emblemInput.value = null;
-        emblemPreview.src = 'https://placehold.co/100x100/2a2a2a/888?text=Emblem';
+        emblemPreview.src = SGTeamEmblem.DEFAULT;
         document.getElementById('captainProfilePic').src = user.photoURL || 'dragon_profile_studiosgamesrs.png';
         document.getElementById('captainProfileName').textContent = (currentUserData && currentUserData.nick) ? currentUserData.nick : (user.displayName || 'You');
 
@@ -1154,13 +1154,24 @@ function initializeModal(user, userRank) {
 } // End of initializeModal
 
 
+/** UID de quien sube, que es la carpeta donde puede escribir en Storage. */
+function uploaderUid() {
+    const user = firebase.auth().currentUser;
+    if (!user) throw new Error('Inicia sesión para subir imágenes.');
+    return user.uid;
+}
+
 /**
  * Sube un archivo de emblema a Firebase Storage.
  */
 async function uploadTeamEmblem(teamId, file) {
     if (!file) return null;
     const storage = firebase.storage();
-    const storageRef = storage.ref(`team_emblems/${teamId}/${Date.now()}_${file.name}`); // FIX: Añadir timestamp para evitar conflictos de caché
+    // Dentro de la carpeta de quien sube: con la carpeta compartida, cualquiera
+    // que supiera el identificador podía pisar el emblema de un equipo rival.
+    const storageRef = storage.ref(
+        `team_emblems/${teamId}/${uploaderUid()}/${Date.now()}_${file.name}`
+    );
     try {
         const snapshot = await storageRef.put(file);
         const downloadURL = await snapshot.ref.getDownloadURL();
@@ -1199,7 +1210,12 @@ async function loadAllTournaments() {
             return;
         }
 
-        const tournamentsArray = Object.values(allTournaments);
+        // El identificador se toma de la clave del nodo, no del campo id de
+        // dentro: los torneos antiguos y los de prueba no lo tienen guardado y
+        // desaparecían de la lista sin decir por qué.
+        const tournamentsArray = Object.keys(allTournaments).map(function (key) {
+            return Object.assign({}, allTournaments[key], { id: key });
+        });
         
         // FILTRADO INTELIGENTE
         let filteredTournaments = tournamentsArray.filter(t => {
@@ -1307,11 +1323,11 @@ function renderTournaments(tournaments, container) {
             </div>
             <div class="tournament-details">
                 <div class="detail-item"><div class="detail-item-title">Prize</div><div class="detail-item-value prize-pool">${tournament.prizePool || 0} T</div></div>
-                <div class="detail-item"><div class="detail-item-title">Teams</div><div class="detail-item-value">${tournament.teams?.registered || Object.keys(tournament.registeredTeams || {}).length}/${tournament.teams?.max || 0}</div></div>
+                <div class="detail-item"><div class="detail-item-title">Teams</div><div class="detail-item-value">${tournament.teams?.registered || Object.keys(tournament.registeredTeams || {}).length}/${tournament.teams?.max || tournament.maxTeams || '—'}</div></div>
                 <div class="detail-item"><div class="detail-item-title">Region</div><div class="detail-item-value">${tournament.regionServer || tournament.region || 'Global'}</div></div>
             </div>
             <div class="tournament-footer">
-                <span class="tournament-status ${statusClass}">${tournament.status || 'Pending'}</span>
+                <span class="tournament-status ${statusClass}">${statusLabel(tournament.status)}</span>
                 ${actionButtonHTML}
             </div>
         `;
@@ -1325,6 +1341,17 @@ function renderTournaments(tournaments, container) {
         });
     });
 }
+/** El estado se guarda como clave interna; la etiqueta se lee en la tarjeta. */
+function statusLabel(status) {
+    const labels = {
+        en_vivo: 'En vivo', active: 'En vivo', in_progress: 'En vivo',
+        pendiente: 'Proximamente', pending: 'Proximamente', open: 'Inscripciones abiertas',
+        finalizado: 'Finalizado', finished: 'Finalizado', completed: 'Finalizado',
+        cancelado: 'Cancelado',
+    };
+    return labels[String(status || '').toLowerCase()] || 'Proximamente';
+}
+
 // Helper function to get game logo URL
 function getGameLogoUrl(gameKey) {
      const logos = {
@@ -1388,7 +1415,7 @@ async function loadTopTeams() {
             teamEl.style.borderLeftColor = topAccent;
 
             teamEl.innerHTML = `
-                <img src="${teamData.emblemUrl || 'https://placehold.co/50x50/333/ccc?text=??'}" class="team-emblem" alt="${safeName} Emblem" style="border: 2px solid ${topAccent};">
+                <img src="${SGTeamEmblem.urlFor(teamData, { small: true })}" class="team-emblem" alt="${safeName} Emblem" style="border: 2px solid ${topAccent};" onerror="this.onerror=null;this.src='${SGTeamEmblem.DEFAULT_SMALL}';">
                 <div class="team-info">
                     <span class="team-name" style="cursor: pointer; color:${topAccent};" data-team-id="${teamData.id}" onmouseenter="showTeamPopup(this, '${teamData.id}')" onmouseleave="hideTeamPopup()" onclick="openPublicTeamProfile('${teamData.id}')">
                         ${safeName}
@@ -1793,7 +1820,7 @@ async function loadReceivedInvites(userId) {
             
             invitesHTML += `
                 <div class="team-join-bar invite" id="invite-bar-${teamId}">
-                    <img src="${inviteData.teamEmblem || 'https://placehold.co/50x50/333/ccc?text=??'}" alt="${safeTeamName} Emblem" class="team-emblem" style="width: 50px; height: 50px; border-radius: 50%;">
+                    <img src="${SGTeamEmblem.urlFor(inviteData, { small: true })}" alt="${safeTeamName} Emblem" class="team-emblem" style="width: 50px; height: 50px; border-radius: 50%;" onerror="this.onerror=null;this.src='${SGTeamEmblem.DEFAULT_SMALL}';">
                     <div class="team-join-info">
                         <h4 class="team-name" style="cursor: pointer;" data-team-id="${teamId}" onmouseenter="showTeamPopup(this, '${teamId}')" onmouseleave="hideTeamPopup()" onclick="openPublicTeamProfile('${teamId}')">
                             ${safeTeamName}
@@ -2370,7 +2397,7 @@ async function searchPlayersAndTeams(query) {
                     type: 'team',
                     teamId: child.key,
                     name: sanitizeText(teamData.name || 'Team'), // MODIFICACIÓN: Sanitizar
-                    emblemUrl: teamData.emblemUrl || 'https://placehold.co/50x50/333/ccc?text=??'
+                    emblemUrl: SGTeamEmblem.urlFor(teamData, { small: true })
                 });
             });
         }
@@ -2445,7 +2472,7 @@ window.showTeamPopup = async function(linkElement, teamId) {
     const popupCard = document.getElementById('teamPopupCard');
     if (!popupCard || !teamId) return;
 
-    document.getElementById('popupTeamEmblem').src = 'https://placehold.co/50x50/333/ccc?text=??';
+    document.getElementById('popupTeamEmblem').src = SGTeamEmblem.DEFAULT_SMALL;
     document.getElementById('popupTeamName').textContent = 'Loading...';
     document.getElementById('popupTeamGame').textContent = '...';
     document.getElementById('popupTeamMembers').textContent = '...';
@@ -2471,7 +2498,7 @@ window.showTeamPopup = async function(linkElement, teamId) {
         const teamData = snapshot.val();
 
         if (teamData) {
-            document.getElementById('popupTeamEmblem').src = teamData.emblemUrl || 'https://placehold.co/50x50/333/ccc?text=??';
+            SGTeamEmblem.bind(document.getElementById('popupTeamEmblem'), teamData, { small: true });
             document.getElementById('popupTeamName').textContent = sanitizeText(teamData.name || 'Unknown Team'); // MODIFICACIÓN: Sanitizar
             document.getElementById('popupTeamGame').textContent = teamData.game || 'N/A';
             document.getElementById('popupTeamMembers').textContent = `${Object.keys(teamData.roster || {}).length} / 10`;
@@ -2514,7 +2541,7 @@ window.openPublicTeamProfile = async function(teamId) {
 
     modal.style.display = 'flex';
     document.getElementById('modalTeamName').textContent = 'Loading...';
-    document.getElementById('modalTeamEmblem').src = 'https://placehold.co/100x100/333/ccc?text=TEAM';
+    document.getElementById('modalTeamEmblem').src = SGTeamEmblem.DEFAULT;
     document.getElementById('modalRosterList').innerHTML = '<div class="roster-member-item skeleton"></div>';
     document.getElementById('modalStatGame').textContent = '...';
     document.getElementById('modalStatWins').textContent = '...';
@@ -2540,7 +2567,7 @@ window.openPublicTeamProfile = async function(teamId) {
         modalNameEl.textContent = sanitizeText(teamData.name); // MODIFICACIÓN: Sanitizar
         modalNameEl.style.color = profileAccent;
         const modalEmblemEl = document.getElementById('modalTeamEmblem');
-        modalEmblemEl.src = teamData.emblemUrl || 'https://placehold.co/100x100/333/ccc?text=TEAM';
+        SGTeamEmblem.bind(modalEmblemEl, teamData);
         modalEmblemEl.style.borderColor = profileAccent;
         document.getElementById('modalStatGame').textContent = teamData.game || 'N/A';
 
@@ -2778,7 +2805,7 @@ function compressImageToBlob(file, maxDim, quality) {
 async function uploadTeamBackground(teamId, blob) {
     if (!blob) return null;
     const storage = firebase.storage();
-    const storageRef = storage.ref(`team_emblems/${teamId}/bg_${Date.now()}.jpg`);
+    const storageRef = storage.ref(`team_emblems/${teamId}/${uploaderUid()}/bg_${Date.now()}.jpg`);
     const snapshot = await storageRef.put(blob, { contentType: 'image/jpeg' });
     return await snapshot.ref.getDownloadURL();
 }
@@ -2857,7 +2884,7 @@ function renderTeamBrowserPage() {
         const safeMotto = motto ? sanitizeText(motto) : '';
         const wins = data.stats?.wins || 0;
         const tokens = data.stats?.tokens || 0;
-        const emblem = data.emblemUrl || 'https://placehold.co/50x50/333/ccc?text=??';
+        const emblem = SGTeamEmblem.urlFor(data, { small: true });
 
         let actionHtml;
         if (myTeamId && myTeamId === id) {
@@ -2992,7 +3019,7 @@ function openTeamAppearanceModal(teamId, teamData) {
     const pvItem = document.getElementById('appearancePreview');
 
     function refreshPreview() {
-        if (pvEmblem) { pvEmblem.src = teamData.emblemUrl || 'https://placehold.co/50x50/333/ccc?text=??'; pvEmblem.style.borderColor = selectedColor; }
+        if (pvEmblem) { SGTeamEmblem.bind(pvEmblem, teamData, { small: true }); pvEmblem.style.borderColor = selectedColor; }
         if (pvName) { pvName.textContent = sanitizeText(teamData.name || 'Tu equipo'); pvName.style.color = selectedColor; }
         if (pvMotto) pvMotto.textContent = (mottoInput && mottoInput.value) ? mottoInput.value : 'Tu lema aparecerá aquí';
         if (pvWins) pvWins.textContent = teamData.stats?.wins || 0;
@@ -3719,67 +3746,58 @@ function loadTournamentInvites(teamId) {
 }
 
 /**
- * Acepta la invitación: Inscribe al equipo en el torneo y borra la invite.
+ * Acepta la invitación e inscribe al equipo.
+ *
+ * Todo el trabajo lo hace `acceptTournamentRegistration` en el servidor:
+ * comprueba invitación, cupo, estado del torneo y tamaño del roster, cobra la
+ * cuota y escribe la foto del roster. Aquí solo se confirma con el capitán y se
+ * cuenta el resultado.
  */
 window.acceptTournamentInvite = async function(teamId, tournamentId, tournamentName) {
     const safeName = sanitizeText(tournamentName || 'Torneo');
-    if (!confirm('¿Inscribir a tu equipo en «' + safeName + '»? Esta acción confirma la participación en el torneo.')) return;
-
     if (!currentUser || !teamId) return;
-    const teamSnap = await firebase.database().ref(`teams/${teamId}`).once('value');
-    const team = teamSnap.val() || {};
-    if (team.captain !== currentUser.uid) {
-        showNotification('Solo el capitán del equipo puede aceptar invitaciones a torneos.', 'error');
-        return;
-    }
+
+    // La cuota se cobra de verdad, así que hay que decirla antes de preguntar.
+    let fee = 0;
+    try {
+        const feeSnap = await firebase.database().ref(`tournaments/${tournamentId}`).once('value');
+        const t = feeSnap.val() || {};
+        fee = Number((t.prizes && t.prizes.entryFee) || t.entryFee || 0);
+    } catch (err) { /* si no se puede leer, la función lo dirá al cobrar */ }
+
+    const priceLine = fee > 0
+        ? ' La inscripción cuesta ' + fee.toLocaleString('es-ES') + ' tokens y se descuentan de tu cuenta.'
+        : ' La inscripción es gratuita.';
+    if (!confirm('¿Inscribir a tu equipo en «' + safeName + '»?' + priceLine)) return;
 
     const acceptBtn = document.querySelector(`#tour-invite-${tournamentId} .tour-accept-btn`);
     if (acceptBtn) { acceptBtn.disabled = true; acceptBtn.textContent = 'Inscribiendo…'; }
 
     try {
-        // Se guarda una foto de quién estaba en el roster al aceptar: así el
-        // torneo sabe que entran los 5/6, no solo el capitán que pulsó el botón,
-        // y tournament-details puede distinguir jugador de espectador.
-        const snapshot = window.SGTournamentRoster
-            ? await window.SGTournamentRoster.snapshotFor(teamId, team)
-            : null;
+        const fn = firebase.functions().httpsCallable('acceptTournamentRegistration');
+        const res = await fn({ teamId: teamId, tournamentId: tournamentId });
+        const data = (res && res.data) || {};
 
-        const updates = window.SGTournamentRoster
-            ? window.SGTournamentRoster.registrationUpdates(tournamentId, teamId, snapshot)
-            : { [`tournaments/${tournamentId}/registeredTeams/${teamId}`]: true };
-        updates[`tournamentInvites/${teamId}/${tournamentId}`] = null;
-        // Aviso para el resto del roster: ellos no ven la sección de
-        // invitaciones (es solo del capitán) y hasta ahora no se enteraban de
-        // nada. Con esto el overlay les ofrece el enlace directo a la sala.
-        updates[`tournamentRegistrations/${teamId}/${tournamentId}`] = {
-            tournamentName: tournamentName || 'Torneo',
-            acceptedBy: (currentUserData && currentUserData.nick) || 'el capitán',
-            acceptedAt: Date.now()
-        };
-
-        await firebase.database().ref().update(updates);
-
-        const size = snapshot ? snapshot.size : 0;
-        const pending = snapshot ? Math.max(0, snapshot.size - snapshot.steamReady) : 0;
         let msg = '¡Equipo inscrito en «' + safeName + '»!';
-        if (size) msg += ' Entran ' + size + ' jugador' + (size === 1 ? '' : 'es') + ' del roster.';
+        if (data.size) msg += ' Entran ' + data.size + ' jugador' + (data.size === 1 ? '' : 'es') + ' del roster.';
+        if (data.entryFeePaid) msg += ' Se descontaron ' + data.entryFeePaid.toLocaleString('es-ES') + ' tokens.';
         // Sin Steam vinculado MatchZy no puede colocar al jugador en su equipo,
         // así que el capitán se entera ahora y no el día del partido.
-        if (pending) {
-            msg += ' Faltan ' + pending + ' por vincular Steam antes de jugar.';
+        if (data.steamPending) {
+            msg += ' Faltan ' + data.steamPending + ' por vincular Steam antes de jugar.';
         }
         // 'warning' no tiene estilo propio en el hub; el aviso de Steam se ve
         // con detalle en la tarjeta que queda fijada abajo.
         showNotification(msg, 'success');
         // La tarjeta con el enlace a la sala la pinta loadRegisteredTournaments
-        // en cuanto RTDB refleja la escritura de arriba, y sigue ahí al recargar.
+        // en cuanto RTDB refleja la escritura del servidor, y sigue ahí al recargar.
         if (window.SGWelcomeOverlay && window.SGWelcomeOverlay.markTournamentRegistrationSeen) {
             window.SGWelcomeOverlay.markTournamentRegistrationSeen(currentUser.uid, teamId, tournamentId);
         }
 
     } catch (error) {
         console.error("Error joining tournament:", error);
-        showNotification('No se pudo inscribir: ' + (error.message || 'Error desconocido'), 'error');
+        showNotification('No se pudo inscribir: ' + teamFnErrorMessage(error, 'Error desconocido'), 'error');
         if (acceptBtn) { acceptBtn.disabled = false; acceptBtn.textContent = 'Aceptar e inscribir'; }
     }
 }
@@ -3879,23 +3897,20 @@ function renderRegisteredTournamentCard(card, teamId, tournamentId, entry) {
 }
 
 /**
- * Rechaza la invitación (solo la borra).
+ * Rechaza la invitación. Va por función porque hay que borrarla también del
+ * panel del Commander, y ese nodo el cliente no lo puede tocar: hasta ahora la
+ * invitación rechazada le seguía figurando como pendiente para siempre.
  */
 window.declineTournamentInvite = async function(teamId, tournamentId) {
     if (!confirm('¿Rechazar esta invitación al torneo?')) return;
-
     if (!currentUser || !teamId) return;
-    const teamSnap = await firebase.database().ref(`teams/${teamId}/captain`).once('value');
-    if (teamSnap.val() !== currentUser.uid) {
-        showNotification('Solo el capitán del equipo puede rechazar invitaciones.', 'error');
-        return;
-    }
 
     try {
-        await firebase.database().ref(`tournamentInvites/${teamId}/${tournamentId}`).remove();
+        const fn = firebase.functions().httpsCallable('declineTournamentInviteAsCaptain');
+        await fn({ teamId: teamId, tournamentId: tournamentId });
         showNotification('Invitación rechazada.', 'success');
     } catch (error) {
         console.error("Error declining:", error);
-        showNotification('No se pudo rechazar la invitación.', 'error');
+        showNotification('No se pudo rechazar la invitación: ' + teamFnErrorMessage(error, 'Error desconocido'), 'error');
     }
 }

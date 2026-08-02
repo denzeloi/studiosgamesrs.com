@@ -41,11 +41,14 @@
     var user = firebase.auth().currentUser;
     if (!user) throw new Error('Not authenticated. Please log in again.');
     var waitMs = timeoutMs || (
+      // provisionDual levanta dos máquinas en fila, así que espera el doble.
+      op === 'provisionDual' ? 420000 :
       op === 'provision' || op === 'resume' ? 210000 :
       op === 'check' ? 15000 :
       60000
     );
-    var forceRefreshToken = op === 'provision' || op === 'launch' || op === 'shutdown';
+    var forceRefreshToken = op === 'provision' || op === 'provisionDual' ||
+      op === 'launch' || op === 'shutdown';
 
     try {
       var token = await user.getIdToken(forceRefreshToken);
@@ -177,6 +180,14 @@
 
     if (!form) return;
 
+    // El Commander Panel y el Hub cargan también tournament-organizer-ui.js, que
+    // escribe el torneo completo. Si ya enganchó el formulario, este handler
+    // antiguo se queda fuera: dos listeners = dos torneos con un solo clic.
+    if (form.dataset.sgTourBound || global.SGTournamentOrganizer) {
+      tournamentCreationInitialized = true;
+      return;
+    }
+
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
       var user = firebase.auth().currentUser;
@@ -269,6 +280,20 @@
     return callCs2Api('provision', payload);
   }
 
+  /**
+   * Un solo botón levanta las dos semifinales. El reparto de ranuras GSLT y el
+   * orden lo decide el backend: aquí no se manda ni matchId ni slot para que el
+   * panel no pueda pedir dos máquinas con el mismo token de Steam.
+   */
+  async function provisionDualSemis(tournamentId, location) {
+    var payload = { tournamentId: tournamentId };
+    if (location) payload.location = location;
+    if (useBridge()) {
+      return bridgeFetch('/api/servers/provision-dual', { method: 'POST', body: JSON.stringify(payload) });
+    }
+    return callCs2Api('provisionDual', payload);
+  }
+
   async function launchMatch(tournamentId, matchId, map, serverId, teamIds, startingSide, options) {
     var opts = options || {};
     var payload = {
@@ -281,6 +306,11 @@
       // 'random' is a coin flip drawn on the server.
       startingSide: startingSide || 'random',
       allowUnlockedRosters: opts.allowUnlockedRosters === true,
+      allowUnverifiedTeams: opts.allowUnverifiedTeams === true,
+      // Quien lanza un cruce concreto manda solo sus dos equipos, y con esos
+      // se rehacía el cuadro entero. Lo pide a propósito el War Room; la sala
+      // sigue pudiendo sembrar al lanzar sin cuadro con todos los inscritos.
+      skipBracketRebuild: opts.skipBracketRebuild === true,
     };
     if (useBridge()) {
       return bridgeFetch('/api/tournaments/' + encodeURIComponent(tournamentId) + '/launch', {
@@ -312,6 +342,7 @@
   global.openTournamentCreationModal = openTournamentCreationModal;
   global.TournamentSystem = {
     provisionServer: provisionServer,
+    provisionDualSemis: provisionDualSemis,
     resumeProvision: resumeProvision,
     checkServer: checkServer,
     launchMatch: launchMatch,

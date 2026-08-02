@@ -244,11 +244,212 @@
   gap: 0.85rem;
 }
 
+/* ---- Creador de torneos ---- */
+.sg-tour-modal .modal-content.sg-tour-create {
+  max-width: 780px;
+  width: 96vw;
+  max-height: 92vh;
+  overflow-y: auto;
+  text-align: left;
+  padding: 0 0 1.25rem;
+  border: 1px solid rgba(255, 202, 58, 0.25);
+}
+
+.sg-tour-create-head {
+  padding: 1.35rem 1.6rem 1.1rem;
+  /* Opaco a propósito: es cabecera pegajosa y el formulario pasa por debajo. */
+  background:
+    linear-gradient(135deg, rgba(255, 202, 58, 0.12), rgba(33, 150, 243, 0.08)),
+    #12151c;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.sg-tour-create-title {
+  margin: 0 0 0.3rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.sg-tour-create-title i { color: #ffca3a; margin-right: 0.4rem; }
+
+.sg-tour-create-sub {
+  margin: 0;
+  font-size: 0.86rem;
+  color: #9aa4b2;
+  line-height: 1.5;
+  max-width: 60ch;
+}
+
+.sg-tour-create-form { padding: 0 1.6rem; }
+
+.sg-tour-fieldset {
+  padding: 1.1rem 0 0.35rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sg-tour-fieldset:last-of-type { border-bottom: 0; }
+
+.sg-tour-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #ffca3a;
+}
+
+.sg-tour-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 202, 58, 0.15);
+  border: 1px solid rgba(255, 202, 58, 0.4);
+  color: #ffca3a;
+  font-size: 0.72rem;
+}
+
+.sg-tour-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.9rem 1rem;
+}
+
+.sg-tour-field { display: flex; flex-direction: column; }
+
+.sg-tour-field-wide { grid-column: 1 / -1; }
+
+.sg-tour-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #cfd6df;
+  margin-bottom: 0.35rem;
+}
+
+.sg-tour-req { color: #ff7b7b; }
+
+.sg-tour-field .modal-input,
+.sg-tour-field .modal-textarea { width: 100%; }
+
+.sg-tour-help {
+  margin-top: 0.35rem;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: #7f8996;
+}
+
+.sg-tour-create-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 1.1rem;
+  padding: 0.85rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sg-tour-sum-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 202, 58, 0.08);
+  border: 1px solid rgba(255, 202, 58, 0.2);
+  color: #e7ecf2;
+  font-size: 0.76rem;
+}
+
+.sg-tour-sum-chip i { color: #ffca3a; font-size: 0.72rem; }
+
+.sg-tour-sum-chip.sg-tour-sum-cash {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(74, 222, 128, 0.45);
+  color: #4ade80;
+  font-weight: 700;
+}
+
+.sg-tour-sum-chip.sg-tour-sum-cash i { color: #4ade80; }
+
+/* Campo de dinero real: se separa del resto para que no se confunda con tokens. */
+.sg-tour-field-cash label { color: #4ade80; }
+.sg-tour-field-cash label i { margin-right: 4px; }
+
+.sg-tour-cash-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: rgba(34, 197, 94, 0.07);
+  border: 1px solid rgba(74, 222, 128, 0.32);
+}
+
+.sg-tour-cash-input .modal-input {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  padding-left: 0;
+  padding-right: 0;
+  color: #4ade80;
+  font-weight: 700;
+}
+
+.sg-tour-cash-input .modal-input:focus { box-shadow: none; outline: none; }
+
+.sg-tour-cash-symbol,
+.sg-tour-cash-currency {
+  color: #4ade80;
+  font-weight: 700;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.sg-tour-create-error {
+  margin-top: 0.8rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(244, 67, 54, 0.08);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  color: #ffb4ae;
+  font-size: 0.8rem;
+}
+
+.sg-tour-create-error ul { margin: 0.35rem 0 0 1.1rem; padding: 0; }
+.sg-tour-create-error li { margin-bottom: 0.2rem; }
+
 .sg-tour-create-actions {
   display: flex;
   gap: 0.65rem;
-  margin-top: 1rem;
+  margin-top: 1.2rem;
   flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Los botones de modal del panel vienen a ancho completo; aquí van en fila. */
+.sg-tour-create-actions .modal-action-btn {
+  width: auto;
+  min-width: 160px;
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  .sg-tour-create-head,
+  .sg-tour-create-form { padding-left: 1rem; padding-right: 1rem; }
+  .sg-tour-grid { grid-template-columns: 1fr; }
+  .sg-tour-create-actions .modal-action-btn { flex: 1; min-width: 0; }
 }
 
 .sg-tour-inline-hint {
@@ -496,3 +697,528 @@ body.sg-tour-modal-open {
 .sg-tour-captain-card .sg-tour-btn-ghost:hover {
   background: rgba(255, 255, 255, 0.1);
 }
+
+/* ==========================================================================
+   Juega ahora — boton de entrada y ventana de torneos
+   Azul del dashboard (#2196f3, como team-chat-btn) con el mismo efecto
+   electrico: borde, resplandor y dos barras de luz al pasar por encima.
+   ========================================================================== */
+
+.sg-playnow-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Compacto dentro del widget My Competitive Status. */
+.sg-playnow-bar.is-sidebar {
+  align-items: stretch;
+  gap: 0;
+  margin: 0.85rem 0 0;
+}
+
+.sg-playnow-btn {
+  position: relative;
+  overflow: hidden;
+  width: min(420px, 100%);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: transparent;
+  border: 2px solid #2196f3;
+  border-radius: 6px;
+  color: #2196f3;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sg-playnow-bar.is-sidebar .sg-playnow-btn {
+  width: 100%;
+  padding: 8px 12px;
+  gap: 8px;
+  border-width: 1.5px;
+  border-radius: 5px;
+  font-size: 12px;
+  letter-spacing: 0.45px;
+}
+
+.sg-playnow-btn-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sg-playnow-bar.is-sidebar .sg-playnow-btn-text {
+  gap: 0;
+}
+
+.sg-playnow-btn:hover {
+  background: #2196f3;
+  color: #fff;
+  box-shadow: 0 0 15px #2196f3, 0 0 25px #2196f3, 0 0 40px #64b5f6;
+  transform: scale(1.02);
+}
+
+.sg-playnow-btn::before,
+.sg-playnow-btn::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #fff, transparent);
+  top: 0;
+  left: -100%;
+  opacity: 0;
+  transition: opacity 0.1s linear;
+}
+
+.sg-playnow-btn::after {
+  top: auto;
+  bottom: 0;
+}
+
+.sg-playnow-btn:hover::before {
+  left: 100%;
+  opacity: 1;
+  transition: left 1.2s linear, opacity 0.3s linear;
+}
+
+.sg-playnow-btn:hover::after {
+  left: 100%;
+  opacity: 1;
+  transition: left 1.2s linear 0.4s, opacity 0.3s linear 0.4s;
+}
+
+.sg-playnow-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #2196f3, 0 0 40px #2196f3;
+  color: #fff;
+  background: #1976d2;
+}
+
+.sg-playnow-btn:focus-visible {
+  outline: 2px solid #ffca3a;
+  outline-offset: 3px;
+}
+
+.sg-playnow-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(229, 57, 53, 0.18);
+  border: 1px solid rgba(229, 57, 53, 0.5);
+  color: #ff8a80;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: none;
+}
+
+.sg-playnow-btn:hover .sg-playnow-live {
+  background: rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.45);
+  color: #fff;
+}
+
+.sg-playnow-bar.is-sidebar .sg-playnow-live {
+  gap: 5px;
+  padding: 2px 7px;
+  font-size: 10px;
+}
+
+.sg-playnow-bar.is-sidebar .sg-playnow-btn:hover {
+  box-shadow: 0 0 10px #2196f3, 0 0 18px #2196f3, 0 0 28px #64b5f6;
+  transform: scale(1.015);
+}
+
+.sg-playnow-bar.is-sidebar .sg-playnow-btn:active {
+  box-shadow: 0 0 8px #fff, 0 0 14px #fff, 0 0 22px #2196f3, 0 0 30px #2196f3;
+}
+
+/* El punto rojo late para que se lea "esto esta pasando ahora mismo". */
+.sg-playnow-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ff1744;
+  box-shadow: 0 0 0 0 rgba(255, 23, 68, 0.7);
+  animation: sgPlayNowPulse 1.6s infinite;
+  flex: 0 0 auto;
+}
+
+.sg-playnow-bar.is-sidebar .sg-playnow-dot {
+  width: 7px;
+  height: 7px;
+}
+
+@keyframes sgPlayNowPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 23, 68, 0.7); }
+  70%  { box-shadow: 0 0 0 9px rgba(255, 23, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 23, 68, 0); }
+}
+
+.sg-playnow-hint {
+  margin: 0;
+  color: #8d8d8d;
+  font-size: 0.86rem;
+  text-align: center;
+}
+
+/* ---------- ventana ---------- */
+
+.sg-playnow-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.sg-playnow-modal[hidden] {
+  display: none;
+}
+
+.sg-playnow-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(3px);
+  animation: sgTourFadeIn 0.2s ease;
+}
+
+.sg-playnow-panel {
+  position: relative;
+  width: min(1080px, 100%);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: #141414;
+  border: 1px solid rgba(229, 57, 53, 0.35);
+  border-radius: 12px;
+  box-shadow: 0 26px 90px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  animation: sgTourSlideUp 0.25s ease;
+}
+
+.sg-playnow-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.4rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(135deg, rgba(229, 57, 53, 0.14), rgba(0, 0, 0, 0));
+}
+
+.sg-playnow-head h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.sg-playnow-head h2 i {
+  color: #e53935;
+  margin-right: 8px;
+}
+
+.sg-playnow-close {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 6px;
+  transition: color 0.2s ease;
+}
+
+.sg-playnow-close:hover {
+  color: #fff;
+}
+
+/* Un solo scroll: con uno por seccion la rueda del raton se quedaba atrapada
+   en las partidas y no se llegaba nunca a la lista de torneos. */
+.sg-playnow-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.sg-playnow-section {
+  padding: 1.2rem 1.4rem;
+}
+
+.sg-playnow-live-section {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(229, 57, 53, 0.05);
+}
+
+.sg-playnow-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #ddd;
+}
+
+.sg-playnow-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.sg-playnow-tabs-row .sg-playnow-subtitle {
+  margin: 0;
+}
+
+.sg-playnow-tabs-row .hub-view-toggle {
+  margin: 0;
+}
+
+/* ---------- tarjeta de partida en directo ---------- */
+
+.sg-playnow-live-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.sg-playnow-match {
+  display: grid;
+  grid-template-columns: 148px 1fr;
+  gap: 1rem;
+  padding: 0.9rem;
+  background: #1b1b1b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 3px solid #e53935;
+  border-radius: 10px;
+}
+
+.sg-playnow-thumb {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0f0f0f;
+  aspect-ratio: 16 / 10;
+}
+
+.sg-playnow-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sg-playnow-thumb-tag {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #ffca3a;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.sg-playnow-match-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.sg-playnow-match-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.sg-playnow-tour-name {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sg-playnow-round {
+  color: #9a9a9a;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.sg-playnow-score {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.sg-playnow-side {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sg-playnow-side.is-right {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.sg-playnow-side img {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  flex: 0 0 auto;
+}
+
+.sg-playnow-side-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: #eee;
+}
+
+.sg-playnow-side-tag {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: #7d7d7d;
+}
+
+.sg-playnow-side-tag.ct { color: #64b5f6; }
+.sg-playnow-side-tag.t  { color: #ffb74d; }
+
+.sg-playnow-score-nums {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.sg-playnow-stats {
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+  padding-top: 0.6rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.sg-playnow-stat-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 0.9rem;
+  font-size: 0.82rem;
+  color: #bdbdbd;
+}
+
+.sg-playnow-stat-row.is-head {
+  color: #7a7a7a;
+  font-size: 0.7rem;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.sg-playnow-stat-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #e8e8e8;
+}
+
+.sg-playnow-stat-row .num {
+  min-width: 34px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sg-playnow-mvp {
+  color: #ffca3a;
+}
+
+.sg-playnow-match-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.sg-playnow-watch {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  background: #e53935;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+.sg-playnow-watch:hover {
+  filter: brightness(1.15);
+}
+
+.sg-playnow-watch.is-mine {
+  background: #4caf50;
+  color: #04240c;
+}
+
+.sg-playnow-empty {
+  color: #8d8d8d;
+  text-align: center;
+  padding: 1.2rem;
+}
+
+@media (max-width: 720px) {
+  .sg-playnow-match {
+    grid-template-columns: 1fr;
+  }
+
+  .sg-playnow-thumb {
+    max-width: 220px;
+  }
+
+  .sg-playnow-score-nums {
+    font-size: 1.25rem;
+  }
+}
+

@@ -562,12 +562,48 @@
 
 /* ---- Reglas del torneo ----
    Mismo escenario que la subida de tramo (foto, brasas, 3D arriba). Cambia el
-   cuerpo: las tres reglas que descalifican van en grande y el resto queda como
-   letra pequeña, que es como se lee un reglamento de verdad. */
+   cuerpo: las reglas principales van en grande y el resto queda como letra
+   pequeña, que es como se lee un reglamento de verdad. */
 
 .sg-nexus-overlay-rules .sg-nexus-overlay-box {
   width: min(640px, 100%);
   text-align: center;
+  /* Barra propia del reglamento: fina, con el color del tramo, sin el gris
+     del sistema que chocaba con el resto del overlay. */
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--sg-nexus-tier) 70%, #8a6a3a) rgba(255, 255, 255, 0.04);
+}
+
+.sg-nexus-overlay-rules .sg-nexus-overlay-box::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sg-nexus-overlay-rules .sg-nexus-overlay-box::-webkit-scrollbar-track {
+  margin: 14px 0;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sg-nexus-overlay-rules .sg-nexus-overlay-box::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--sg-nexus-tier) 88%, #fff),
+    color-mix(in srgb, var(--sg-nexus-tier) 55%, #5a3d18)
+  );
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  box-shadow: 0 0 12px -4px var(--sg-nexus-tier);
+}
+
+.sg-nexus-overlay-rules .sg-nexus-overlay-box::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--sg-nexus-tier) 100%, #fff),
+    color-mix(in srgb, var(--sg-nexus-tier) 70%, #5a3d18)
+  );
+  background-clip: padding-box;
 }
 
 .sg-nexus-overlay-rules .sg-nexus-overlay-level.sg-nexus-rules-title {
@@ -595,6 +631,16 @@
 
 .sg-nexus-rules-chip i { color: var(--sg-nexus-tier); }
 .sg-nexus-rules-chip-label { opacity: 0.6; }
+
+/* Dinero real: verde, para que no se confunda con el pozo de tokens. */
+.sg-nexus-rules-chip-cash {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(74, 222, 128, 0.45);
+  color: #4ade80;
+}
+
+.sg-nexus-rules-chip-cash i { color: #4ade80; }
+.sg-nexus-rules-chip-cash strong { color: #4ade80; }
 
 .sg-nexus-rules {
   display: flex;
@@ -713,6 +759,64 @@
   opacity: 0.85;
 }
 .sg-nexus-rules-fine strong { color: #f2e6d2; }
+
+.sg-nexus-rules-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 1.15rem;
+}
+
+.sg-nexus-overlay-rules .sg-nexus-overlay-btn {
+  margin-top: 0;
+}
+
+/* Recordatorio de grabación: no cierra el overlay; solo señala la norma. */
+.sg-nexus-rules-record-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--sg-nexus-tier) 45%, rgba(255, 255, 255, 0.18));
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff6ea;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+}
+
+.sg-nexus-rules-record-btn i {
+  color: #ff5a5a;
+  font-size: 0.62rem;
+  animation: sgNexusRecordPulse 1.4s ease-in-out infinite;
+}
+
+.sg-nexus-rules-record-btn:hover {
+  background: color-mix(in srgb, var(--sg-nexus-tier) 16%, rgba(0, 0, 0, 0.4));
+  border-color: color-mix(in srgb, var(--sg-nexus-tier) 70%, rgba(255, 255, 255, 0.2));
+  transform: translateY(-1px);
+}
+
+@keyframes sgNexusRecordPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.85); }
+}
+
+.sg-nexus-rule.is-spotlight {
+  animation: sgNexusRuleSpotlight 1.6s ease;
+  border-color: color-mix(in srgb, var(--sg-nexus-tier) 70%, rgba(255, 255, 255, 0.2));
+  box-shadow: 0 0 28px -8px var(--sg-nexus-tier);
+}
+
+@keyframes sgNexusRuleSpotlight {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.015); }
+  100% { transform: scale(1); }
+}
 
 /* ---- Ambientación por personaje ----
    El escenario 3D lo elige el tramo (gólem, soldado o wyvern) y el fondo tiene
@@ -1096,8 +1200,14 @@
   .sg-nexus-overlay,
   .sg-nexus-overlay-box,
   .sg-nexus-bar-fill,
-  .sg-nexus-overlay-btn {
+  .sg-nexus-overlay-btn,
+  .sg-nexus-rules-record-btn {
     transition: none !important;
+  }
+
+  .sg-nexus-rules-record-btn i,
+  .sg-nexus-rule.is-spotlight {
+    animation: none !important;
   }
 
   .sg-nexus-xp-toast,

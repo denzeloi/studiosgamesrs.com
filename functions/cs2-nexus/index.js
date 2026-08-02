@@ -12,6 +12,9 @@ const bracket = require('./lib/bracket');
 const webhook = require('./lib/webhook');
 const matchzy = require('./lib/matchzy');
 const concurrency = require('./lib/concurrency');
+const lifecycle = require('./lib/lifecycle');
+const verification = require('./lib/verification');
+const secrets = require('./lib/secrets');
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -97,12 +100,22 @@ function sendApiError(res, err) {
   }
 }
 
+/**
+ * ¿Sigue siendo nuestra esta provisión?
+ *
+ * Antes se comparaba con tournaments/{id}/activeServerId, que es un puntero
+ * único: levantar la segunda máquina lo sobrescribía y la primera se quedaba sin
+ * vigilancia a mitad del arranque, colgada hasta que la repescara la tarea de
+ * reconciliación. La vigilancia va atada al registro de la máquina, que es de
+ * ella sola: mientras exista y siga siendo de este torneo, se sigue mirando.
+ */
 async function isProvisionActive(serverId, tournamentId) {
-  if (!(await rtdb.gameServerExists(String(serverId)))) return false;
-  const snap = await admin.database().ref(`tournaments/${tournamentId}/activeServerId`).once('value');
-  const val = snap.val();
-  if (val == null || val === '') return false;
-  return String(val) === String(serverId);
+  const gs = await rtdb.getGameServer(String(serverId));
+  if (!gs) return false;
+  if (tournamentId && gs.tournamentId && String(gs.tournamentId) !== String(tournamentId)) {
+    return false;
+  }
+  return true;
 }
 
 function snapshotBootGraceMs(gs) {
@@ -128,6 +141,22 @@ function udpFlag(value) {
   if (value === true) return true;
   if (value === false) return false;
   return null;
+}
+
+/**
+ * Store what the server reported about its own branding. Until now the only way to know
+ * whether the Studiosgamesrs name reached the game chat was to join a match and read it,
+ * so a provisioning step that silently dropped the config looked identical to one that
+ * worked. This leaves the answer in gameServers/{id}/branding.
+ */
+function brandingRecord(report) {
+  const record = {
+    ok: !!(report && report.ok),
+    checkedAt: Date.now(),
+  };
+  if (report && report.error) record.error = String(report.error).slice(0, 200);
+  if (report && report.values) record.values = report.values;
+  return record;
 }
 
 async function assessLaunchReadiness(ip, port, gs) {
@@ -166,7 +195,7 @@ async function assessLaunchReadiness(ip, port, gs) {
   };
 }
 
-async function pollRconUntilReady(serverId, tournamentId, ip) {
+async function pollRconUntilReady(serverId, tournamentId, ip, matchId) {
   const password = process.env.RCON_PASSWORD;
   const snapshot = provider.usesSnapshot();
   const maxAttempts = snapshot ? 54 : 90;
@@ -189,6 +218,14 @@ async function pollRconUntilReady(serverId, tournamentId, ip) {
       const gameUdpOk = await udpGameProbe(ip, CS2_GAME_PORT, 4000);
       if (ping.ok) {
         if (!(await isProvisionActive(serverId, tournamentId))) return;
+        // Brand the server the moment it answers, not only when a match is launched:
+        // players connect to the warmup lobby first and MatchZy talks to them there.
+        const branding = await rcon.brandServer(ip, CS2_GAME_PORT, password);
+        // Mismo motivo que la marca: el puente tiene que saber a qué cruce
+        // pertenece ya, o la sala no verá a nadie hasta que se lance la partida.
+        const context = await rcon.setMatchContext(
+          ip, CS2_GAME_PORT, password, tournamentId, matchId
+        );
         await rtdb.writeGameServer(String(serverId), {
           status: 'online',
           rconReady: true,
@@ -196,6 +233,9 @@ async function pollRconUntilReady(serverId, tournamentId, ip) {
           gameUdpOk: udpFlag(gameUdpOk),
           readyReason: 'rcon',
           readyVerified: true,
+          branding: brandingRecord(branding),
+          bridgeContext: context && context.ok === true,
+          bridgeContextAt: Date.now(),
         });
         return;
       }
@@ -242,14 +282,23 @@ async function finishProvision(serverId, tournamentId, matchId) {
       hetznerId: serverId, // legacy RTDB field name
       provisionMode: provider.usesSnapshot() ? 'snapshot' : 'full',
     });
-    await rtdb.writeTournament(tournamentId, {
-      activeServerId: String(serverId),
+    // El cruce siempre se entera; los punteros de nivel torneo solo si no hay
+    // otra máquina jugando, que si no la segunda provisión le roba la IP.
+    await rtdb.writeTournamentLiveMatch(tournamentId, matchId, {
+      serverId: String(serverId),
       serverIp: ip,
       serverPort: CS2_GAME_PORT,
     });
+    if (concurrency.canClaimPrimary(await rtdb.getTournament(tournamentId), serverId)) {
+      await rtdb.writeTournament(tournamentId, {
+        activeServerId: String(serverId),
+        serverIp: ip,
+        serverPort: CS2_GAME_PORT,
+      });
+    }
 
     // Do not await — polling can take 5–9 min and causes 504 Gateway Timeout on provision.
-    pollRconUntilReady(serverId, tournamentId, ip).catch(function (err) {
+    pollRconUntilReady(serverId, tournamentId, ip, matchId).catch(function (err) {
       console.error('[pollRconUntilReady]', err);
     });
   } catch (err) {
@@ -479,6 +528,181 @@ async function reconcileServersCore() {
   return { checked: results.length, results };
 }
 
+/**
+ * Decirle a cada máquina encendida a qué cruce pertenece.
+ *
+ * El puente descarta todo lo que pasa dentro mientras no tenga torneo y cruce,
+ * así que sin esto no hay sala, ni tabla, ni feed: el servidor está lleno de
+ * gente y partida_en_vivo sigue en null. Se hacía al provisionar, dentro de la
+ * misma tarea suelta que ya no sobrevive al corte de CPU de Cloud Run — por eso
+ * ninguna máquina llegó nunca a recibirlo.
+ *
+ * Va en la pasada programada por la misma razón que las banderas de arranque:
+ * es el único sitio con CPU garantizada. Se reintenta cada minuto hasta que el
+ * plugin conteste, y se repite de vez en cuando porque el contexto vive en la
+ * memoria del plugin y un reinicio de CS2 lo borra.
+ */
+const BRIDGE_CONTEXT_REFRESH_MS = 15 * 60 * 1000;
+
+function needsBridgeContext(gs) {
+  if (!gs || !gs.ip || !gs.tournamentId || !gs.matchId) return false;
+  const status = String(gs.status || '');
+  if (status !== 'online' && status !== 'udp_blocked') return false;
+  if (gs.bridgeContext !== true) return true;
+  return Date.now() - Number(gs.bridgeContextAt || 0) > BRIDGE_CONTEXT_REFRESH_MS;
+}
+
+async function ensureBridgeContextCore() {
+  const snap = await admin.database().ref('gameServers').once('value');
+  const all = snap.val() || {};
+
+  const pending = Object.keys(all)
+    .map((id) => ({ id, gs: all[id] || {} }))
+    .filter(({ gs }) => needsBridgeContext(gs))
+    .filter(({ gs }) => serverAgeMs(gs) < RECONCILE_MAX_AGE_MS)
+    .slice(0, RECONCILE_MAX_SERVERS);
+
+  const results = [];
+  for (let i = 0; i < pending.length; i += 1) {
+    const { id, gs } = pending[i];
+    const result = await rcon.setMatchContext(
+      String(gs.ip).trim(),
+      CS2_GAME_PORT,
+      process.env.RCON_PASSWORD,
+      gs.tournamentId,
+      gs.matchId
+    );
+    // Si el puente no contesta, se pregunta qué capas cargó la máquina: sin eso
+    // el parte dice "no responde" y no hay forma de saber si falta Metamod, el
+    // marco de plugins o solo el puente.
+    const probe = result.ok
+      ? null
+      : await rcon.probeBridge(String(gs.ip).trim(), CS2_GAME_PORT, process.env.RCON_PASSWORD);
+
+    await rtdb.writeGameServer(String(id), {
+      bridgeContext: result.ok === true,
+      bridgeContextAt: Date.now(),
+      bridgeContextError: result.ok ? null : String(result.error || 'unknown').slice(0, 200),
+      bridgePluginVersion: result.pluginVersion || null,
+      bridgeProbe: probe,
+    });
+    results.push({
+      serverId: String(id),
+      ok: result.ok === true,
+      pluginVersion: result.pluginVersion || null,
+      error: result.ok ? null : result.error,
+      probe: probe,
+    });
+  }
+
+  return { attempted: results.length, results };
+}
+
+/**
+ * Máquinas con partida en pie ahora mismo, para no apagar por debajo a alguien
+ * que está jugando. Se mira el cruce y no el estado del servidor porque el
+ * estado se queda viejo en cuanto algo falla a medias.
+ */
+async function busyServersByTournament(tournamentIds) {
+  const busy = {};
+  const unreadable = new Set();
+
+  for (const tournamentId of tournamentIds) {
+    if (!tournamentId) continue;
+    let tournament = null;
+    try {
+      tournament = await rtdb.getTournament(tournamentId);
+    } catch (err) {
+      // Torneo ilegible: no se apaga nada suyo hasta poder comprobarlo.
+      console.warn('[sweepServers] no se pudo leer el torneo', tournamentId, err.message);
+      unreadable.add(String(tournamentId));
+      continue;
+    }
+    const live = (tournament && tournament.liveMatches) || {};
+    concurrency.busyMatchIds(tournament, null).forEach((mid) => {
+      const serverId = (live[mid] || {}).serverId;
+      if (serverId) busy[String(serverId)] = true;
+    });
+  }
+
+  return { busy, unreadable };
+}
+
+/**
+ * Apaga lo que ya no juega. Es la mitad cara de la reconciliación: la otra
+ * vigila arranques, esta vigila la factura.
+ */
+async function sweepFinishedServersCore() {
+  if (!lifecycle.autoShutdownEnabled(process.env)) return { swept: 0, results: [] };
+
+  const snap = await admin.database().ref('gameServers').once('value');
+  const all = snap.val() || {};
+  const ids = Object.keys(all);
+  if (!ids.length) return { swept: 0, results: [] };
+
+  const tournamentIds = Array.from(
+    new Set(ids.map((id) => (all[id] || {}).tournamentId).filter(Boolean))
+  );
+  const { busy, unreadable } = await busyServersByTournament(tournamentIds);
+
+  const plan = lifecycle
+    .planAutoShutdown(all, Date.now(), process.env, busy)
+    .filter((item) => !unreadable.has(String(item.tournamentId || '')));
+  const results = [];
+
+  for (const item of plan) {
+    try {
+      await shutdownServerCore({ serverId: item.serverId, tournamentId: item.tournamentId });
+      results.push({ serverId: item.serverId, reason: item.reason, deleted: true });
+      console.log('[sweepServers] apagado', item.serverId, item.reason);
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+      console.error('[sweepServers]', item.serverId, message);
+      results.push({ serverId: item.serverId, reason: item.reason, error: message });
+    }
+  }
+
+  return { swept: results.length, results };
+}
+
+/**
+ * Máquinas nuestras que existen en el proveedor y no en la base: se crearon y
+ * el registro nunca llegó a escribirse. Nadie las mira y facturan igual.
+ */
+async function sweepOrphanServersCore() {
+  let instances = [];
+  try {
+    instances = await provider.listProjectServers();
+  } catch (err) {
+    console.warn('[sweepOrphans] no se pudo listar el proveedor:', err.message);
+    return { orphans: 0, results: [] };
+  }
+  if (!instances.length) return { orphans: 0, results: [] };
+
+  const snap = await admin.database().ref('gameServers').once('value');
+  const known = snap.val() || {};
+  const plan = lifecycle.planOrphanCleanup(instances, known, Date.now(), process.env);
+  const results = [];
+
+  for (const item of plan) {
+    try {
+      await provider.deleteServer(item.serverId);
+      results.push({ serverId: item.serverId, deleted: true, ageMs: item.ageMs });
+      console.log('[sweepOrphans] borrada máquina huérfana', item.serverId, item.name);
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+      if (/not found|404/i.test(message)) {
+        results.push({ serverId: item.serverId, deleted: true, alreadyGone: true });
+      } else {
+        console.error('[sweepOrphans]', item.serverId, message);
+        results.push({ serverId: item.serverId, error: message });
+      }
+    }
+  }
+
+  return { orphans: results.length, results };
+}
+
 async function resumeProvisionCore({ serverId, tournamentId }) {
   if (!serverId || !tournamentId) {
     throw new HttpsError('invalid-argument', 'serverId and tournamentId required');
@@ -491,7 +715,11 @@ async function resumeProvisionCore({ serverId, tournamentId }) {
   if (gs.ip) {
     return { ok: true, serverId, ip: gs.ip, status: gs.status || 'booting', resumed: false };
   }
-  await rtdb.writeTournament(tournamentId, { activeServerId: String(serverId) });
+  // Retomar un arranque a medias no puede quitarle el puntero a la partida que
+  // esté jugándose en la otra máquina.
+  if (concurrency.canClaimPrimary(await rtdb.getTournament(tournamentId), serverId)) {
+    await rtdb.writeTournament(tournamentId, { activeServerId: String(serverId) });
+  }
   await finishProvision(serverId, tournamentId, gs.matchId || 'r1_m1');
   const updated = (await admin.database().ref(`gameServers/${serverId}`).once('value')).val();
   if (updated && updated.error) {
@@ -549,6 +777,13 @@ async function provisionServerCore({ tournamentId, matchId, gsltIndex = 0, locat
     name,
     labels: { tournamentId, matchId, gslt: String(slot) },
     location: location || undefined,
+    // Sin esto las dos máquinas arrancaban con GSLT_SERVER_1 y Steam echaba a una.
+    gsltSlot: slot,
+    // El puente necesita saber a qué cruce pertenece desde el primer arranque:
+    // hasta ahora solo se enteraba al lanzar la partida y descartaba todo lo
+    // que pasara antes, incluida la gente entrando a calentar.
+    tournamentId,
+    matchId,
   });
 
   await rtdb.writeGameServer(String(server.id), {
@@ -564,9 +799,11 @@ async function provisionServerCore({ tournamentId, matchId, gsltIndex = 0, locat
     createdAt: Date.now(),
   });
   // Primary pointer for older clients; per-match slot lives under liveMatches.
-  await rtdb.writeTournament(tournamentId, {
-    activeServerId: String(server.id),
-  });
+  if (concurrency.canClaimPrimary(await rtdb.getTournament(tournamentId), server.id)) {
+    await rtdb.writeTournament(tournamentId, {
+      activeServerId: String(server.id),
+    });
+  }
   await rtdb.writeTournamentLiveMatch(tournamentId, matchId, {
     status: 'provisioning',
     serverId: String(server.id),
@@ -594,6 +831,91 @@ async function provisionServerCore({ tournamentId, matchId, gsltIndex = 0, locat
   };
 }
 
+/**
+ * Levantar de un solo golpe las dos semifinales de un cuadro de cuatro.
+ *
+ * En modo dos servidores el reparto de ranuras GSLT lo decide el backend leyendo
+ * el torneo, así que las dos provisiones tienen que ir en fila: pedidas a la vez
+ * las dos leerían el mismo estado, las dos verían libre la ranura 0 y las dos
+ * máquinas arrancarían con el mismo token de Steam, que es justo lo que echa a
+ * una de las dos. Ir en fila cuesta poco porque provisionServerCore solo espera
+ * a que el proveedor asigne IP; el arranque de CS2 lo vigila el pase programado.
+ *
+ * Que una falle no puede dejar a la otra sin servidor: el error se guarda en su
+ * entrada y se sigue. Solo se propaga si no se levantó ninguna, para que el
+ * panel tenga algo que decir.
+ */
+async function provisionDualSemisCore({ tournamentId, location }) {
+  if (!tournamentId) {
+    throw new HttpsError('invalid-argument', 'tournamentId required');
+  }
+
+  const tournament = await rtdb.getTournament(tournamentId);
+  if (!tournament) {
+    throw new HttpsError('not-found', 'Tournament not found');
+  }
+
+  const plan = concurrency.planDualSemis(tournament);
+  if (!plan.ok) {
+    throw new HttpsError('failed-precondition', concurrency.dualSemisBlockedMessage(plan));
+  }
+
+  const results = [];
+  for (const entry of plan.entries) {
+    if (entry.skipped) {
+      results.push({
+        matchId: entry.matchId,
+        serverId: entry.serverId,
+        gsltIndex: entry.gsltIndex,
+        skipped: entry.skipped,
+      });
+      continue;
+    }
+    if (entry.blocked) {
+      results.push({
+        matchId: entry.matchId,
+        serverId: null,
+        gsltIndex: null,
+        skipped: 'no_slot',
+      });
+      continue;
+    }
+
+    try {
+      const res = await provisionServerCore({
+        tournamentId,
+        matchId: entry.matchId,
+        gsltIndex: entry.gsltIndex,
+        location,
+      });
+      results.push({
+        matchId: entry.matchId,
+        serverId: String(res.serverId),
+        gsltIndex: res.gsltIndex,
+        status: res.status,
+        ip: res.ip || null,
+      });
+    } catch (err) {
+      const message = err && err.message ? String(err.message) : 'Provision failed';
+      console.error('[provisionDualSemis]', entry.matchId, message);
+      results.push({
+        matchId: entry.matchId,
+        serverId: null,
+        gsltIndex: entry.gsltIndex,
+        error: message,
+      });
+    }
+  }
+
+  const created = results.filter((r) => r.serverId && !r.skipped).length;
+  if (!created) {
+    const firstError = results.find((r) => r.error);
+    if (firstError) throw new HttpsError('failed-precondition', firstError.error);
+  }
+
+  return { ok: true, mode: plan.mode, created, results };
+}
+
 async function launchMatchCore({
   tournamentId,
   matchId,
@@ -602,6 +924,8 @@ async function launchMatchCore({
   teamIds,
   startingSide,
   allowUnlockedRosters,
+  allowUnverifiedTeams,
+  skipBracketRebuild,
 }) {
   if (!tournamentId || !matchId) {
     throw new HttpsError('invalid-argument', 'tournamentId and matchId required');
@@ -682,19 +1006,24 @@ async function launchMatchCore({
     );
   }
 
-  if (teamIds && teamIds.length >= 2) {
-    const bracketData = bracket.buildSingleElimBracket(teamIds);
+  let roster = Array.isArray(teamIds) ? teamIds.filter(Boolean) : [];
+  if (bracket.shouldSeedBracket(tournament, roster, skipBracketRebuild)) {
+    const bracketData = bracket.buildSingleElimBracket(roster);
     await rtdb.writeTournament(tournamentId, {
       bracket: bracketData,
       currentMatchId: bracketData.currentMatchId,
     });
+  } else if (roster.length < 2) {
+    // Quien lanza no tiene por qué saberse la plantilla del cruce: si no la
+    // manda, se lee del cuadro, que es la fuente buena.
+    roster = bracket.teamIdsForMatch(tournament, matchId);
   }
 
   const matchBuild = await matchzy.buildMatchConfig({
     tournamentId,
     matchId,
     map,
-    teamIds: teamIds || [],
+    teamIds: roster,
     startingSide,
   });
 
@@ -719,12 +1048,35 @@ async function launchMatchCore({
     );
   }
 
+  // La verificación no se puede exigir al inscribirse (se paga estando ya dentro
+  // del torneo), así que la puerta está aquí: al lanzar, los dos equipos tienen
+  // que estar verificados y con partidas por gastar.
+  if (matchBuild.ok && allowUnverifiedTeams !== true) {
+    const gate = await verification.checkTeams([matchBuild.team1Id, matchBuild.team2Id]);
+    if (gate.blocked.length) {
+      throw new HttpsError('failed-precondition', verification.blockedMessage(gate.blocked), {
+        reason: 'teams_unverified',
+        teams: gate.blocked,
+      });
+    }
+  }
+
   if (matchBuild.ok && matchBuild.config) {
     await matchzy.storeMatchConfig(tournamentId, matchId, matchBuild.config, matchBuild.steamMap);
   }
   const chosenSide = matchBuild.startingSide || matchzy.resolveSide(startingSide);
 
-  const matchToken = process.env.WEBHOOK_SECRET || process.env.MATCH_CONFIG_TOKEN || '';
+  // Sin secreto el servidor no puede descargar la plantilla ni devolver el
+  // resultado, así que la partida nacería muerta. Mejor decirlo antes de
+  // arrancarla que descubrirlo con los diez jugadores ya dentro.
+  const matchToken = secrets.matchConfigSecret(process.env);
+  if (!matchToken) {
+    throw new HttpsError(
+      'failed-precondition',
+      'Falta configurar WEBHOOK_SECRET en las funciones. Sin él el servidor no puede '
+      + 'descargar la plantilla del cruce ni reportar el resultado.'
+    );
+  }
   const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'studiosgamesrs';
   const matchConfigUrl =
     'https://us-central1-' + projectId + '.cloudfunctions.net/cs2MatchConfig'
@@ -756,6 +1108,17 @@ async function launchMatchCore({
   }
 
   const launchedAt = Date.now();
+
+  // Esta máquina vuelve a jugar: si venía de otra partida tenía el apagado
+  // programado, y encadenar cruces en el mismo servidor no puede acabar con la
+  // máquina borrada a mitad del siguiente.
+  if (cloudServerId) {
+    await rtdb.writeGameServer(String(cloudServerId), Object.assign(
+      { status: 'online', matchId, tournamentId },
+      lifecycle.cancelShutdownPatch()
+    ));
+  }
+
   // active* stays the "primary" slot for older clients; liveMatches lets two
   // cruces run on two servers without overwriting each other.
   await rtdb.writeTournament(tournamentId, {
@@ -803,7 +1166,7 @@ async function launchMatchCore({
     }
   }
 
-  await rtdb.writeMatchLive(matchId, {
+  await rtdb.writeMatchLive(tournamentId, matchId, {
     status: rconOk ? 'live' : 'starting',
     tournamentId,
     map,
@@ -910,8 +1273,11 @@ async function shutdownServerCore({ serverId, tournamentId }) {
   return { ok: true, deleted: serverId, cleared: !!tournamentId };
 }
 
+// 540s y no 300: provisionDual encadena dos esperas de IP y con el tope viejo
+// la segunda podía quedarse cortada a mitad, con la máquina ya creada y
+// facturando pero sin registro terminado.
 exports.cs2NexusApi = onRequest(
-  { timeoutSeconds: 300, memory: '512MiB', invoker: 'public' },
+  { timeoutSeconds: 540, memory: '512MiB', invoker: 'public' },
   async (req, res) => {
     applyCors(req, res);
 
@@ -936,6 +1302,9 @@ exports.cs2NexusApi = onRequest(
         case 'provision':
           result = await provisionServerCore(req.body || {});
           break;
+        case 'provisiondual':
+          result = await provisionDualSemisCore(req.body || {});
+          break;
         case 'launch':
           result = await launchMatchCore(req.body || {});
           break;
@@ -949,7 +1318,7 @@ exports.cs2NexusApi = onRequest(
           result = await checkServerCore(req.body || {});
           break;
         default:
-          throw new HttpsError('invalid-argument', 'Unknown op. Use provision, launch, shutdown, resume, or check.');
+          throw new HttpsError('invalid-argument', 'Unknown op. Use provision, provisionDual, launch, shutdown, resume, or check.');
       }
 
       res.status(200).json({ ok: true, result });
@@ -966,6 +1335,18 @@ exports.cs2ProvisionServer = onCall(
     try {
       await assertCommander(request);
       return await provisionServerCore(request.data || {});
+    } catch (err) {
+      toHttpsError(err);
+    }
+  }
+);
+
+exports.cs2ProvisionDualSemis = onCall(
+  { timeoutSeconds: 540, memory: '512MiB', invoker: 'public', cors: true },
+  async (request) => {
+    try {
+      await assertCommander(request);
+      return await provisionDualSemisCore(request.data || {});
     } catch (err) {
       toHttpsError(err);
     }
@@ -1024,8 +1405,17 @@ exports.cs2MatchWebhook = onRequest(
       res.status(405).send('Method not allowed');
       return;
     }
-    const secret = req.headers['x-webhook-secret'];
-    if (secret !== process.env.WEBHOOK_SECRET) {
+    // Sin secreto configurado no se atiende a nadie: antes, con la variable
+    // vacía, una cabecera vacía coincidía y cualquiera podía inventar el
+    // resultado de una partida, avanzar el cuadro y repartir premios.
+    const expected = secrets.webhookSecret(process.env);
+    if (!expected) {
+      console.error('[cs2MatchWebhook] WEBHOOK_SECRET sin configurar (o de menos de '
+        + secrets.MIN_LENGTH + ' caracteres): no acepto resultados de partida.');
+      res.status(503).json({ error: 'Webhook secret not configured' });
+      return;
+    }
+    if (!secrets.matches(req.headers['x-webhook-secret'], expected)) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
@@ -1041,7 +1431,8 @@ exports.cs2MatchWebhook = onRequest(
 
 /**
  * Public GET for MatchZy matchzy_loadmatch_url.
- * Optional header X-Match-Token must match WEBHOOK_SECRET when that secret is set.
+ * El token (cabecera X-Match-Token o ?token=) es obligatorio: la configuración
+ * del cruce lleva los SteamID de las dos plantillas y no puede quedar al aire.
  */
 exports.cs2MatchConfig = onRequest(
   { timeoutSeconds: 30, memory: '256MiB', invoker: 'public', cors: true },
@@ -1056,14 +1447,17 @@ exports.cs2MatchConfig = onRequest(
       return;
     }
 
-    const expected = process.env.WEBHOOK_SECRET || process.env.MATCH_CONFIG_TOKEN || '';
-    if (expected) {
-      const headerToken = req.get('X-Match-Token') || req.get('x-match-token') || '';
-      const queryToken = req.query.token || '';
-      if (headerToken !== expected && queryToken !== expected) {
-        res.status(401).json({ error: 'Unauthorized' });
-        return;
-      }
+    const expected = secrets.matchConfigSecret(process.env);
+    if (!expected) {
+      console.error('[cs2MatchConfig] WEBHOOK_SECRET sin configurar: no sirvo plantillas.');
+      res.status(503).json({ error: 'Match config token not configured' });
+      return;
+    }
+    const headerToken = req.get('X-Match-Token') || req.get('x-match-token') || '';
+    const queryToken = req.query.token || '';
+    if (!secrets.matches(headerToken, expected) && !secrets.matches(queryToken, expected)) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
     }
 
     const tournamentId = String(req.query.tournamentId || '');
@@ -1120,6 +1514,39 @@ exports.cs2ReconcileServers = onSchedule(
     const summary = await reconcileServersCore();
     if (summary.checked > 0) {
       console.log('[cs2ReconcileServers]', JSON.stringify(summary));
+    }
+
+    try {
+      const bridged = await ensureBridgeContextCore();
+      if (bridged.attempted > 0) {
+        console.log('[cs2BridgeContext]', JSON.stringify(bridged));
+      }
+    } catch (err) {
+      console.error('[cs2BridgeContext]', err && err.message ? err.message : err);
+    }
+
+    // El apagado va en la misma pasada que la reconciliación: son las dos caras
+    // del mismo problema, y una máquina que nadie apaga cuesta dinero por hora.
+    try {
+      const sweep = await sweepFinishedServersCore();
+      if (sweep.swept > 0) console.log('[cs2SweepServers]', JSON.stringify(sweep));
+    } catch (err) {
+      console.error('[cs2SweepServers]', err && err.message ? err.message : err);
+    }
+  }
+);
+
+/**
+ * El repaso contra el proveedor es caro y lento comparado con leer la base, así
+ * que va aparte y cada cuarto de hora: busca máquinas nuestras que existen en
+ * Vultr y no en el registro.
+ */
+exports.cs2SweepOrphanServers = onSchedule(
+  { schedule: 'every 15 minutes', timeoutSeconds: 300, memory: '256MiB', retryCount: 0 },
+  async () => {
+    const summary = await sweepOrphanServersCore();
+    if (summary.orphans > 0) {
+      console.log('[cs2SweepOrphanServers]', JSON.stringify(summary));
     }
   }
 );

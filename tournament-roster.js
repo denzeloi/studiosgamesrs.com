@@ -19,7 +19,9 @@
  * duplicado autoritativo. Por eso se puede resincronizar cuando el capitán
  * vuelve a entrar.
  *
- * Escribir aquí solo lo permite el capitán del equipo (database.rules.json).
+ * Este nodo ya no lo escribe el cliente: lo construye el servidor al inscribir
+ * (functions/tournamentRegistration.js) y al resincronizar. Aquí solo se lee y
+ * se compara para saber si la foto quedó vieja.
  */
 (function (global) {
   'use strict';
@@ -102,21 +104,6 @@
     });
   }
 
-  /**
-   * Rutas que hay que escribir para dejar al equipo dentro del torneo, para
-   * que quien llame pueda meterlas en un `update()` atómico junto con el
-   * borrado de la invitación.
-   */
-  function registrationUpdates(tournamentId, teamId, snapshot) {
-    var updates = {};
-    if (!tournamentId || !teamId) return updates;
-    updates['tournaments/' + tournamentId + '/registeredTeams/' + teamId] = true;
-    if (snapshot) {
-      updates['tournaments/' + tournamentId + '/registeredRosters/' + teamId] = snapshot;
-    }
-    return updates;
-  }
-
   /** ¿La foto guardada sigue coincidiendo con el equipo de hoy? */
   function isStale(saved, fresh) {
     if (!fresh) return false;
@@ -132,8 +119,12 @@
   /**
    * Rellena o refresca la foto. Pensado para equipos que se inscribieron antes
    * de que esto existiera y para cuando el roster cambia entre la inscripción
-   * y el día del partido. Solo hace algo si quien lo pide es el capitán, que es
-   * el único con permiso de escritura en ese nodo.
+   * y el día del partido.
+   *
+   * Comparar aquí y escribir allá: el cliente solo decide si la foto quedó
+   * vieja; quien la escribe es `resyncTournamentRoster` en el servidor, porque
+   * el capitán ya no tiene permiso sobre ese nodo (podía publicar una plantilla
+   * inventada o marcar Steam vinculado en falso).
    */
   function ensureSnapshot(tournamentId, teamId, uid) {
     var database = db();
@@ -150,8 +141,9 @@
         var saved = res[0].val();
         var fresh = res[1];
         if (!fresh || !isStale(saved, fresh)) return null;
-        return database.ref('tournaments/' + tournamentId + '/registeredRosters/' + teamId)
-          .set(fresh)
+        if (!global.firebase || !global.firebase.functions) return null;
+        return global.firebase.functions()
+          .httpsCallable('resyncTournamentRoster')({ teamId: teamId, tournamentId: tournamentId })
           .then(function () { return fresh; })
           .catch(function () { return null; });
       });
@@ -187,7 +179,6 @@
   global.SGTournamentRoster = {
     DEFAULT_TEAM_SIZE: DEFAULT_TEAM_SIZE,
     snapshotFor: snapshotFor,
-    registrationUpdates: registrationUpdates,
     ensureSnapshot: ensureSnapshot,
     playersOf: playersOf,
     isStale: isStale

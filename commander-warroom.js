@@ -233,9 +233,21 @@
     return (t && t.name) ? t.name : teamId;
   }
 
+  // Siempre hay emblema: el que subió el equipo o el de la casa. Antes, sin foto
+  // la tabla ponía un escudo gris y en el cuadro de partidos no salía nada.
   function teamEmblem(teamId) {
+    // Sin equipo no hay emblema: una ranura del cuadro todavía por decidir no
+    // debe enseñar la foto de la casa como si ya hubiera alguien dentro.
+    if (!teamId) return null;
     var t = state.teams[teamId];
+    if (global.SGTeamEmblem) return global.SGTeamEmblem.urlFor(t, { small: true });
     return (t && t.emblemUrl) ? t.emblemUrl : null;
+  }
+
+  // Un emblema borrado del bucket deja el hueco roto: se cae al de la casa.
+  function emblemFallbackAttr() {
+    if (!global.SGTeamEmblem) return '';
+    return " onerror=\"this.onerror=null;this.src='" + global.SGTeamEmblem.DEFAULT_SMALL + "';\"";
   }
 
   // ---------------------------------------------------------------------------
@@ -422,6 +434,9 @@
         state.servers = snap.val() || {};
         renderFleet();
         renderServer();
+        // El botón Comenzar de cada cruce depende de que su máquina esté
+        // confirmada, y eso llega por aquí, no por el torneo.
+        renderBracket();
       });
 
       bind('audit', db.ref(AUDIT_PATH).orderByChild('at').limitToLast(40), function (snap) {
@@ -520,6 +535,7 @@
     state.presence = {};
     state.prizeDirty = false;
     state.scheduleDirty = false;
+    state.lastStatus = null;
 
     var select = $('cwrTournamentSelect');
     if (select) select.value = tid;
@@ -561,6 +577,8 @@
       return;
     }
 
+    announceCloseout(t);
+
     syncTeamSubscriptions(keys(t.registeredTeams));
     syncServerSubscription(t.activeServerId);
     syncLiveSubscription(t.activeMatchId || t.currentMatchId);
@@ -570,6 +588,21 @@
     fillNoteForm();
 
     refreshAll();
+  }
+
+  /**
+   * El cierre lo dispara el servidor al reportar el fin de la final, así que el
+   * Commander no ve ninguna confirmación de que las máquinas se están apagando:
+   * solo el estado cambiando solo. Se avisa una vez, en la transición, no en
+   * cada refresco de un torneo que ya estaba cerrado.
+   */
+  function announceCloseout(t) {
+    var previo = state.lastStatus;
+    state.lastStatus = t.status || null;
+    if (previo && previo !== 'finalizado' && t.status === 'finalizado') {
+      toast('success', 'Torneo cerrado. Los servidores se están apagando.');
+      setMsg('Torneo cerrado. Las máquinas del torneo se apagan solas; entrega los premios del podio en la pestaña Premios.');
+    }
   }
 
   function syncTeamSubscriptions(teamIds) {
@@ -623,19 +656,42 @@
     var mid = matchId ? String(matchId) : null;
     if (state.liveMatchId === mid) return;
     release('t:live');
+    release('t:live-legacy');
     state.liveMatchId = mid;
     state.live = null;
     if (!mid) {
       renderServer();
       return;
     }
-    bind('t:live', db.ref('partida_en_vivo/' + mid), function (snap) {
-      state.live = snap.val() || null;
-      renderServer();
-      renderStatusStrip();
-      renderBracket();
-      maybeAutopilot();
+    // El marcador cuelga del torneo: los identificadores de cruce se repiten y
+    // dos campeonatos a la vez se pisaban el resultado.
+    bind('t:live', db.ref('partida_en_vivo/' + state.tournamentId + '/' + mid), function (snap) {
+      var live = snap.val();
+      if (!live) {
+        bindLegacyLive(mid);
+        return;
+      }
+      release('t:live-legacy');
+      applyLive(live);
     });
+  }
+
+  /** Partidas lanzadas antes del cambio de sitio: siguen en la ruta plana. */
+  function bindLegacyLive(mid) {
+    if (slots['t:live-legacy']) return;
+    bind('t:live-legacy', db.ref('partida_en_vivo/' + mid), function (snap) {
+      var live = snap.val();
+      if (live && live.tournamentId && live.tournamentId !== state.tournamentId) live = null;
+      applyLive(live);
+    });
+  }
+
+  function applyLive(live) {
+    state.live = live || null;
+    renderServer();
+    renderStatusStrip();
+    renderBracket();
+    maybeAutopilot();
   }
 
   // ---------------------------------------------------------------------------
@@ -959,6 +1015,7 @@
 
   function renderServer() {
     renderServerMode();
+    renderLaunchControls();
     renderConnectPanel();
     renderServerPipeline();
     renderServerTech();
@@ -1592,7 +1649,7 @@
         '<td>' +
           '<div class="cwr-team-cell">' +
             (emblem
-              ? '<img class="cwr-team-emblem" src="' + esc(emblem) + '" alt="" loading="lazy">'
+              ? '<img class="cwr-team-emblem" src="' + esc(emblem) + '" alt="" loading="lazy"' + emblemFallbackAttr() + '>'
               : '<span class="cwr-team-emblem cwr-team-emblem-fallback"><i class="fas fa-shield-alt"></i></span>') +
             '<div>' +
               '<div class="cwr-team-name">' + esc(team.name || id) + '</div>' +
@@ -2027,6 +2084,48 @@
    * Cierra un cruce y empuja al ganador a la siguiente ronda.
    * Réplica de advanceWinner() del backend, en una sola escritura atómica.
    */
+  /**
+   * La ranura del ganador va atada al número del cruce de origen (impar arriba,
+   * par abajo). Con "la primera libre", el webhook y el piloto automático
+   * cerrando a la vez metían al mismo equipo en las dos ranuras del siguiente.
+   * Es la misma regla que aplica el servidor en lib/bracket.js.
+   */
+  function bracketSlotForFeeder(matchId, next) {
+    var parsed = /_m(\d+)\s*$/.exec(String(matchId || ''));
+    if (parsed) {
+      var n = num(parsed[1]);
+      if (n > 0) return (n % 2 === 1) ? 'teamA' : 'teamB';
+    }
+    return (!next || !next.teamA || !next.teamA.teamId) ? 'teamA' : 'teamB';
+  }
+
+  function bracketRoundOf(m, matchId) {
+    var n = num(m && m.round, 0);
+    if (n > 0) return n;
+    var parsed = /^r(\d+)_/.exec(String(matchId || ''));
+    return parsed ? num(parsed[1], 0) : 0;
+  }
+
+  /**
+   * El otro cruce de la misma ronda que desemboca en el mismo siguiente.
+   * Misma regla que lib/bracket.js: la final no es la partida del momento
+   * mientras le falte la mitad del cartel.
+   */
+  function bracketPeerFeederId(matches, matchId, nextId) {
+    var round = bracketRoundOf(matches[matchId], matchId);
+    var found = keys(matches).filter(function (mid) {
+      if (mid === matchId) return false;
+      var m = matches[mid] || {};
+      if (String(m.nextMatchId || '') !== String(nextId)) return false;
+      return bracketRoundOf(m, mid) === round;
+    });
+    return found.length ? found[0] : null;
+  }
+
+  function bracketMatchFinished(m) {
+    return !!(m && m.status === 'finished' && m.winnerTeamId);
+  }
+
   function advanceWinner(matchId, winnerTeamId, score) {
     var t = state.tournament;
     if (!t || !t.bracket || !t.bracket.matches || !t.bracket.matches[matchId]) {
@@ -2062,11 +2161,19 @@
       if (third) updates[base + '/podium/third'] = { teamId: third, teamName: teamName(third), suggested: true };
     } else {
       var next = t.bracket.matches[m.nextMatchId];
-      var slot = (!next.teamA || !next.teamA.teamId) ? 'teamA' : 'teamB';
+      var slot = bracketSlotForFeeder(matchId, next);
+      var other = slot === 'teamA' ? 'teamB' : 'teamA';
+      var peerId = bracketPeerFeederId(t.bracket.matches, matchId, m.nextMatchId);
+      var peerDone = !peerId || bracketMatchFinished(t.bracket.matches[peerId]);
+      var nextReady = peerDone && !!(next[other] && next[other].teamId);
+      // Hasta que las dos semis tengan ganador la final no se puede lanzar, así
+      // que la partida en curso sigue siendo el cruce que falta.
+      var becomesCurrent = nextReady ? m.nextMatchId : (peerId || matchId);
+
       updates[mBase + m.nextMatchId + '/' + slot] = { teamId: winnerTeamId, fromMatchId: matchId };
-      updates[mBase + m.nextMatchId + '/status'] = (next.teamA || next.teamB) ? 'ready' : 'waiting';
-      updates[base + '/currentMatchId'] = m.nextMatchId;
-      updates[base + '/bracket/currentMatchId'] = m.nextMatchId;
+      updates[mBase + m.nextMatchId + '/status'] = nextReady ? 'ready' : 'waiting';
+      updates[base + '/currentMatchId'] = becomesCurrent;
+      updates[base + '/bracket/currentMatchId'] = becomesCurrent;
       updates[base + '/status'] = 'en_vivo';
     }
 
@@ -2075,7 +2182,9 @@
         setMsg('¡' + teamName(winnerTeamId) + ' es campeón! Revisa el podio propuesto y registra los premios.');
         toast('success', 'Torneo cerrado. Campeón: ' + teamName(winnerTeamId));
       } else {
-        setMsg(teamName(winnerTeamId) + ' pasa a ' + m.nextMatchId + '.');
+        setMsg(teamName(winnerTeamId) + ' pasa a ' + m.nextMatchId + '.' + (nextReady
+          ? ' Ya se puede lanzar.'
+          : ' ' + m.nextMatchId + ' espera a que ' + (peerId || 'el otro cruce') + ' tenga ganador.'));
         toast('success', teamName(winnerTeamId) + ' avanza de ronda.');
       }
       audit('match.close', { matchId: matchId, winnerTeamId: winnerTeamId, score: score || null });
@@ -2224,9 +2333,15 @@
     advanceWinner(matchId, winner, score);
   }
 
-  /** Piloto automático: si el servidor reporta ganador, el cuadro avanza sin intervención. */
+  /**
+   * Piloto automático: si el servidor reporta ganador, el cuadro avanza sin intervención.
+   *
+   * El mismo fin de partida lo procesa el servidor, así que los dos pueden ir a
+   * cerrar el cruce a la vez. Antes de escribir nada se reclama el cruce con una
+   * transacción: solo pasa uno, y el que llega tarde se calla.
+   */
   function maybeAutopilot() {
-    if (!isCommander() || !state.autopilot) return;
+    if (!isCommander() || !state.autopilot || state.autopilotBusy) return;
     var live = state.live;
     var t = state.tournament;
     if (!live || !live.winnerTeamId || !t || !t.bracket || !t.bracket.matches) return;
@@ -2237,8 +2352,20 @@
     var b = m.teamB && m.teamB.teamId;
     if (live.winnerTeamId !== a && live.winnerTeamId !== b) return;
 
-    advanceWinner(mid, live.winnerTeamId, { scoreCT: live.scoreCT, scoreT: live.scoreT, auto: true });
-    toast('success', 'Piloto automático: ' + teamName(live.winnerTeamId) + ' avanza de ronda.');
+    var winner = live.winnerTeamId;
+    var score = { scoreCT: live.scoreCT, scoreT: live.scoreT, auto: true };
+    state.autopilotBusy = true;
+    db.ref('tournaments/' + state.tournamentId + '/bracket/matches/' + mid + '/status')
+      .transaction(function (current) {
+        return current === 'finished' ? undefined : 'finished';
+      })
+      .then(function (res) {
+        state.autopilotBusy = false;
+        if (!res || !res.committed) return;
+        advanceWinner(mid, winner, score);
+        toast('success', 'Piloto automático: ' + teamName(winner) + ' avanza de ronda.');
+      })
+      .catch(function () { state.autopilotBusy = false; });
   }
 
   // --- Render del calendario, cuadro y podio --------------------------------
@@ -2390,7 +2517,7 @@
       var scoreVal = m.score ? (slot === 'teamA' ? m.score.a : m.score.b) : null;
       return '<div class="cwr-match-side' + (win ? ' cwr-match-side-win' : '') + '">' +
         '<span class="cwr-match-seed">' + esc(seed || '·') + '</span>' +
-        (emblem ? '<img src="' + esc(emblem) + '" alt="" class="cwr-match-emblem" loading="lazy">' : '') +
+        (emblem ? '<img src="' + esc(emblem) + '" alt="" class="cwr-match-emblem" loading="lazy"' + emblemFallbackAttr() + '>' : '') +
         '<span class="cwr-match-team">' + esc(teamId ? teamName(teamId) : 'TBD') + '</span>' +
         '<span class="cwr-match-score">' + esc(scoreVal != null ? scoreVal : '') + '</span>' +
       '</div>';
@@ -2399,6 +2526,10 @@
     var actions = '';
     if (isCommander() && !m.bye) {
       actions = '<div class="cwr-match-actions">' +
+        (matchCanStart(t, m.id)
+          ? '<button type="button" class="cwr-mini-btn cwr-mini-btn-go" data-cwr-launch="' + esc(m.id) +
+            '" title="Comenzar este cruce en su servidor"><i class="fas fa-play"></i> Comenzar</button>'
+          : '') +
         (m.status === 'finished'
           ? '<button type="button" class="cwr-mini-btn" data-cwr-reopen="' + esc(m.id) + '" title="Reabrir"><i class="fas fa-undo"></i></button>'
           : '<button type="button" class="cwr-mini-btn" data-cwr-close="' + esc(m.id) + '"><i class="fas fa-flag-checkered"></i> Ganador</button>') +
@@ -2631,6 +2762,93 @@
     }).then(function () {
       toast('success', 'Entrega registrada.');
       audit('prizes.payout', { place: place, teamId: entry.teamId, tokens: prize.tokens, cash: prize.cash });
+    }).catch(writeError);
+  }
+
+  /**
+   * Reparte el podio entero de una vez.
+   *
+   * Entregar puesto a puesto son tres diálogos y tres escrituras, y el torneo
+   * se cierra a las tantas: lo normal era dejarse el tercero sin marcar. Esto
+   * mira los tres a la vez y solo se queda con los que faltan por pagar, así
+   * que volver a pulsarlo no reescribe una entrega ya hecha ni cambia su fecha.
+   */
+  function planPodiumPayout(t) {
+    var podium = (t && t.podium) || {};
+    var paid = (t && t.prizePayouts) || {};
+    var out = { pending: [], missing: [], alreadyPaid: [], noPrize: [] };
+
+    PODIUM_PLACES.forEach(function (p) {
+      var entry = podium[p.key] || {};
+      if (!entry.teamId) { out.missing.push(p.label); return; }
+      if (paid[p.key]) { out.alreadyPaid.push(p.label); return; }
+      var prize = prizeForPlace(p.key);
+      if (!prize.tokens && !prize.cash) { out.noPrize.push(p.label); return; }
+      out.pending.push({
+        place: p.key,
+        label: p.label,
+        teamId: entry.teamId,
+        tokens: prize.tokens,
+        cash: prize.cash,
+        currency: prize.currency
+      });
+    });
+
+    return out;
+  }
+
+  function payoutPodium() {
+    var t = state.tournament;
+    if (!t) return;
+    var plan = planPodiumPayout(t);
+
+    if (!plan.pending.length) {
+      if (plan.missing.length === PODIUM_PLACES.length) {
+        toast('error', 'Asigna primero los equipos del podio.');
+      } else if (plan.noPrize.length && !plan.alreadyPaid.length) {
+        toast('error', 'No hay bolsa definida para esos puestos: publícala arriba.');
+      } else {
+        toast('info', 'No queda nada por entregar del podio.');
+      }
+      return;
+    }
+
+    var detalle = plan.pending.map(function (p) {
+      return '· ' + p.label + ' — ' + teamName(p.teamId) + ': ' +
+        fmtTokens(p.tokens) + ' tokens' + (p.cash ? ' + ' + p.cash + ' ' + p.currency : '');
+    }).join('\n');
+    var pendiente = plan.missing.concat(plan.noPrize);
+
+    if (!window.confirm('Registrar la entrega de:\n\n' + detalle +
+      (pendiente.length ? '\n\nSe quedan fuera: ' + pendiente.join(', ') + '.' : '') +
+      (plan.alreadyPaid.length ? '\n\nYa entregados: ' + plan.alreadyPaid.join(', ') + '.' : '') +
+      '\n\nEsto deja constancia pública. El abono de tokens a cada jugador se hace en la pestaña Tokens.')) return;
+
+    var base = 'tournaments/' + state.tournamentId + '/prizePayouts/';
+    var updates = {};
+    var at = Date.now();
+    plan.pending.forEach(function (p) {
+      updates[base + p.place] = {
+        place: p.place,
+        teamId: p.teamId,
+        teamName: teamName(p.teamId),
+        tokens: p.tokens,
+        cash: p.cash,
+        cashCurrency: p.currency,
+        paidAt: at,
+        paidBy: state.uid,
+        paidByNick: state.nick
+      };
+    });
+
+    db.ref().update(updates).then(function () {
+      toast('success', 'Podio entregado: ' + plan.pending.length +
+        (plan.pending.length === 1 ? ' puesto registrado.' : ' puestos registrados.'));
+      setMsg('Entregas del podio registradas. Quedan publicadas en la sala del torneo.');
+      audit('prizes.payoutPodium', {
+        places: plan.pending.map(function (p) { return p.place; }),
+        tokens: plan.pending.reduce(function (acc, p) { return acc + num(p.tokens); }, 0)
+      });
     }).catch(writeError);
   }
 
@@ -3256,10 +3474,106 @@
     });
   }
 
+  function matchIsBusy(t, matchId) {
+    var m = ((t && t.liveMatches) || {})[matchId] || {};
+    return m.status === 'live' || m.status === 'starting' || m.status === 'provisioning';
+  }
+
+  /**
+   * Cruces de primera ronda con los dos equipos puestos, en orden de cuadro.
+   * Misma regla que aplica el backend en lib/concurrency.js: un cruce con hueco
+   * (BYE) no merece una máquina, porque ahí no juega nadie.
+   */
+  function firstRoundMatchIds(t) {
+    var matches = (t && t.bracket && t.bracket.matches) || {};
+    return keys(matches).filter(function (mid) {
+      var m = matches[mid] || {};
+      var round = num(m.round, 0) || (/^r1_m\d+$/.test(mid) ? 1 : 0);
+      if (round !== 1) return false;
+      return !!(m.teamA && m.teamA.teamId && m.teamB && m.teamB.teamId);
+    }).sort(function (a, b) {
+      return bracketMatchNumber(a) - bracketMatchNumber(b);
+    });
+  }
+
+  function bracketMatchNumber(matchId) {
+    var parsed = /_m(\d+)\s*$/.exec(String(matchId || ''));
+    return parsed ? num(parsed[1], 9999) : 9999;
+  }
+
+  /**
+   * En modo dos servidores lo que se quiere casi siempre es arrancar el cuadro
+   * entero: las dos semis a la vez. Pedirlas de una en una obliga a esperar a
+   * que la primera termine de arrancar, y ese hueco es donde se pierde la
+   * tarde. Si una de las dos ya tiene servidor, esto se queda con la que falta.
+   */
   function provisionServer() {
     if (!state.tournamentId || !hasTournamentSystem()) return;
     var t = state.tournament || {};
-    var matchId = t.currentMatchId || 'r1_m1';
+
+    if (serverMode(t) === 'dual') {
+      var semis = firstRoundMatchIds(t).slice(0, 2);
+      if (semis.length === 2) {
+        var pending = semis.filter(function (mid) { return !matchIsBusy(t, mid); });
+        if (!pending.length) {
+          setMsg('Las dos semifinales (' + semis.join(' y ') + ') ya tienen servidor.', true);
+          return;
+        }
+        // Con un tournament-system.js viejo en caché no existe el atajo: se
+        // levanta la primera y el segundo clic hará la otra.
+        if (pending.length === 2 && typeof global.TournamentSystem.provisionDualSemis === 'function') {
+          provisionDualSemis(semis);
+          return;
+        }
+        provisionOneServer(pending[0]);
+        return;
+      }
+    }
+
+    provisionOneServer(t.currentMatchId || 'r1_m1');
+  }
+
+  function provisionDualSemis(semis) {
+    setMsg('Creando 2 servidores para ' + semis[0] + ' y ' + semis[1] + '…');
+    global.TournamentSystem.provisionDualSemis(state.tournamentId).then(function (res) {
+      var results = (res && res.results) || [];
+      var created = results.filter(function (r) { return r.serverId && !r.skipped; });
+      var errored = results.filter(function (r) { return r.error; });
+
+      created.forEach(function (r) {
+        audit('server.provision', {
+          serverId: String(r.serverId),
+          matchId: r.matchId,
+          gsltIndex: r.gsltIndex,
+          dual: true,
+        });
+      });
+
+      var detail = created.map(function (r) {
+        return r.matchId + ' → ' + r.serverId + ' (slot ' + r.gsltIndex + ')';
+      }).join(' · ');
+
+      if (errored.length) {
+        // Media provisión es peor que ninguna si nadie se entera: la semi sin
+        // máquina se queda esperando y el cuadro no avanza.
+        setMsg((created.length ? detail + '. ' : '') +
+          'Falló ' + errored.map(function (r) { return r.matchId; }).join(', ') + ': ' +
+          errored[0].error, true);
+        toast('error', 'Servidores creados: ' + created.length + ' de 2.');
+        return;
+      }
+
+      setMsg(detail + '. Sigue el progreso en la tubería de arranque.');
+      toast('success', created.length === 2
+        ? 'Dos servidores en creación, uno por semifinal.'
+        : 'Servidor en creación.');
+    }).catch(function (err) {
+      setMsg(err.message || String(err), true);
+    });
+  }
+
+  function provisionOneServer(matchId) {
+    var t = state.tournament || {};
     var busy = busyMatchIds(t, matchId);
     if (busy.length >= concurrencyLimit(t)) {
       setMsg(serverMode(t) === 'single'
@@ -3294,14 +3608,55 @@
     return a + ' empieza CT, ' + b + ' T';
   }
 
+  /**
+   * ¿Se puede dar el saque a este cruce?
+   *
+   * Hace falta máquina confirmada (no una que el backend dio por buena solo
+   * por antigüedad) y que no esté ya jugándose. `starting` sí deja reintentar:
+   * ese estado es un lanzamiento que no llegó a hablar por RCON.
+   */
+  function matchCanStart(t, mid) {
+    if (!mid) return false;
+    var m = (t && t.bracket && t.bracket.matches && t.bracket.matches[mid]) || null;
+    if (!m || m.bye || m.status === 'finished') return false;
+    if (!(m.teamA && m.teamA.teamId && m.teamB && m.teamB.teamId)) return false;
+    var lm = ((t.liveMatches || {})[mid]) || {};
+    if (lm.status === 'live') return false;
+    if (!lm.serverId) return false;
+    return serverReadyVerified(state.servers[String(lm.serverId)]);
+  }
+
+  /** Las dos semis, y solo si las dos pueden salir a la vez. */
+  function semisReadyToStart(t) {
+    if (serverMode(t) !== 'dual') return [];
+    var semis = firstRoundMatchIds(t).slice(0, 2);
+    if (semis.length < 2) return [];
+    return semis.every(function (mid) { return matchCanStart(t, mid); }) ? semis : [];
+  }
+
+  function renderLaunchControls() {
+    var btn = $('cwrBtnLaunchBoth');
+    if (!btn) return;
+    var ready = semisReadyToStart(state.tournament);
+    btn.hidden = ready.length < 2 || !isCommander();
+    btn.title = ready.length === 2
+      ? 'Comenzar ' + ready[0] + ' y ' + ready[1] + ' en sus dos servidores'
+      : '';
+  }
+
   function launchMatch(opts) {
-    if (!state.tournamentId || !hasTournamentSystem()) return;
+    if (!state.tournamentId || !hasTournamentSystem()) return Promise.resolve(false);
     var options = opts || {};
     var t = state.tournament || {};
-    var matchId = t.currentMatchId || 'r1_m1';
+    var matchId = options.matchId || t.currentMatchId || 'r1_m1';
     var match = (t.bracket && t.bracket.matches && t.bracket.matches[matchId]) || null;
     var mapEl = $('cwrLaunchMap');
-    var map = (mapEl && mapEl.value) || (match && match.map) || DEFAULT_SCHEDULE.defaultMap;
+    // Al dar el saque a un cruce concreto manda el mapa de su tarjeta: el
+    // desplegable de arriba siempre tiene algo puesto y, sin esta preferencia,
+    // las dos semifinales saldrían en el mismo mapa.
+    var map = options.matchId
+      ? ((match && match.map) || (mapEl && mapEl.value) || DEFAULT_SCHEDULE.defaultMap)
+      : ((mapEl && mapEl.value) || (match && match.map) || DEFAULT_SCHEDULE.defaultMap);
     var sideEl = $('cwrLaunchSide');
     var side = (sideEl && sideEl.value) || 'random';
 
@@ -3312,7 +3667,7 @@
       teamIds = rankedTeamIds();
       if (teamIds.length < 2) {
         setMsg('Genera el cuadro o inscribe al menos 2 equipos antes de lanzar.', true);
-        return;
+        return Promise.resolve(false);
       }
       teamIds = teamIds.slice(0, 2);
     }
@@ -3322,28 +3677,37 @@
       setMsg(serverMode(t) === 'single'
         ? 'Modo servidor único: ' + busy.join(', ') + ' sigue en curso. Ciérrala antes de lanzar este cruce, o pasa a modo dos servidores.'
         : 'Los dos servidores están ocupados (' + busy.join(', ') + '). Cierra una partida antes de lanzar otra.', true);
-      return;
+      return Promise.resolve(false);
     }
 
     var lm = t.liveMatches && t.liveMatches[matchId];
-    var serverId = (lm && lm.serverId) || state.serverId || t.activeServerId;
+    // La máquina de este cruce, no la del torneo: en modo dos servidores el
+    // puntero de nivel torneo apunta a una de las dos y daría el saque en la
+    // que no toca.
+    var serverId = (lm && lm.serverId) ||
+      (options.matchId ? null : (state.serverId || t.activeServerId));
     if (!serverId) {
-      setMsg('No hay servidor asignado. Crea uno primero (en modo dos servidores puedes tener uno por cruce).', true);
-      return;
+      setMsg('No hay servidor asignado a ' + matchId +
+        '. Crea uno primero (en modo dos servidores puedes tener uno por cruce).', true);
+      return Promise.resolve(false);
     }
 
-    setMsg('Lanzando ' + matchId + ' (' + map + ') con ' + teamName(teamIds[0]) + ' vs ' + teamName(teamIds[1]) +
+    setMsg('Comenzando ' + matchId + ' (' + map + ') con ' + teamName(teamIds[0]) + ' vs ' + teamName(teamIds[1]) +
       ' · ' + sideLabel(side, teamIds) + '…');
-    global.TournamentSystem.launchMatch(state.tournamentId, matchId, map, serverId, teamIds, side, {
+    return global.TournamentSystem.launchMatch(state.tournamentId, matchId, map, serverId, teamIds, side, {
       allowUnlockedRosters: options.allowUnlockedRosters === true,
+      allowUnverifiedTeams: options.allowUnverifiedTeams === true,
+      // Los teamIds de arriba son los dos de este cruce; sin esto el backend
+      // rehacía el cuadro con ellos y se llevaba por delante el resto.
+      skipBracketRebuild: true,
     }).then(function (res) {
       // El sorteo lo resuelve el servidor, así que el resultado real viene en la respuesta.
       var applied = sideLabel(res.startingSide || side, teamIds);
       var drawn = res.sideWasDrawn ? 'Sorteo: ' : '';
-      setMsg(drawn + 'Partida en marcha · ' + applied + '. Conexión: connect ' +
+      setMsg(drawn + matchId + ' en marcha · ' + applied + '. Conexión: connect ' +
         res.serverIp + ':' + (res.port || 27015) +
         (res.rostersLocked === false ? ' · Equipos SIN bloquear.' : ''));
-      toast('success', res.sideWasDrawn ? 'Partida lanzada. ' + applied : 'Partida lanzada.');
+      toast('success', res.sideWasDrawn ? matchId + ' lanzada. ' + applied : matchId + ' lanzada.');
       audit('server.launch', {
         matchId: matchId,
         map: map,
@@ -3352,20 +3716,80 @@
         drawn: res.sideWasDrawn === true,
         rostersLocked: res.rostersLocked !== false
       });
+      return true;
     }).catch(function (err) {
-      if (err && err.details && err.details.reason === 'rosters_unlocked') {
-        promptUnlockedRosters(err.details);
-        return;
+      var reason = err && err.details && err.details.reason;
+      if (reason === 'rosters_unlocked') {
+        return promptUnlockedRosters(err.details, options);
       }
-      setMsg(err.message || String(err), true);
+      if (reason === 'teams_unverified') {
+        return promptUnverifiedTeams(err.details, options);
+      }
+      setMsg(matchId + ': ' + (err.message || String(err)), true);
+      return false;
     });
+  }
+
+  /**
+   * El saque de las dos semis con un botón.
+   *
+   * En fila y no a la vez: cada lanzamiento habla por RCON con su máquina y
+   * además escribe los punteros de nivel torneo (activeMatchId, activeMap), que
+   * son un único hueco. Lanzadas en paralelo, esos punteros se quedan con lo
+   * que escriba la que conteste última y el panel acaba señalando al cruce
+   * equivocado.
+   */
+  function launchBothSemis() {
+    if (!state.tournamentId || !hasTournamentSystem()) return;
+    var semis = semisReadyToStart(state.tournament);
+    if (semis.length < 2) {
+      setMsg('Para comenzar las dos a la vez, las dos semifinales necesitan su servidor confirmado y ninguna puede estar ya en juego.', true);
+      return;
+    }
+    setMsg('Comenzando ' + semis[0] + ' y ' + semis[1] + '…');
+    launchMatch({ matchId: semis[0] }).then(function (firstOk) {
+      return launchMatch({ matchId: semis[1] }).then(function (secondOk) {
+        return [firstOk, secondOk];
+      });
+    }).then(function (results) {
+      var started = semis.filter(function (mid, i) { return results[i]; });
+      if (started.length === 2) {
+        setMsg('Las dos semifinales están en marcha: ' + semis.join(' y ') + '.');
+        toast('success', 'Dos semifinales lanzadas.');
+      } else if (started.length === 1) {
+        // Media ronda arrancada es peor que ninguna si nadie se entera: la otra
+        // se queda con diez jugadores esperando en un servidor en calentamiento.
+        setMsg(started[0] + ' está en marcha, pero la otra semifinal no arrancó. Revisa el mensaje anterior y vuelve a intentarlo con su botón Comenzar.', true);
+        toast('error', 'Solo arrancó una de las dos semifinales.');
+      } else {
+        toast('error', 'No arrancó ninguna de las dos semifinales.');
+      }
+      audit('server.launchBoth', { matchIds: semis.join(','), started: started.join(',') });
+    });
+  }
+
+  // El Commander puede saltarse una puerta y toparse con la siguiente, así que
+  // el permiso que ya dio viaja con el reintento en lugar de perderse.
+  function retryLaunch(options, extra) {
+    var next = {
+      // Sin esto el reintento se iría al cruce en curso en vez de al que el
+      // Commander pulsó.
+      matchId: options && options.matchId,
+      allowUnlockedRosters: (options && options.allowUnlockedRosters) === true,
+      allowUnverifiedTeams: (options && options.allowUnverifiedTeams) === true
+    };
+    if (extra) {
+      if (extra.allowUnlockedRosters) next.allowUnlockedRosters = true;
+      if (extra.allowUnverifiedTeams) next.allowUnverifiedTeams = true;
+    }
+    return launchMatch(next);
   }
 
   /**
    * Sin Steam vinculado el servidor no puede colocar a esos jugadores en su equipo, que
    * es justo lo que dejó una partida a medias. Se avisa por nombre y el Commander decide.
    */
-  function promptUnlockedRosters(details) {
+  function promptUnlockedRosters(details, options) {
     var missing = (details && details.missing) || [];
     var list = missing.length ? missing.join(', ') : 'varios jugadores';
     setMsg('No lanzo todavía: falta vincular Steam a ' + list +
@@ -3377,7 +3801,27 @@
       '\n\nSi lanzas igual, el servidor no podrá asignarlos a su equipo y tendrán que ' +
       'colocarse a mano, que es lo que rompió la última partida.\n\n¿Lanzar igual?'
     );
-    if (go) launchMatch({ allowUnlockedRosters: true });
+    return go ? retryLaunch(options, { allowUnlockedRosters: true }) : Promise.resolve(false);
+  }
+
+  /**
+   * La verificación se paga estando ya inscrito, así que se comprueba aquí y no
+   * al entrar al torneo. Vale para tres partidas y se descuenta una al terminar.
+   */
+  function promptUnverifiedTeams(details, options) {
+    var teams = (details && details.teams) || [];
+    var list = teams.map(function (team) { return team.name || team.teamId; }).join(' y ');
+    var who = list || 'uno de los equipos';
+    setMsg('No lanzo todavía: falta verificar a ' + who +
+      '. Cada miembro paga su parte desde el Competition Hub y la verificación vale para tres partidas.', true);
+    toast('error', 'Equipos sin verificar.');
+
+    var go = global.confirm(
+      'Estos equipos no están verificados:\n\n' + who +
+      '\n\nLa verificación la paga cada miembro desde el Competition Hub y cubre tres ' +
+      'partidas de torneo.\n\nSi es un amistoso o una prueba puedes lanzar igual.\n\n¿Lanzar igual?'
+    );
+    return go ? retryLaunch(options, { allowUnverifiedTeams: true }) : Promise.resolve(false);
   }
 
   function checkServer() {
@@ -3481,6 +3925,7 @@
     on('cwrBtnProvision', 'click', provisionServer);
     // Sin envolver, el handler recibiría el MouseEvent como opciones de lanzamiento.
     on('cwrBtnLaunch', 'click', function () { launchMatch(); });
+    on('cwrBtnLaunchBoth', 'click', launchBothSemis);
     on('cwrBtnCheck', 'click', checkServer);
     on('cwrBtnShutdown', 'click', function () { shutdownServer(null); });
 
@@ -3533,7 +3978,8 @@
     root.addEventListener('click', function (event) {
       var target = event.target.closest('[data-cwr-copy],[data-cwr-shutdown],[data-cwr-team-toggle],' +
         '[data-cwr-team-remove],[data-cwr-team-transfer],[data-cwr-close],[data-cwr-reopen],' +
-        '[data-cwr-setcurrent],[data-cwr-retime],[data-cwr-map],[data-cwr-podium],[data-cwr-payout],' +
+        '[data-cwr-launch],[data-cwr-setcurrent],[data-cwr-retime],[data-cwr-map],[data-cwr-podium],[data-cwr-payout],' +
+        '[data-cwr-payout-podium],' +
         '[data-cwr-sentinel-default],[data-cwr-sentinel-toggle],[data-cwr-sentinel-scope],' +
         '[data-cwr-sentinel-revoke],[data-cwr-assign-uid],[data-cwr-report-resolve],[data-cwr-report-dismiss]');
       if (!target || !root.contains(target)) return;
@@ -3553,6 +3999,7 @@
       if (get('data-cwr-team-toggle')) { toggleTeamPause(get('data-cwr-team-toggle')); return; }
       if (get('data-cwr-team-remove')) { removeTeam(get('data-cwr-team-remove')); return; }
       if (get('data-cwr-team-transfer')) { transferTeam(get('data-cwr-team-transfer')); return; }
+      if (get('data-cwr-launch')) { launchMatch({ matchId: get('data-cwr-launch') }); return; }
       if (get('data-cwr-close')) { promptCloseMatch(get('data-cwr-close')); return; }
       if (get('data-cwr-reopen')) { reopenMatch(get('data-cwr-reopen')); return; }
       if (get('data-cwr-setcurrent')) { setMatchAsCurrent(get('data-cwr-setcurrent')); return; }
@@ -3560,6 +4007,7 @@
       if (get('data-cwr-map')) { editMatchMap(get('data-cwr-map')); return; }
       if (get('data-cwr-podium')) { setPodiumPlace(get('data-cwr-podium')); return; }
       if (get('data-cwr-payout')) { registerPayout(get('data-cwr-payout')); return; }
+      if (get('data-cwr-payout-podium') !== null) { payoutPodium(); return; }
       if (get('data-cwr-sentinel-default')) {
         var duid = get('data-cwr-sentinel-default');
         setDefaultSentinel(duid, (state.sentinels[duid] || {}).nick, false);

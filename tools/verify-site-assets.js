@@ -40,6 +40,9 @@ const REQUIRED_FILES = [
   { file: 'overlay-volcano.jpg', minKB: 60 },
   { file: 'overlay-cs2-desert.jpg', minKB: 100 },
   { file: 'logo-studiosgamesrs.png', minKB: 100 },
+  // Emblema recortado del logo para la cabecera; el original son 8000x4500 y 600 KB.
+  { file: 'brand-icon.png', minKB: 10 },
+  { file: 'brand-icon-small.png', minKB: 3 },
   { file: 'badges/lealtad-320.png', minKB: 60 },
   { file: 'badges/lealtad-512.png', minKB: 150 },
   { file: 'dashboard.html', minKB: 20 },

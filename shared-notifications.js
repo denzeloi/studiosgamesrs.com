@@ -485,6 +485,23 @@
       actions + '</div>';
   }
 
+  /**
+   * De la campana solo se sale hacia dentro del sitio.
+   *
+   * El enlace de un aviso viene de la base, y hubo un tiempo en que cualquiera
+   * podía escribir uno en la campana ajena: con un javascript: o un dominio
+   * parecido al nuestro, el clic acababa en una página que pide la contraseña.
+   * Se aceptan rutas propias y nada más: '/torneo', nunca '//otro-sitio'.
+   */
+  function safeLink(raw) {
+    var link = String(raw == null ? '' : raw).trim();
+    if (!link || link.charAt(0) !== '/') return null;
+    // '//host' y '/\host' los resuelve el navegador como sitio externo.
+    if (link.charAt(1) === '/' || link.charAt(1) === '\\') return null;
+    if (/[\u0000-\u001f]/.test(link)) return null;
+    return link;
+  }
+
   function buildItems() {
     var items = [];
 
@@ -567,9 +584,10 @@
       if (!n || !n.text) return;
       if (state.creatorApp && n.type === 'creator_market') return;
       var icon = n.icon || 'fa-bell';
+      var link = safeLink(n.link);
       items.push({ section: 'Sistema', sort: n.timestamp || n.at || 0, unread: !n.read,
         html: itemHtml({ title: 'StudiosGamesRS', text: n.text, icon: icon, time: fmtTime(n.timestamp || n.at),
-          unread: !n.read, attrs: 'data-notif-id="' + esc(id) + '"' + (n.link ? ' data-notif-link="' + esc(n.link) + '"' : '') }) });
+          unread: !n.read, attrs: 'data-notif-id="' + esc(id) + '"' + (link ? ' data-notif-link="' + esc(link) + '"' : '') }) });
     });
 
     return items;
@@ -1077,7 +1095,7 @@
     list.querySelectorAll('[data-notif-id]').forEach(function(el) {
       el.addEventListener('click', function() {
         var nid = el.getAttribute('data-notif-id');
-        var link = el.getAttribute('data-notif-link');
+        var link = safeLink(el.getAttribute('data-notif-link'));
         if (nid && state.uid) {
           getDb().ref('users/' + state.uid + '/notifications/' + nid).update({ read: true });
           if (state.notifications[nid]) state.notifications[nid].read = true;
@@ -1471,7 +1489,8 @@
           title: 'StudiosGamesRS',
           text: n.text,
           onClick: function() {
-            if (n.link) window.location.href = n.link;
+            var dest = safeLink(n.link);
+            if (dest) window.location.href = dest;
             else openPanel();
           }
         };

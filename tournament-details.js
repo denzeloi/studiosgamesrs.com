@@ -13,13 +13,19 @@
   var isAdmin = false;
   var isPlayer = false;
   var playerTeamId = null;
+  // null = todavía no se sabe; sin Steam vinculado MatchZy no puede colocar al
+  // jugador en su equipo, así que la sala tiene que ofrecerle el enlace.
+  var hasSteamLink = null;
   var presenceRole = 'spectator';
   var tournamentData = null;
   var liveListener = null;
+  var legacyLiveListener = null;
   var liveMatchesListener = null;
   var serverRegistryListener = null;
   var liveMatches = {};
   var selectedMatchId = null;
+  // Cruce elegido por quien mira, que no se le cambia bajo los pies.
+  var pinnedMatchId = null;
   var lastLivePayload = null;
   var durationTickTimer = null;
   var liveStartedAt = null;
@@ -95,6 +101,51 @@
     return null;
   }
 
+  /** El cruce que la sala está enseñando ahora mismo. */
+  function shownMatchId(t) {
+    var source = t || tournamentData;
+    return selectedMatchId || (source && (source.activeMatchId || source.currentMatchId)) || null;
+  }
+
+  /**
+   * ¿Se puede enseñar ya el mapa de este cruce en la sala pública?
+   *
+   * Solo cuando la partida está en juego. El mapa se escribe en la base al
+   * lanzar, así que entre `provisioning`/`starting` y el saque hay una ventana
+   * en la que la web lo cantaba y el juego todavía no: quien mirase la página
+   * sabía dónde se juega antes que su rival y llegaba con la ronda preparada.
+   * Dentro de CS2 se ve al conectar, que es cuando toca, y el Commander lo
+   * sigue viendo y eligiendo en el War Room.
+   */
+  function isMapPublicForMatch(matchId) {
+    if (!matchId) return false;
+    var lm = (liveMatches && liveMatches[matchId]) || null;
+    if (lm && lm.status === 'live') return true;
+    // Un cruce ya jugado no guarda ningún secreto: su marcador final está a la
+    // vista, así que taparle el mapa solo quitaría información.
+    if (lm && lm.status === 'finished') return true;
+    var t = tournamentData;
+    var m = t && t.bracket && t.bracket.matches && t.bracket.matches[matchId];
+    return !!(m && m.status === 'finished');
+  }
+
+  /**
+   * El mapa del cruce, o null mientras siga siendo secreto.
+   *
+   * Se lee del propio cruce y nunca de `activeMap` ni del mapa apuntado en el
+   * cuadro: los dos son campos de nivel torneo que en modo dos servidores
+   * pueden estar hablando de la otra partida.
+   */
+  function publicMapForMatch(matchId) {
+    if (!isMapPublicForMatch(matchId)) return null;
+    var lm = (liveMatches && liveMatches[matchId]) || null;
+    if (lm && lm.map) return lm.map;
+    if (matchId && matchId === selectedMatchId && lastLivePayload && lastLivePayload.map) {
+      return lastLivePayload.map;
+    }
+    return null;
+  }
+
   function getServerIp() {
     var lm = getSelectedLiveMatch();
     if (lm && lm.serverIp) return lm.serverIp;
@@ -130,6 +181,17 @@
     return 'steam://connect/' + getServerIp() + ':' + getServerPort();
   }
 
+  /**
+   * Segundo intento para el que tiene Steam abierto pero el juego cerrado:
+   * arranca CS2 (appid 730) con el connect como parámetro de lanzamiento.
+   */
+  function getSteamRunUrl() {
+    if (!isServerReady()) return null;
+    // Solo se escapa el espacio: Steam lee el resto del tramo tal cual como
+    // línea de comandos, y un ':' o un '+' codificados le llegan rotos.
+    return 'steam://rungameid/730//+connect%20' + getServerIp() + ':' + getServerPort();
+  }
+
   function shouldShowConnectPanel() {
     return canSeeConnect() && isMatchLive() && isServerReady();
   }
@@ -139,13 +201,61 @@
     if (!cmd) return;
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(cmd).then(function () {
-        setAdminMsg('Copied to clipboard. Paste in CS2 console (~) and press Enter.');
+        setAdminMsg('Comando copiado. Pégalo en la consola de CS2 (~) y pulsa Enter.');
       }).catch(function () {
-        window.prompt('Copy this command (Ctrl+C), then paste in CS2 console (~):', cmd);
+        window.prompt('Copia este comando (Ctrl+C) y pégalo en la consola de CS2 (~):', cmd);
       });
     } else {
-      window.prompt('Copy this command (Ctrl+C), then paste in CS2 console (~):', cmd);
+      window.prompt('Copia este comando (Ctrl+C) y pégalo en la consola de CS2 (~):', cmd);
     }
+  }
+
+  /** Lee del perfil propio si hay SteamID64 y repinta el aviso. */
+  function checkOwnSteamLink(user) {
+    if (!user) return Promise.resolve(false);
+    return db.ref('users/' + user.uid).once('value').then(function (snap) {
+      var u = snap.val() || {};
+      var raw = String(u.steamID || (u.steam && u.steam.steamid) || '').trim();
+      hasSteamLink = /^\d{17}$/.test(raw);
+      renderSteamCta();
+      return hasSteamLink;
+    }).catch(function () {
+      // Si no se puede leer el perfil, mejor callarse que acusar en falso.
+      hasSteamLink = null;
+      renderSteamCta();
+      return false;
+    });
+  }
+
+  function steamLinkUrl() {
+    if (window.SITE_CONFIG && typeof window.SITE_CONFIG.getSteamAuthUrl === 'function') {
+      return window.SITE_CONFIG.getSteamAuthUrl('link');
+    }
+    return '/steam_login.php?intent=link';
+  }
+
+  /**
+   * El jugador inscrito sin Steam ve aquí mismo por dónde salir. Se abre en otra
+   * pestaña para que no pierda la sala: vincula, vuelve y recarga.
+   */
+  function renderSteamCta() {
+    var box = $('tdSteamCta');
+    if (!box) return;
+
+    if (!isPlayer || hasSteamLink !== false) {
+      box.style.display = 'none';
+      box.innerHTML = '';
+      return;
+    }
+
+    box.style.display = 'block';
+    box.innerHTML =
+      '<div class="td-steam-cta-head"><i class="fab fa-steam"></i> Te falta vincular tu Steam</div>' +
+      '<p class="td-steam-cta-text">Sin ella el servidor no sabe en qué equipo ponerte, no sales en las ' +
+      'estadísticas de la partida y no puedes cobrar el premio.</p>' +
+      '<a class="td-steam-cta-btn" id="tdBtnLinkSteam" href="' + steamLinkUrl() + '" ' +
+      'target="_blank" rel="noopener">Vincular ahora</a>' +
+      '<span class="td-steam-cta-note">Se abre en otra pestaña; al terminar vuelve aquí y recarga.</span>';
   }
 
   function renderConnectPanel() {
@@ -172,39 +282,48 @@
         ? '<div class="td-connect-wait"><i class="fas fa-flag-checkered"></i> ' +
           'Torneo finalizado. Ya no hay servidor al que conectarse.</div>'
         : '<div class="td-connect-wait"><i class="fas fa-hourglass-half"></i> ' +
-          'Server is online. Waiting for the Commander to <strong>Launch Match</strong> before players can join.</div>';
+          'El servidor está en pie. Falta que el Commander pulse <strong>Launch Match</strong> ' +
+          'para que los jugadores puedan entrar.</div>';
       return;
     }
 
     var cmd = getConnectCommand();
     var steamUrl = getSteamConnectUrl();
+    var runUrl = getSteamRunUrl();
     var lmUdp = getSelectedLiveMatch();
     var udpBlocked = (lmUdp && lmUdp.gameUdpOk === false) ||
       (activeGameServer && activeGameServer.gameUdpOk === false);
     conn.style.display = 'block';
     conn.innerHTML =
       (udpBlocked
-        ? '<div class="td-connect-warn" style="margin-bottom:10px;"><strong>Cannot connect yet:</strong> ' +
-          'The game port (UDP 27015) is blocked on this server. Tell the Commander to click ' +
-          '<strong>Shutdown Server</strong> then <strong>Provision Server</strong> again.</div>'
+        ? '<div class="td-connect-warn" style="margin-bottom:10px;"><strong>Todavía no se puede entrar:</strong> ' +
+          'el puerto de juego (UDP 27015) está cerrado en este servidor. Dile al Commander que pulse ' +
+          '<strong>Shutdown Server</strong> y luego <strong>Provision Server</strong> otra vez.</div>'
         : '') +
-      '<div style="font-size:0.75rem;color:#888;margin-bottom:6px;">Tournament server (remote — not local)</div>' +
+      '<div style="font-size:0.75rem;color:#888;margin-bottom:6px;">Servidor del torneo (remoto, no local)</div>' +
+      (steamUrl && !udpBlocked
+        ? '<a class="td-connect-btn td-connect-btn-primary" id="tdBtnSteamConnect" href="' + steamUrl + '">' +
+          '<i class="fab fa-steam"></i> Entrar al servidor</a>' +
+          '<div class="td-connect-hint">El navegador te pedirá permiso para abrir Steam: acéptalo y CS2 ' +
+          'arranca con la IP puesta y te mete en el servidor.</div>'
+        : '') +
       '<div class="td-connect" id="tdConnectCmd">' + cmd + '</div>' +
       '<div class="td-connect-actions">' +
-      '<button type="button" class="td-connect-btn" id="tdBtnCopyConnect"><i class="fas fa-copy"></i> Copy command</button>' +
-      (steamUrl ? '<a class="td-connect-btn" id="tdBtnSteamConnect" href="' + steamUrl + '" style="text-decoration:none;display:inline-block;">' +
-        '<i class="fab fa-steam"></i> Open in Steam</a>' : '') +
+      '<button type="button" class="td-connect-btn" id="tdBtnCopyConnect"><i class="fas fa-copy"></i> Copiar comando</button>' +
+      (runUrl ? '<a class="td-connect-btn" id="tdBtnSteamRun" href="' + runUrl + '">' +
+        '<i class="fas fa-rotate-right"></i> Forzar arranque de CS2</a>' : '') +
       '</div>' +
       '<div class="td-connect-steps">' +
-      '<strong>How to join (required):</strong><ol style="margin:8px 0 0 18px;padding:0;">' +
-      '<li>In CS2: <strong>Settings → Game → Enable Developer Console (~)</strong></li>' +
-      '<li>From the main menu, press <strong>~</strong> (tilde key, top-left of keyboard)</li>' +
-      '<li>Click <strong>Copy command</strong> above, paste in the console, press <strong>Enter</strong></li>' +
-      '<li>Do <strong>not</strong> use Play → Offline, Practice, or Community Server browser</li>' +
+      '<strong>Si el botón no te entra, hazlo a mano:</strong><ol style="margin:8px 0 0 18px;padding:0;">' +
+      '<li>En CS2: <strong>Configuración → Juego → Habilitar consola de desarrollador (~)</strong></li>' +
+      '<li>Desde el menú principal, pulsa <strong>~</strong> (la tecla a la izquierda del 1)</li>' +
+      '<li>Pulsa <strong>Copiar comando</strong>, pégalo en la consola y dale a <strong>Enter</strong></li>' +
+      '<li><strong>No</strong> uses Jugar → Sin conexión, Práctica ni el buscador de servidores</li>' +
       '</ol></div>' +
       '<div class="td-connect-warn">' +
-      '<strong>Wrong connection?</strong> If the console says <code>loopback</code> or Map is <code>&lt;empty&gt;</code>, ' +
-      'you are on a <strong>local</strong> server — not the tournament. Close CS2, reopen from the main menu, and use the command above.' +
+      '<strong>¿Entraste donde no era?</strong> Si la consola dice <code>loopback</code> o el mapa sale como ' +
+      '<code>&lt;empty&gt;</code> estás en un servidor <strong>local</strong>, no en el del torneo. Cierra CS2, ' +
+      'ábrelo de nuevo y usa el comando de arriba.' +
       '</div>';
 
     var copyBtn = $('tdBtnCopyConnect');
@@ -543,87 +662,79 @@
     return m + 'm ' + s + 's';
   }
 
-  function renderFrags(kills) {
-    var tbody = $('tdKillsBody');
-    var table = $('tdKillsTable');
-    var empty = $('tdFragsEmpty');
-    if (!tbody || !table) return;
-    var players = kills && typeof kills === 'object' ? Object.keys(kills) : [];
-    if (!players.length) {
-      table.style.display = 'none';
-      if (empty) empty.style.display = 'block';
-      return;
-    }
-    table.style.display = 'table';
-    if (empty) empty.style.display = 'none';
-    players.sort(function (a, b) { return toNum(kills[b]) - toNum(kills[a]); });
-    tbody.innerHTML = players.map(function (player, idx) {
-      var medal = idx === 0 ? '🥇 ' : idx === 1 ? '🥈 ' : idx === 2 ? '🥉 ' : '';
-      return '<tr><td>' + medal + escHtml(player) + '</td><td>' + toNum(kills[player]) + ' kills</td></tr>';
-    }).join('');
+  /**
+   * El tablero (plantillas por bando, kill feed, fase de la partida) es un
+   * componente aparte: td-live-board.js. Aquí solo se le entrega el último
+   * parte del cruce y el texto que la sala sabe y él no.
+   */
+  function renderMatchStats(live) {
+    if (!global.TDLiveBoard) return;
+    global.TDLiveBoard.render({
+      live: live || null,
+      currentUid: currentUser ? currentUser.uid : null,
+      statusLabel: scoreboardStatusLabel(tournamentData),
+      teams: matchRosterTeams(selectedMatchId),
+      server: matchServerHint(selectedMatchId),
+    });
   }
 
   /**
-   * Estadísticas de la partida: lo que el servidor ya publica por jugador.
-   *
-   * Mientras solo hay bajas (plugin viejo, o partida recién arrancada) se sigue
-   * enseñando la lista de siempre; en cuanto llega la tabla completa manda esa,
-   * porque decir solo las bajas de un jugador que murió doce veces engaña.
+   * Las dos plantillas del cruce que se está mirando, para que el tablero pueda
+   * decir quién falta por entrar. Sale del cuadro y de las plantillas
+   * congeladas al inscribirse, no de los equipos tal y como están hoy: quien se
+   * fichó ayer no juega este torneo.
    */
-  function renderMatchStats(live) {
-    var rows = live && Array.isArray(live.scoreboard) ? live.scoreboard : [];
-    var title = $('tdFragsTitle');
-    var table = $('tdStatsTable');
-    var body = $('tdStatsBody');
-    var killsTable = $('tdKillsTable');
-    var empty = $('tdFragsEmpty');
-
-    renderMvp(live && (live.mvp || null));
-
-    if (!table || !body || !rows.length) {
-      if (table) table.style.display = 'none';
-      if (title) title.textContent = 'Top Fraggers';
-      renderFrags(live && live.kills);
-      return;
-    }
-
-    if (killsTable) killsTable.style.display = 'none';
-    if (empty) empty.style.display = 'none';
-    if (title) title.textContent = 'Estadísticas de la partida';
-    table.style.display = 'table';
-    body.innerHTML = rows.map(function (row) {
-      var mine = currentUser && row.uid && row.uid === currentUser.uid;
-      return '<tr' + (mine ? ' class="is-you"' : '') + '>' +
-        '<td class="td-stats-name">' + escHtml(row.name || '—') +
-        (mine ? ' <b>· tú</b>' : '') + '</td>' +
-        '<td>' + toNum(row.kills) + '</td>' +
-        '<td>' + toNum(row.deaths) + '</td>' +
-        '<td>' + toNum(row.assists) + '</td>' +
-        '<td>' + toNum(row.adr) + '</td>' +
-        '<td class="td-stats-score">' + toNum(row.score) + '</td>' +
-        '</tr>';
-    }).join('');
+  function matchRosterTeams(matchId) {
+    var t = tournamentData;
+    if (!matchId || !t) return [];
+    var m = t.bracket && t.bracket.matches && t.bracket.matches[matchId];
+    if (!m) return [];
+    var rosters = t.registeredRosters || {};
+    return ['teamA', 'teamB'].map(function (slot) {
+      var teamId = m[slot] && m[slot].teamId;
+      if (!teamId) return null;
+      var entry = rosters[teamId];
+      var players = global.SGTournamentRoster
+        ? global.SGTournamentRoster.playersOf(entry)
+        : [];
+      if (!players.length) return null;
+      return {
+        teamId: teamId,
+        name: (entry && entry.name) || tName(teamId),
+        players: players,
+      };
+    }).filter(Boolean);
   }
 
-  function renderMvp(mvp) {
-    var box = $('tdMvp');
-    if (!box) return;
-    if (!mvp || !mvp.name) {
-      box.hidden = true;
-      box.innerHTML = '';
-      return;
+  /**
+   * En qué punto está la máquina de este cruce. El tablero lo usa para que la
+   * espera diga algo: no es lo mismo que el servidor se esté creando que que
+   * lleve un rato en pie y no haya entrado nadie.
+   */
+  function matchServerHint(matchId) {
+    var lm = (liveMatches && liveMatches[matchId]) || null;
+    var ip = lm && lm.serverIp ? String(lm.serverIp).trim() : null;
+    // El respaldo de nivel torneo solo vale cuando el cruce no tiene ficha
+    // propia (torneos de un servidor y partidas viejas). Con dos máquinas ese
+    // campo apunta a una de las dos y aquí anunciaría la equivocada.
+    if (!ip && !lm && matchId && matchId === selectedMatchId) {
+      var fallback = (lastLivePayload && lastLivePayload.serverIp) ||
+        (tournamentData && tournamentData.serverIp) || null;
+      ip = fallback ? String(fallback).trim() : null;
     }
-    box.hidden = false;
-    box.innerHTML =
-      '<i class="fas fa-star td-mvp-icon"></i>' +
-      '<div class="td-mvp-body">' +
-        '<span class="td-mvp-label">MVP de la partida</span>' +
-        '<span class="td-mvp-name">' + escHtml(mvp.name) + '</span>' +
-      '</div>' +
-      '<div class="td-mvp-stats">' +
-        '<span>' + toNum(mvp.kills) + ' bajas</span>' +
-        '<span>' + toNum(mvp.adr) + ' ADR</span>' +
-      '</div>';
+    return {
+      status: (lm && lm.status) || null,
+      ip: ip && /^\d{1,3}(\.\d{1,3}){3}$/.test(ip) ? ip : null,
+      port: (lm && lm.serverPort) || getServerPort(),
+      // La IP no se reparte en un tablero público: la ve quien ya la tiene en
+      // el panel de conexión.
+      canConnect: canSeeConnect(),
+    };
+  }
+
+  function scoreboardStatusLabel(t) {
+    if (t && t.status === 'finalizado') return 'Torneo finalizado';
+    return isMatchLive() ? 'En juego' : 'Esperando partida';
   }
 
   function renderTeams(t) {
@@ -737,8 +848,8 @@
             var done = m.status === 'finished';
             var a = m.teamA && m.teamA.teamId;
             var b = m.teamB && m.teamB.teamId;
-            var lm = (liveMatches && liveMatches[mid]) || null;
-            var mapName = (lm && lm.map) || m.map || null;
+            // El chip de mapa sale con el saque, no al reservar el servidor.
+            var mapName = publicMapForMatch(mid);
             // Un cruce en vivo se puede abrir en el marcador; el resto es
             // informativo, así que solo esos llevan foco y cursor de acción.
             var pick = live && mid !== selectedMatchId;
@@ -833,23 +944,66 @@
       '<span class="td-info-row-value' + (valueClass ? ' ' + valueClass : '') + '">' + escHtml(value) + '</span></div>';
   }
 
+  function formatLabel(format) {
+    var map = {
+      SingleElim: 'Eliminación simple',
+      DoubleElim: 'Doble eliminación',
+      RoundRobin: 'Round Robin'
+    };
+    return map[format] || format || 'Eliminación simple';
+  }
+
+  /** Dinero real prometido al campeón: se lee en `prizes.cashPool`. */
+  function cashPrize(t) {
+    var p = (t && t.prizes) || {};
+    return {
+      amount: toNum(p.cashPool),
+      currency: p.cashCurrency || 'USD'
+    };
+  }
+
+  function fmtCash(cash) {
+    return '$' + cash.amount.toLocaleString('es-ES') + ' ' + cash.currency;
+  }
+
+  /** Chapa verde en la portada: el dinero es el gancho, tiene que verse primero. */
+  function renderCashPrize(t) {
+    var box = $('tdCashPrize');
+    if (!box) return;
+    var cash = cashPrize(t);
+    if (!cash.amount) {
+      box.hidden = true;
+      box.innerHTML = '';
+      return;
+    }
+    box.hidden = false;
+    box.innerHTML = '<i class="fas fa-sack-dollar" aria-hidden="true"></i> ' +
+      escHtml(fmtCash(cash)) + ' <span class="td-cash-prize-tag">al ganador</span>';
+  }
+
   function renderInfoRows(t) {
     var box = $('tdInfoRows');
     if (!box) return;
     var teams = Object.keys(t.registeredTeams || {}).length;
-    var maxTeams = toNum(t.maxTeams);
+    // Los torneos viejos solo guardaban el cupo dentro de teams.max.
+    var maxTeams = toNum(t.maxTeams) || toNum(t.teams && t.teams.max);
     var prizes = t.prizes || {};
     var tokenPool = toNum(prizes.tokenPool) || toNum(t.prizePool);
     var entryFee = toNum(prizes.entryFee) || toNum(t.entryFee);
+    var perTeam = toNum(t.playersPerTeam);
+    var modality = t.modality || (perTeam ? perTeam + 'v' + perTeam : '5v5');
+    var cash = cashPrize(t);
 
     box.innerHTML =
       infoRow('Estado', statusLabel(t.status), t.status === 'en_vivo' ? 'td-live-value' : '') +
       infoRow('Inicia', t.schedule ? fmtLocalDateTime(t.schedule) : 'Por definir') +
+      (cash.amount ? infoRow('Premio al ganador', fmtCash(cash), 'td-cash-value') : '') +
       infoRow('Premio Base', tokenPool.toLocaleString('es-ES') + ' Tokens') +
       infoRow('Inscripción', entryFee ? entryFee.toLocaleString('es-ES') + ' Tokens' : 'Gratis') +
       infoRow('Equipos', teams + (maxTeams ? ' / ' + maxTeams : '')) +
       infoRow('Región', t.region || 'LATAM') +
-      infoRow('Modalidad', t.format || 'SingleElim');
+      infoRow('Modalidad', modality) +
+      infoRow('Formato', formatLabel(t.format));
   }
 
   function renderBanner(t) {
@@ -886,11 +1040,19 @@
         return;
       }
       var ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      var uploaderUid = currentUser && currentUser.uid;
+      if (!uploaderUid) {
+        setAdminMsg('Inicia sesión para cambiar la foto.', true);
+        return;
+      }
       if (label) {
         label.classList.add('uploading');
         label.querySelector('span').textContent = 'Subiendo...';
       }
-      var storageRef = firebase.storage().ref('tournament_banners/' + tournamentId + '/banner.' + ext);
+      // Cada quien sube dentro de su carpeta: con el nombre fijo compartido,
+      // cualquiera que supiera el identificador reemplazaba la portada.
+      var storageRef = firebase.storage()
+        .ref('tournament_banners/' + tournamentId + '/' + uploaderUid + '/banner.' + ext);
       storageRef.put(file).then(function (snapshot) {
         return snapshot.ref.getDownloadURL();
       }).then(function (url) {
@@ -1052,13 +1214,7 @@
     var visual = $('tdMapVisual');
     var nameEl = $('tdMapWidgetName');
     if (!widget || !visual || !nameEl) return;
-    var lm = getSelectedLiveMatch();
-    var map = (lm && lm.map) || (lastLivePayload && lastLivePayload.map) || (t && t.activeMap) || null;
-    if (!map && t && t.bracket && t.bracket.matches) {
-      var mid = selectedMatchId || t.activeMatchId || t.currentMatchId;
-      var m = mid && t.bracket.matches[mid];
-      if (m && m.map) map = m.map;
-    }
+    var map = publicMapForMatch(shownMatchId(t));
     // Con dos partidas a la vez el mapa por sí solo es ambiguo: se dice de qué
     // cruce se está hablando, que es el mismo que muestra el marcador.
     var kicker = widget.querySelector('.td-map-widget-kicker');
@@ -1091,18 +1247,25 @@
     // match_end) el reloj no puede seguir sumando minutos él solo.
     if (!isMatchLive()) stopDurationTick();
     if (mapEl) {
-      var lm = getSelectedLiveMatch();
-      var map = (lm && lm.map) || (t && t.activeMap);
-      if (isMatchLive()) {
-        mapEl.textContent = (map || 'CS2').toUpperCase();
+      var map = publicMapForMatch(shownMatchId(t));
+      if (map) {
+        mapEl.textContent = String(map).toUpperCase();
       } else if (t.status === 'finalizado') {
         mapEl.textContent = 'Torneo finalizado';
+      } else if (isMatchLive()) {
+        // El torneo está en marcha pero este cruce todavía no ha sacado: se
+        // dice que se está montando, no en qué mapa.
+        mapEl.textContent = 'En preparación';
       } else {
         mapEl.textContent = 'Esperando partida';
       }
     }
     renderScoreboardTeams(t, lastLivePayload);
     renderMapWidget(t);
+    // El tablero también depende de si el torneo sigue en vivo, no solo del
+    // parte del cruce: sin esto se quedaba diciendo "en juego" con el torneo
+    // ya cerrado hasta que llegara otro evento del servidor.
+    renderMatchStats(lastLivePayload);
   }
 
   function resolveCtTTeams(t, live) {
@@ -1169,18 +1332,17 @@
     stopDurationTick();
     liveStartedAt = startedAt || null;
     var apply = function () {
-      var el = $('tdDuration');
-      if (!el) return;
+      if (!global.TDLiveBoard) return;
       if (explicitSeconds != null && isFinite(Number(explicitSeconds))) {
-        el.textContent = 'Duración: ' + formatDuration(explicitSeconds);
+        global.TDLiveBoard.setClock('Duración: ' + formatDuration(explicitSeconds));
         return;
       }
       if (!liveStartedAt) {
-        el.textContent = 'Duración: —';
+        global.TDLiveBoard.setClock('Duración: —');
         return;
       }
       var secs = Math.max(0, Math.floor((Date.now() - Number(liveStartedAt)) / 1000));
-      el.textContent = 'Duración: ' + formatDuration(secs);
+      global.TDLiveBoard.setClock('Duración: ' + formatDuration(secs));
     };
     apply();
     if (explicitSeconds == null && liveStartedAt) {
@@ -1197,22 +1359,13 @@
     stopDurationTick();
     lastLivePayload = null;
     liveStartedAt = null;
-    if ($('tdScore')) $('tdScore').textContent = '— : —';
-    if ($('tdRound')) $('tdRound').textContent = 'Ronda —';
-    if ($('tdDuration')) $('tdDuration').textContent = 'Duración: —';
+    if (global.TDLiveBoard) global.TDLiveBoard.setClock('Duración: —');
     renderMatchStats(null);
   }
 
   function applyLivePayload(live) {
     if (!live) return;
     lastLivePayload = live;
-    var ct = live.scoreCT != null ? live.scoreCT : '—';
-    var tt = live.scoreT != null ? live.scoreT : '—';
-    if ($('tdScore')) $('tdScore').textContent = ct + ' : ' + tt;
-    if ($('tdRound')) {
-      $('tdRound').textContent = 'Ronda ' + (live.currentRound != null ? live.currentRound : '—') +
-        ' • ' + (live.status || '');
-    }
     // El servidor solo reporta la duración al cerrar cada ronda, así que
     // tomarla como valor fijo dejaba el reloj congelado dos minutos entre
     // rondas. Mientras se juega se cuenta en el cliente desde startedAt y la
@@ -1290,12 +1443,36 @@
   function attachLiveListener(matchId) {
     if (liveListener) liveListener.off();
     liveListener = null;
+    if (legacyLiveListener) legacyLiveListener.off();
+    legacyLiveListener = null;
     if (!matchId) return;
     selectedMatchId = matchId;
-    liveListener = db.ref('partida_en_vivo/' + matchId);
+
+    // El marcador cuelga del torneo porque los identificadores de cruce se
+    // repiten: dos torneos con un 'r1_m1' en marcha se pisaban el resultado.
+    liveListener = db.ref('partida_en_vivo/' + tournamentId + '/' + matchId);
     liveListener.on('value', function (snap) {
       var live = snap.val();
       if (!live) {
+        watchLegacyLive(matchId);
+        return;
+      }
+      if (legacyLiveListener) {
+        legacyLiveListener.off();
+        legacyLiveListener = null;
+      }
+      applyLivePayload(live);
+      if (tournamentData) renderScoreboardMeta(tournamentData);
+    });
+  }
+
+  /** Partidas lanzadas antes del cambio de sitio: siguen en la ruta plana. */
+  function watchLegacyLive(matchId) {
+    if (legacyLiveListener) return;
+    legacyLiveListener = db.ref('partida_en_vivo/' + matchId);
+    legacyLiveListener.on('value', function (snap) {
+      var live = snap.val();
+      if (!live || (live.tournamentId && live.tournamentId !== tournamentId)) {
         clearLiveScoreboard();
         if (tournamentData) renderScoreboardMeta(tournamentData);
         return;
@@ -1305,16 +1482,37 @@
     });
   }
 
+  var TAB_STATUSES = ['provisioning', 'starting', 'live'];
+
+  /**
+   * Los cruces entre los que puede elegir el que mira, en orden de cuadro.
+   *
+   * Incluye los que todavía están levantando su máquina y no solo los que ya
+   * ruedan: en modo dos servidores las dos semifinales se preparan a la vez y,
+   * mirando solo a las que están en vivo, la mitad de la sala no tenía forma de
+   * llegar a su partida hasta que alguien le daba al saque.
+   */
+  function selectableMatchIds(t) {
+    var ids = Object.keys(liveMatches || {}).filter(function (mid) {
+      var m = liveMatches[mid];
+      return m && TAB_STATUSES.indexOf(m.status) !== -1;
+    });
+    if (!ids.length && t && t.activeMatchId && t.status === 'en_vivo') {
+      return [t.activeMatchId];
+    }
+    var matches = (t && t.bracket && t.bracket.matches) || {};
+    return ids.sort(function (a, b) {
+      var ra = toNum((matches[a] || {}).round) || 0;
+      var rb = toNum((matches[b] || {}).round) || 0;
+      if (ra !== rb) return ra - rb;
+      return String(a).localeCompare(String(b));
+    });
+  }
+
   function renderMatchTabs(t) {
     var box = $('tdMatchTabs');
     if (!box) return;
-    var ids = Object.keys(liveMatches || {}).filter(function (mid) {
-      var m = liveMatches[mid];
-      return m && (m.status === 'live' || m.status === 'starting');
-    });
-    if (!ids.length && t && t.activeMatchId && t.status === 'en_vivo') {
-      ids = [t.activeMatchId];
-    }
+    var ids = selectableMatchIds(t);
     if (ids.length < 2) {
       box.hidden = true;
       box.innerHTML = '';
@@ -1329,9 +1527,15 @@
       var match = t && t.bracket && t.bracket.matches && t.bracket.matches[mid];
       var a = match && match.teamA && match.teamA.teamId ? tName(match.teamA.teamId) : 'A';
       var b = match && match.teamB && match.teamB.teamId ? tName(match.teamB.teamId) : 'B';
+      var live = m.status === 'live';
       var active = mid === selectedMatchId ? ' active' : '';
-      return '<button type="button" class="td-match-tab' + active + '" data-match-id="' + escHtml(mid) + '">' +
+      // El punto verde tiene que significar algo: una semifinal que todavía se
+      // está preparando no puede anunciarse igual que la que ya se juega.
+      return '<button type="button" class="td-match-tab' + active +
+        (live ? '' : ' is-warmup') + '" data-match-id="' + escHtml(mid) + '"' +
+        ' title="' + escHtml(live ? 'En juego' : 'Preparando servidor') + '">' +
         '<span class="td-match-tab-live">●</span>' + escHtml(a) + ' vs ' + escHtml(b) +
+        (live ? '' : ' <span class="td-match-tab-state">preparando</span>') +
         '</button>';
     }).join('');
     Array.prototype.forEach.call(box.querySelectorAll('[data-match-id]'), function (btn) {
@@ -1344,6 +1548,10 @@
   /** Cambia el marcador (y la IP) a otra de las partidas en curso. */
   function selectMatch(mid) {
     if (!mid || mid === selectedMatchId) return;
+    // Elegido a mano: el enganche automático deja de mandar mientras ese cruce
+    // siga en la lista. Sin esto, elegir la semifinal que aún se prepara
+    // devolvía al espectador a la otra en cuanto llegaba cualquier cambio.
+    pinnedMatchId = mid;
     selectedMatchId = mid;
     // El marcador del cruce anterior seguiría en pantalla hasta que conteste
     // Firebase, y en ese hueco parece el resultado del cruce nuevo.
@@ -1363,24 +1571,30 @@
     liveMatchesListener.on('value', function (snap) {
       liveMatches = snap.val() || {};
       renderMatchTabs(tournamentData || {});
-      var prefer = selectedMatchId ||
+      var selectable = selectableMatchIds(tournamentData || {});
+      // El cruce fijado a mano manda mientras siga siendo elegible.
+      if (pinnedMatchId && selectable.indexOf(pinnedMatchId) === -1) pinnedMatchId = null;
+      var prefer = pinnedMatchId || selectedMatchId ||
         (tournamentData && (tournamentData.activeMatchId || tournamentData.currentMatchId));
       var liveIds = Object.keys(liveMatches).filter(function (mid) {
         var m = liveMatches[mid];
         return m && (m.status === 'live' || m.status === 'starting');
       });
       var nextId = null;
-      if (prefer && liveIds.indexOf(prefer) !== -1) nextId = prefer;
+      if (pinnedMatchId) nextId = pinnedMatchId;
+      else if (prefer && liveIds.indexOf(prefer) !== -1) nextId = prefer;
       else if (liveIds.length) nextId = liveIds[0];
-      if (nextId && nextId !== selectedMatchId) {
-        attachLiveListener(nextId);
-      } else if (nextId && !liveListener) {
+      if (nextId && (nextId !== selectedMatchId || !liveListener)) {
         attachLiveListener(nextId);
       }
       if (tournamentData) {
         renderBracket(tournamentData);
         renderConnectPanel();
-        renderMapWidget(tournamentData);
+        renderSchedule(tournamentData);
+        // El mapa se destapa con el estado del cruce, que es justo lo que acaba
+        // de cambiar: sin repintar aquí, la sala seguiría diciendo "En
+        // preparación" hasta que llegara cualquier otro evento.
+        renderScoreboardMeta(tournamentData);
       }
     });
   }
@@ -1417,15 +1631,23 @@
       renderPrizes(tournamentData);
       renderSchedule(tournamentData);
       renderBanner(tournamentData);
+      renderCashPrize(tournamentData);
       renderInfoRows(tournamentData);
       renderScoreboardMeta(tournamentData);
+      // Los nombres de los cruces salen del cuadro: si liveMatches llegó antes
+      // que el torneo, las pestañas se quedaban en "A vs B".
+      renderMatchTabs(tournamentData);
       wireShareButtons();
       hydrateActiveServerFromTournament();
       syncServerStateFromRegistry();
       resolvePlayerRole(currentUser, tournamentData).then(function () {
         renderConnectPanel();
+        // Saber que quien mira es jugador cambia lo que puede decir la espera
+        // del tablero: la IP solo se le enseña a él.
+        renderMatchStats(lastLivePayload);
         refreshPresenceRole();
         renderTeams(tournamentData);
+        renderSteamCta();
         maybeShowRulesOverlay();
       });
       backfillOwnRoster();
@@ -1749,9 +1971,10 @@
     return new Date(n).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   }
 
-  function kv(label, value) {
+  function kv(label, value, valueClass) {
     return '<div class="td-kv"><div class="td-kv-label">' + escHtml(label) + '</div>' +
-      '<div class="td-kv-value">' + escHtml(value) + '</div></div>';
+      '<div class="td-kv-value' + (valueClass ? ' ' + valueClass : '') + '">' +
+      escHtml(value) + '</div></div>';
   }
 
   function roundName(round, total) {
@@ -1822,9 +2045,12 @@
     var deliveredTokens = Object.keys(paid).reduce(function (acc, k) { return acc + toNum(paid[k].tokens); }, 0);
     var deliveredCash = Object.keys(paid).reduce(function (acc, k) { return acc + toNum(paid[k].cash); }, 0);
 
+    var cash = cashPrize(t);
+
     box.innerHTML =
       kv('Pozo en juego', tokenPool.toLocaleString('es-ES') + ' tokens') +
-      kv('Dinero en juego', toNum(p.cashPool) ? toNum(p.cashPool) + ' ' + currency : 'Solo tokens') +
+      kv('Premio al ganador', cash.amount ? fmtCash(cash) : 'Solo tokens',
+        cash.amount ? 'td-cash-value' : '') +
       kv('Inscripcion por equipo', entryFee ? entryFee.toLocaleString('es-ES') + ' tokens' : 'Gratis') +
       kv('Recaudado', (entryFee * teamCount).toLocaleString('es-ES') + ' tokens (' + teamCount + ' equipos)') +
       kv('Premio MVP', toNum(p.mvpTokens) ? toNum(p.mvpTokens).toLocaleString('es-ES') + ' tokens' : '--') +
@@ -1864,12 +2090,15 @@
       var state = m.status === 'finished'
         ? ((m.score && m.score.a != null) ? m.score.a + ' - ' + m.score.b : 'Finalizada')
         : (mid === currentId ? 'EN VIVO' : 'Programada');
+      // El mapa programado por el Commander no se publica en el calendario
+      // hasta que ese cruce saca.
+      var schedMap = publicMapForMatch(mid);
       return '<div class="td-sched-row ' + cls + '">' +
         '<div class="td-sched-time">' + escHtml(fmtLocalTime(m.scheduledAt)) +
           '<span>' + escHtml(m.scheduledAt ? fmtLocalDateTime(m.scheduledAt).split(',')[0] : '') + '</span></div>' +
         '<div class="td-sched-round">' + escHtml(roundName(m.round, bracket.rounds)) + '</div>' +
         '<div class="td-sched-teams">' + nameA + ' vs ' + nameB +
-          (m.map ? ' <span style="color:#666;font-size:0.75rem;">' + escHtml(m.map) + '</span>' : '') + '</div>' +
+          (schedMap ? ' <span style="color:#666;font-size:0.75rem;">' + escHtml(schedMap) + '</span>' : '') + '</div>' +
         '<div class="td-sched-state">' + escHtml(state) + '</div>' +
       '</div>';
     }).join('');
@@ -1992,13 +2221,20 @@
   /** Datos del torneo que acompañan al reglamento como chips (mapa, pozo, hora). */
   function tournamentRulesMeta(t) {
     var meta = [];
-    if (t && t.activeMap) {
-      meta.push({ icon: 'fa-map', label: 'Mapa', value: prettyMapName(t.activeMap) });
+    // El reglamento se lee antes de jugar, así que es el peor sitio donde
+    // filtrar el mapa: solo aparece cuando el cruce ya está en juego.
+    var rulesMap = publicMapForMatch(shownMatchId(t));
+    if (rulesMap) {
+      meta.push({ icon: 'fa-map', label: 'Mapa', value: prettyMapName(rulesMap) });
     }
     var prizes = (t && t.prizes) || {};
     var pool = toNum(prizes.tokenPool) || toNum(t && t.prizePool);
     if (pool) {
       meta.push({ icon: 'fa-coins', label: 'Pozo', value: pool.toLocaleString('es-ES') + ' tokens' });
+    }
+    var cash = cashPrize(t);
+    if (cash.amount) {
+      meta.push({ icon: 'fa-sack-dollar', label: 'Al ganador', value: fmtCash(cash), tone: 'cash' });
     }
     if (t && t.schedule) {
       meta.push({ icon: 'fa-clock', label: 'Inicia', value: fmtLocalDateTime(t.schedule) });
@@ -2008,11 +2244,12 @@
 
   function rulesPayload(t) {
     return {
-      kicker: 'Reglas del torneo',
+      kicker: 'Reglamento oficial',
       title: 'Código de Conducta',
       tournamentName: (t && t.name) || 'Torneo Studiosgamesrs',
-      subtitle: 'Se lee una sola vez, antes de conectar. Aplica a todo el roster inscrito.',
+      subtitle: 'Léelo una sola vez antes de conectar. Aplica a todo el roster inscrito.',
       buttonText: 'Entendido, entrar al torneo',
+      recordButtonText: 'Graba tu pantalla',
       meta: tournamentRulesMeta(t)
     };
   }
@@ -2048,11 +2285,13 @@
           title: 'Reglas — ' + payload.tournamentName,
           subtitle: payload.subtitle,
           rules: [
-            'Respeto y cero toxicidad: la primera falta descalifica al equipo completo.',
-            'Grabación obligatoria: sin el clip pedido por el Centinela, culpable automático.',
-            'Puntualidad: 10 minutos de tolerancia o derrota por default (16 - 0).',
+            'Respeto y juego limpio: la primera infracción puede cancelar la partida y descalificar al equipo.',
+            'Cero trampas: software no autorizado o exploits conllevan descalificación inmediata.',
+            'Grabación de pantalla: usa el programa que prefieras; si no entregas el clip solicitado, el caso se resuelve en tu contra.',
+            'Puntualidad: 10 minutos de tolerancia o derrota por forfeit (16 - 0).',
+            'Denuncias: máximo dos por partida y solo ante jugadas plenamente confirmadas.',
             'Pausas técnicas: 1 por equipo y mapa, máximo 3 minutos, avisando en el chat.',
-            'Las decisiones del Centinela durante la partida son inapelables.'
+            'Las decisiones del Centinela durante la partida son definitivas e inapelables.'
           ]
         }, markSeen);
       }
@@ -2139,11 +2378,13 @@
         resolvePlayerRole(user, tournamentData).then(function () {
           renderConnectPanel();
           refreshPresenceRole();
+          renderSteamCta();
           maybeShowRulesOverlay();
         });
       }
       renderSentinelLine();
     });
+    checkOwnSteamLink(user);
     loadTournament();
   });
 })(typeof window !== 'undefined' ? window : global);

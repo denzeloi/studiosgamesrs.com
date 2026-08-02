@@ -102,6 +102,11 @@ const tournamentInvites = require('./tournamentInvites');
 exports.sendTournamentInvite = tournamentInvites.sendTournamentInvite;
 exports.cancelTournamentInvite = tournamentInvites.cancelTournamentInvite;
 
+const tournamentRegistration = require('./tournamentRegistration');
+exports.acceptTournamentRegistration = tournamentRegistration.acceptTournamentRegistration;
+exports.declineTournamentInviteAsCaptain = tournamentRegistration.declineTournamentInviteAsCaptain;
+exports.resyncTournamentRoster = tournamentRegistration.resyncTournamentRoster;
+
 const communityTokens = require('./communityTokens');
 exports.awardCommunityForgeUploadTokens = communityTokens.awardCommunityForgeUploadTokens;
 

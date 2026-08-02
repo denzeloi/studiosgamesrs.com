@@ -13,6 +13,10 @@
     {
       "source": "functions/cs2-nexus",
       "codebase": "cs2-nexus",
+      "comment": "Los cfg de MatchZy y los scripts de Metamod viven fuera de esta carpeta y un deploy solo sube la carpeta del codebase, asi que se copian dentro antes de subir.",
+      "predeploy": [
+        "node scripts/sync-cs2-server-assets.js"
+      ],
       "ignore": [
         "node_modules",
         ".git",

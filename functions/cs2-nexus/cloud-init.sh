@@ -154,6 +154,8 @@ cat > /etc/cs2-nexus/bridge.env << ENVEOF
 WEBHOOK_SECRET=__WEBHOOK_SECRET__
 BRIDGE_WEBHOOK_URL=__BRIDGE_WEBHOOK_URL__
 RCON_PASSWORD=__RCON_PASSWORD__
+NEXUS_TOURNAMENT_ID=__NEXUS_TOURNAMENT_ID__
+NEXUS_MATCH_ID=__NEXUS_MATCH_ID__
 ENVEOF
 
 # rcon_password on command line AND in server.cfg (+exec server.cfg loads cfg/server.cfg)

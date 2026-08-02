@@ -388,6 +388,16 @@ body.td-body-page > .unified-header {
   margin-right: 4px;
 }
 
+/* La que aún prepara servidor no puede lucir el mismo punto que la que rueda. */
+.td-match-tab.is-warmup .td-match-tab-live { color: var(--td-dim); }
+
+.td-match-tab-state {
+  margin-left: 5px;
+  color: var(--td-dim);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
 .td-status {
   display: inline-flex;
   align-items: center;
@@ -437,6 +447,31 @@ body.td-body-page > .unified-header {
   color: var(--td-muted);
 }
 
+/* Dinero real al campeón: verde y visible desde la portada. */
+.td-cash-prize {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.45);
+  color: #4ade80;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 12px rgba(74, 222, 128, 0.35);
+}
+
+.td-cash-prize[hidden] { display: none; }
+
+.td-cash-prize-tag {
+  color: #a7f3c4;
+  font-weight: 600;
+  font-size: 0.76rem;
+  opacity: 0.85;
+}
+
 /* —— Layout shell —— */
 .td-shell {
   max-width: var(--td-max);
@@ -478,67 +513,9 @@ body.td-body-page > .unified-header {
   to { opacity: 1; transform: none; }
 }
 
-.td-sb-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.td-sb-team {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
-  width: min(130px, 28vw);
-}
-
-.td-sb-team-badge {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-}
-
-.td-sb-ct .td-sb-team-badge {
-  background: rgba(66, 133, 244, 0.12);
-  color: var(--td-ct);
-  border: 1px solid rgba(66, 133, 244, 0.3);
-}
-
-.td-sb-t .td-sb-team-badge {
-  background: rgba(216, 157, 63, 0.12);
-  color: var(--td-t);
-  border: 1px solid rgba(216, 157, 63, 0.3);
-}
-
-.td-sb-team-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--td-text);
-  text-align: center;
-  line-height: 1.25;
-}
-
-.td-sb-team-side {
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--td-dim);
-}
-
-.td-sb-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  flex: 1 1 auto;
-}
-
+/* La cabecera de bandos, las tablas y el kill feed viven en td-live-board.css.
+   Aquí se queda lo que el tablero comparte con el resto de la sala: el distintivo
+   de LIVE, el mapa, el MVP y el panel de conexión. */
 .td-sb-live {
   display: none;
   align-items: center;
@@ -556,30 +533,12 @@ body.td-body-page > .unified-header {
 .td-sb-live.on { display: inline-flex; }
 .td-sb-live i { font-size: 0.45rem; animation: tdPulse 1.4s ease-in-out infinite; }
 
-.td-score {
-  font-family: var(--td-display);
-  font-size: clamp(2.8rem, 8vw, 4.2rem);
-  letter-spacing: 0.06em;
-  color: var(--td-gold);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
 .td-sb-map {
   font-size: 0.78rem;
   color: var(--td-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 600;
-}
-
-.td-sb-meta {
-  display: flex;
-  justify-content: center;
-  gap: 1.25rem;
-  margin-top: 0.75rem;
-  font-size: 0.82rem;
-  color: var(--td-muted);
 }
 
 .td-connect {
@@ -614,6 +573,89 @@ body.td-body-page > .unified-header {
 
 .td-connect-btn:hover { border-color: var(--td-gold-soft); color: var(--td-gold); }
 
+a.td-connect-btn {
+  display: inline-block;
+  text-decoration: none;
+}
+
+/* Entrar al servidor es la acción de verdad: el resto son planes B. */
+a.td-connect-btn.td-connect-btn-primary {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 10px 0 6px;
+  padding: 12px 16px;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #12100a;
+  background: linear-gradient(135deg, var(--td-gold), #f7d774);
+  border-color: transparent;
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.22);
+}
+
+a.td-connect-btn.td-connect-btn-primary:hover {
+  color: #12100a;
+  border-color: transparent;
+  filter: brightness(1.06);
+}
+
+.td-connect-btn-primary i { margin-right: 6px; }
+
+.td-connect-hint {
+  font-size: 0.76rem;
+  color: var(--td-muted);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.td-steam-cta {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(102, 192, 244, 0.3);
+  background: rgba(23, 61, 87, 0.35);
+}
+
+.td-steam-cta-head {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #66c0f4;
+  margin-bottom: 6px;
+}
+
+.td-steam-cta-head i { margin-right: 6px; }
+
+.td-steam-cta-text {
+  font-size: 0.82rem;
+  color: var(--td-muted);
+  line-height: 1.55;
+  margin: 0 0 10px;
+}
+
+.td-steam-cta-btn {
+  display: inline-block;
+  padding: 9px 16px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #1b2838, #2a475e);
+  border: 1px solid rgba(102, 192, 244, 0.45);
+  color: #c7e3f5;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.td-steam-cta-btn:hover { border-color: #66c0f4; color: #fff; }
+
+.td-steam-cta-note {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: #7d8b99;
+}
+
 .td-connect-steps {
   font-size: 0.8rem;
   color: var(--td-muted);
@@ -631,42 +673,12 @@ body.td-body-page > .unified-header {
   border: 1px solid rgba(255, 183, 77, 0.25);
 }
 
-.td-frags-wrap {
-  margin-top: 1.1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--td-line);
-}
-
-.td-frags-title {
-  margin: 0 0 0.65rem;
-  color: var(--td-muted);
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.td-frags-title i { color: var(--td-gold); margin-right: 5px; }
-
-.td-kills-table {
-  width: 100%;
-  font-size: 0.88rem;
-  color: var(--td-muted);
-  border-collapse: collapse;
-}
-
-.td-kills-table tr { border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
-.td-kills-table td { padding: 7px 6px; }
-.td-kills-table tr td:first-child { color: var(--td-text); font-weight: 600; }
-.td-kills-table tr td:last-child { text-align: right; color: var(--td-gold); font-weight: 700; }
-.td-frags-empty { color: var(--td-dim); font-size: 0.82rem; margin: 0; }
-
-/* —— Estadísticas de la partida —— */
+/* —— MVP de la partida —— */
 .td-mvp {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 0.7rem;
+  margin-top: 0.2rem;
   padding: 9px 12px;
   background: rgba(232, 184, 74, 0.07);
   border: 1px solid rgba(232, 184, 74, 0.28);
@@ -702,43 +714,6 @@ body.td-body-page > .unified-header {
   font-size: 0.8rem;
   font-weight: 700;
   white-space: nowrap;
-}
-
-.td-stats-table {
-  width: 100%;
-  font-size: 0.85rem;
-  color: var(--td-muted);
-  border-collapse: collapse;
-}
-
-.td-stats-table th {
-  padding: 0 6px 6px;
-  color: var(--td-dim);
-  font-size: 0.66rem;
-  font-weight: 700;
-  text-align: right;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.td-stats-table th:first-child { text-align: left; }
-.td-stats-table tbody tr { border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
-.td-stats-table td { padding: 7px 6px; text-align: right; font-variant-numeric: tabular-nums; }
-
-.td-stats-name {
-  text-align: left !important;
-  color: var(--td-text);
-  font-weight: 600;
-}
-
-.td-stats-table tbody tr.is-you { background: rgba(232, 184, 74, 0.06); }
-.td-stats-table tbody tr.is-you .td-stats-name { color: var(--td-gold); }
-.td-stats-table .td-stats-score { color: var(--td-gold); font-weight: 700; }
-
-/* En pantalla estrecha la puntuación es lo primero que sobra: el resto de
-   columnas son las que el jugador reconoce de la tabla del juego. */
-@media (max-width: 480px) {
-  .td-stats-table .td-stats-score { display: none; }
 }
 
 /* —— Mobile tabs —— */
@@ -882,6 +857,7 @@ body.td-body-page > .unified-header {
 .td-info-row-label { color: var(--td-muted); }
 .td-info-row-value { color: var(--td-text); font-weight: 600; text-align: right; }
 .td-info-row-value.td-live-value { color: #ff8a80; }
+.td-info-row-value.td-cash-value { color: #4ade80; font-weight: 700; }
 
 .td-share {
   margin-top: 1rem;
@@ -1180,6 +1156,8 @@ body.td-body-page > .unified-header {
   overflow-wrap: break-word;
 }
 
+.td-kv-value.td-cash-value { color: #4ade80; font-weight: 700; }
+
 .td-podium {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -1425,7 +1403,6 @@ body.td-body-page > .unified-header {
   .td-sched-round,
   .td-sched-state { display: none; }
 
-  .td-sb-team { width: min(100px, 26vw); }
   .td-shell { padding: 1rem 0.9rem 2.5rem; }
   .unified-header .td-settings-btn { padding: 0 9px; }
   .td-settings-btn span.td-settings-label { display: none; }

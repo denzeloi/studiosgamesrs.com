@@ -471,15 +471,17 @@
     });
   }
 
+  var GAMES = [
+    { v: 'cs2', l: 'Counter-Strike 2' },
+    { v: 'valorant', l: 'Valorant' },
+    { v: 'lol', l: 'League of Legends' },
+    { v: 'rl', l: 'Rocket League' }
+  ];
+
   function populateGameSelect() {
     var sel = document.getElementById('tournamentGameSelect');
     if (!sel || sel.options.length) return;
-    [
-      { v: 'cs2', l: 'Counter-Strike 2' },
-      { v: 'valorant', l: 'Valorant' },
-      { v: 'lol', l: 'League of Legends' },
-      { v: 'rl', l: 'Rocket League' }
-    ].forEach(function (g) {
+    GAMES.forEach(function (g) {
       var o = document.createElement('option');
       o.value = g.v;
       o.textContent = g.l;
@@ -487,11 +489,262 @@
     });
   }
 
+  function gameLabel(value) {
+    for (var i = 0; i < GAMES.length; i += 1) {
+      if (GAMES[i].v === value) return GAMES[i].l;
+    }
+    return value || '—';
+  }
+
+  function el(id) { return document.getElementById(id); }
+
+  function strVal(id) {
+    var node = el(id);
+    return node ? String(node.value || '').trim() : '';
+  }
+
+  function numVal(id, fallback) {
+    var node = el(id);
+    var n = node ? Number(node.value) : NaN;
+    return isFinite(n) ? n : fallback;
+  }
+
+  /**
+   * Forma del cuadro de eliminación simple: cuántas rondas salen y cuántos
+   * equipos pasan de ronda sin jugar. Es lo que el Commander necesita saber
+   * antes de fijar el cupo, no después de sembrar el bracket.
+   */
+  function bracketShape(teams) {
+    var n = Math.max(2, Math.floor(Number(teams) || 0));
+    var size = 2;
+    var rounds = 1;
+    while (size < n) { size *= 2; rounds += 1; }
+    return { teams: n, size: size, rounds: rounds, byes: size - n };
+  }
+
+  /** Valor para <input type="datetime-local">: hora local, no UTC. */
+  function toLocalInput(ms) {
+    var d = new Date(ms);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  }
+
+  function isCs2Selected() {
+    return strVal('tournamentGameSelect') === 'cs2';
+  }
+
+  /** Mapa, bandos y servidor doble solo existen en CS2: fuera del resto. */
+  function syncGameFields() {
+    var cs2 = isCs2Selected();
+    var nodes = document.querySelectorAll('#createTournamentForm [data-sg-cs2-only]');
+    for (var i = 0; i < nodes.length; i += 1) {
+      nodes[i].style.display = cs2 ? '' : 'none';
+    }
+  }
+
+  function readCreateForm() {
+    var teamSize = Math.max(1, numVal('tournamentTeamSizeSelect', 5));
+    var scheduleRaw = strVal('tournamentScheduleInput');
+    var scheduleMs = scheduleRaw ? new Date(scheduleRaw).getTime() : NaN;
+    return {
+      name: strVal('tournamentNameInput'),
+      game: strVal('tournamentGameSelect') || 'cs2',
+      region: strVal('tournamentRegionSelect') || 'LATAM',
+      format: strVal('tournamentFormatSelect') || 'SingleElim',
+      teamSize: teamSize,
+      maxTeams: numVal('tournamentMaxTeamsInput', 0),
+      map: isCs2Selected() ? (strVal('tournamentMapSelect') || 'de_mirage') : null,
+      bestOf: isCs2Selected() ? numVal('tournamentBestOfSelect', 1) : 1,
+      serverMode: isCs2Selected() && strVal('tournamentServerModeSelect') === 'dual' ? 'dual' : 'single',
+      scheduleMs: scheduleMs,
+      matchMinutes: numVal('tournamentMatchMinutesInput', 45),
+      prizePool: numVal('tournamentPrizeInput', 0),
+      entryFee: numVal('tournamentEntryFeeInput', 0),
+      mvpTokens: numVal('tournamentMvpTokensInput', 0),
+      cashPrize: numVal('tournamentCashPrizeInput', 0),
+      description: strVal('tournamentDescriptionTextarea')
+    };
+  }
+
+  function validateCreate(d) {
+    var errors = [];
+    if (d.name.length < 3) errors.push('El nombre necesita al menos 3 caracteres.');
+    if (!d.game) errors.push('Elige el juego del torneo.');
+    if (!(d.maxTeams >= 2 && d.maxTeams <= 64) || d.maxTeams % 1 !== 0) {
+      errors.push('El cupo de equipos va de 2 a 64.');
+    }
+    if (!isFinite(d.scheduleMs)) errors.push('Falta la fecha y hora de inicio.');
+    else if (d.scheduleMs < Date.now() - 60000) errors.push('La fecha de inicio ya pasó.');
+    if (!(d.matchMinutes >= 10 && d.matchMinutes <= 180)) {
+      errors.push('Los minutos por partida van de 10 a 180.');
+    }
+    if (d.prizePool < 0 || d.entryFee < 0 || d.mvpTokens < 0 || d.cashPrize < 0) {
+      errors.push('Los premios y la cuota no pueden ser negativos.');
+    }
+    if (d.cashPrize > 100000) {
+      errors.push('La recompensa en dólares parece un error: revisa el importe.');
+    }
+    if (d.format !== 'SingleElim') {
+      errors.push('Por ahora solo se puede correr eliminación simple.');
+    }
+    return errors;
+  }
+
+  function fmtDateTime(ms) {
+    if (!isFinite(ms)) return 'sin fecha';
+    return new Date(ms).toLocaleString('es-ES', {
+      weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  function summaryChip(icon, text) {
+    return '<span class="sg-tour-sum-chip"><i class="fas ' + icon + '" aria-hidden="true"></i>' + text + '</span>';
+  }
+
+  /** Resumen vivo: lo que se va a guardar, en una línea, mientras se escribe. */
+  function renderCreateSummary() {
+    var box = el('sgTourCreateSummary');
+    if (!box) return;
+    var d = readCreateForm();
+    var shape = bracketShape(d.maxTeams);
+
+    var hint = el('sgTourBracketHint');
+    if (hint) {
+      hint.textContent = d.maxTeams >= 2
+        ? shape.teams + ' equipos: ' + shape.rounds + ' rondas' +
+          (shape.byes ? ', ' + shape.byes + ' pasan la primera sin jugar' : ', sin descansos')
+        : 'Hacen falta al menos 2 equipos.';
+    }
+
+    var prizeHint = el('sgTourPrizeHint');
+    if (prizeHint) {
+      var recaudo = d.entryFee * shape.teams;
+      prizeHint.textContent = recaudo
+        ? 'Con el cupo lleno se recaudan ' + recaudo.toLocaleString('es-ES') +
+          ' tokens en cuotas, aparte del premio base.'
+        : 'La bolsa que se anuncia es el premio base; las cuotas se suman aparte.';
+    }
+
+    box.innerHTML =
+      summaryChip('fa-gamepad', gameLabel(d.game)) +
+      summaryChip('fa-users', d.teamSize + 'v' + d.teamSize) +
+      summaryChip('fa-sitemap', shape.teams + ' equipos · ' + shape.rounds + ' rondas') +
+      summaryChip('fa-clock', fmtDateTime(d.scheduleMs)) +
+      (d.map ? summaryChip('fa-map', d.map) : '') +
+      (d.serverMode === 'dual' ? summaryChip('fa-server', 'dos servidores') : '') +
+      summaryChip('fa-coins', (d.prizePool || 0).toLocaleString('es-ES') + ' tokens') +
+      (d.cashPrize > 0
+        ? '<span class="sg-tour-sum-chip sg-tour-sum-cash"><i class="fas fa-sack-dollar" aria-hidden="true"></i>$' +
+          d.cashPrize.toLocaleString('es-ES') + ' USD al ganador</span>'
+        : '');
+  }
+
+  function showCreateErrors(errors) {
+    var box = el('sgTourCreateError');
+    if (!box) return;
+    if (!errors || !errors.length) {
+      box.hidden = true;
+      box.innerHTML = '';
+      return;
+    }
+    box.hidden = false;
+    box.innerHTML = '<i class="fas fa-triangle-exclamation" aria-hidden="true"></i><ul>' +
+      errors.map(function (e) { return '<li>' + e + '</li>'; }).join('') + '</ul>';
+  }
+
+  /** Deja el formulario listo para escribir: nada de campos en blanco al abrir. */
+  function setupCreateDefaults() {
+    populateGameSelect();
+    var schedule = el('tournamentScheduleInput');
+    if (schedule && !schedule.value) {
+      var d = new Date();
+      d.setHours(d.getHours() + 2, 0, 0, 0);
+      schedule.value = toLocalInput(d.getTime());
+      schedule.min = toLocalInput(Date.now());
+    }
+    var maxTeams = el('tournamentMaxTeamsInput');
+    if (maxTeams && !maxTeams.value) maxTeams.value = '8';
+    showCreateErrors(null);
+    syncGameFields();
+    renderCreateSummary();
+  }
+
+  /**
+   * Torneo recién nacido pero completo: escribe también lo que leen la sala, el
+   * War Room y cs2-nexus (cupo, roster, premios, calendario, modo de servidor).
+   * Lo único que falta a propósito es el bracket, que se siembra cuando ya hay
+   * equipos inscritos; por eso tampoco se escribe currentMatchId.
+   */
+  function buildTournamentPayload(d, id, user, nick) {
+    var now = Date.now();
+    var cs2 = d.game === 'cs2';
+    var payload = {
+      id: id,
+      name: d.name,
+      name_lowercase: d.name.toLowerCase(),
+      game: d.game,
+      format: 'SingleElim',
+      modality: d.teamSize + 'v' + d.teamSize,
+      playersPerTeam: d.teamSize,
+      region: d.region,
+      regionServer: d.region,
+      maxTeams: d.maxTeams,
+      teams: { max: d.maxTeams, registered: 0 },
+      schedule: d.scheduleMs,
+      prizePool: d.prizePool,
+      entryFee: d.entryFee,
+      prizes: {
+        tokenPool: d.prizePool,
+        entryFee: d.entryFee,
+        mvpTokens: d.mvpTokens,
+        cashPool: d.cashPrize,
+        cashCurrency: 'USD',
+        // El dinero va entero al campeón; el War Room puede repartirlo luego.
+        places: { first: { tokens: d.prizePool, cash: d.cashPrize } },
+        updatedAt: now
+      },
+      scheduleConfig: {
+        startAt: d.scheduleMs,
+        matchMinutes: d.matchMinutes,
+        gapMinutes: 10,
+        roundGapMinutes: 20,
+        serverSlots: d.serverMode === 'dual' ? 2 : 1,
+        bestOf: d.bestOf,
+        defaultMap: cs2 ? d.map : null,
+        seedMode: 'power'
+      },
+      description: d.description,
+      status: 'pendiente',
+      organizer: { uid: user.uid, nick: nick },
+      creatorUid: user.uid,
+      registeredTeams: {},
+      outboundInvites: {},
+      createdAt: firebase.database.ServerValue.TIMESTAMP,
+      updatedAt: firebase.database.ServerValue.TIMESTAMP
+    };
+    if (cs2) {
+      payload.serverMode = d.serverMode;
+      payload.activeMap = d.map;
+    }
+    return payload;
+  }
+
   function bindCreateForm(onCreated) {
     populateGameSelect();
     var form = document.getElementById('createTournamentForm');
     if (!form || form.dataset.sgTourBound) return;
     form.dataset.sgTourBound = '1';
+
+    form.addEventListener('input', renderCreateSummary);
+    form.addEventListener('change', function (ev) {
+      if (ev.target && ev.target.id === 'tournamentGameSelect') syncGameFields();
+      renderCreateSummary();
+    });
+    var cancelBtn = document.getElementById('cancelTournamentBtn');
+    var modal = document.getElementById('tournamentCreationModal');
+    if (cancelBtn && modal) {
+      cancelBtn.onclick = function () { modal.style.display = 'none'; };
+    }
+
     form.addEventListener('submit', async function (ev) {
       ev.preventDefault();
       var user = getUser();
@@ -500,48 +753,33 @@
         notify('error', 'Solo Commanders pueden crear torneos oficiales.');
         return;
       }
+
+      var d = readCreateForm();
+      var errors = validateCreate(d);
+      showCreateErrors(errors);
+      if (errors.length) {
+        notify('error', errors[0]);
+        return;
+      }
+
       var saveBtn = document.getElementById('saveTournamentBtn');
       if (saveBtn) {
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando…';
       }
       try {
-        var name = (document.getElementById('tournamentNameInput').value || '').trim();
-        var maxTeams = Number(document.getElementById('tournamentMaxTeamsInput').value);
-        var scheduleRaw = document.getElementById('tournamentScheduleInput').value;
-        if (!name || maxTeams < 2 || !scheduleRaw) throw new Error('Completa los campos obligatorios.');
-        var scheduleMs = new Date(scheduleRaw).getTime();
-        if (isNaN(scheduleMs)) throw new Error('Fecha de inicio no válida.');
         var nick = (ud && ud.nick) ? ud.nick : (user.displayName || 'Organizador');
         var ref = db().ref('tournaments').push();
         var id = ref.key;
-        await ref.set({
-          id: id,
-          name: name,
-          name_lowercase: name.toLowerCase(),
-          game: document.getElementById('tournamentGameSelect').value,
-          format: document.getElementById('tournamentFormatSelect').value,
-          modality: document.getElementById('tournamentFormatSelect').value,
-          region: document.getElementById('tournamentRegionSelect').value,
-          regionServer: document.getElementById('tournamentRegionSelect').value,
-          teams: { max: maxTeams, registered: 0 },
-          schedule: scheduleMs,
-          prizePool: Number(document.getElementById('tournamentPrizeInput').value) || 0,
-          entryFee: Number(document.getElementById('tournamentEntryFeeInput').value) || 0,
-          description: (document.getElementById('tournamentDescriptionTextarea').value || '').trim(),
-          status: 'pendiente',
-          organizer: { uid: user.uid, nick: nick },
-          creatorUid: user.uid,
-          registeredTeams: {},
-          outboundInvites: {},
-          createdAt: firebase.database.ServerValue.TIMESTAMP
-        });
+        await ref.set(buildTournamentPayload(d, id, user, nick));
         notify('success', 'Torneo creado. Ahora invita equipos desde el centro de gestión.');
         document.getElementById('tournamentCreationModal').style.display = 'none';
         form.reset();
+        setupCreateDefaults();
         if (onCreated) onCreated(id);
         openCommandCenter(id);
       } catch (err) {
+        showCreateErrors([err.message || 'No se pudo guardar el torneo.']);
         notify('error', err.message || 'No se pudo crear el torneo.');
       } finally {
         if (saveBtn) {
@@ -665,6 +903,7 @@
       var m = document.getElementById('tournamentCreationModal');
       if (m) {
         m.style.display = 'flex';
+        setupCreateDefaults();
         var nameInput = document.getElementById('tournamentNameInput');
         if (nameInput) setTimeout(function () { nameInput.focus(); }, 80);
       }

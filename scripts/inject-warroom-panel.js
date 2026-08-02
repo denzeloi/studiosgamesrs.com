@@ -17,7 +17,7 @@ const fs = require('fs');
 const path = require('path');
 
 const FILE = path.join(__dirname, '..', 'commander-panel.html');
-const VERSION = '20260731dual1';
+const VERSION = '20260801kickoff1';
 
 const CSS_LINK = `  <link rel="stylesheet" href="commander-warroom.css?v=${VERSION}">`;
 const SCRIPT_TAG = `  <script src="/commander-warroom.js?v=${VERSION}"></script>`;
